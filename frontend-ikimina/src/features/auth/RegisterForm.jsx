@@ -1,0 +1,465 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useRegisterMutation, useGetAllGroupsQuery } from '../../app/api/apiSlice';
+import { setCredentials } from './authSlice';
+import { useAppDispatch } from '../../app/hooks';
+import { toast } from 'react-toastify';
+import { FaUser, FaEnvelope, FaLock, FaArrowLeft, FaUserShield, FaChartPie, FaHandshake, FaPhone, FaUserTie, FaUsers } from 'react-icons/fa';
+import { motion } from 'framer-motion';
+import registerAnimation from '../../assets/register-animation.svg';
+
+export const RegisterForm = () => {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phoneNumber: '',
+    role: 'USER',
+    password: '',
+    confirmPassword: '',
+    savingsGroupId: '',
+  });
+  
+  // Fetch all savings groups
+  const { data: groups = [], isLoading: isLoadingGroups } = useGetAllGroupsQuery();
+  
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [register, { isLoading }] = useRegisterMutation({
+    // This will automatically refetch data after a successful registration
+    // and update the cache with the new user data
+    refetchOnMountOrArgChange: true,
+  });
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  
+  // Clear errors when form data changes
+  useEffect(() => {
+    if (Object.keys(errors).length > 0) {
+      setErrors({});
+    }
+  }, [formData]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.savingsGroupId) {
+      newErrors.savingsGroupId = 'Please select a savings group';
+    }
+    
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    }
+    
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    }
+    
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email is invalid';
+    }
+
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = 'Phone number is required';
+    } else if (!/^[0-9+\s-]{10,}$/.test(formData.phoneNumber)) {
+      newErrors.phoneNumber = 'Please enter a valid phone number';
+    }
+
+    if (!formData.role) {
+      newErrors.role = 'Please select a role';
+    }
+    
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+    
+    return newErrors;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    const formErrors = validateForm();
+    if (Object.keys(formErrors).length > 0) {
+      setErrors(formErrors);
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Include savings group in registration data if not admin
+      const registrationData = {
+        ...formData,
+        // Only include savingsGroupId if the user is not an admin
+        ...(formData.role !== 'ADMIN' && { savingsGroupId: formData.savingsGroupId })
+      };
+      
+      const userData = await register(registrationData).unwrap();
+      
+      // Include group info in credentials
+      dispatch(setCredentials({
+        ...userData,
+        savingsGroupId: formData.savingsGroupId,
+        savingsGroupName: groups.find(g => g.id === formData.savingsGroupId)?.name
+      }));
+      
+      toast.success('Registration successful!');
+      navigate('/dashboard');
+    } catch (err) {
+      const errorMessage = err?.data?.message || 'Registration failed. Please try again.';
+      toast.error(errorMessage);
+      setErrors({ submit: errorMessage });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-white flex">
+      {/* Left side with animation */}
+      <div className="hidden lg:flex flex-col justify-center items-center w-1/2 bg-gradient-to-br from-indigo-600 to-blue-600 p-12 text-white">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="max-w-md"
+        >
+          <h2 className="text-4xl font-bold mb-6">Join Ikimina Today</h2>
+          <p className="text-xl mb-8 text-indigo-100">Start your journey towards better financial management and community support.</p>
+          
+          <div className="space-y-6">
+            <div className="flex items-start">
+              <div className="bg-indigo-500 p-3 rounded-full mr-4">
+                <FaUserShield className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Secure & Private</h3>
+                <p className="text-indigo-100">Your data is encrypted and protected.</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start">
+              <div className="bg-indigo-500 p-3 rounded-full mr-4">
+                <FaChartPie className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Track Everything</h3>
+                <p className="text-indigo-100">Monitor your financial growth in real-time.</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start">
+              <div className="bg-indigo-500 p-3 rounded-full mr-4">
+                <FaHandshake className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Community Support</h3>
+                <p className="text-indigo-100">Join a community that grows together.</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-12">
+            <img 
+              src={registerAnimation} 
+              alt="Financial community illustration" 
+              className="w-full h-auto"
+            />
+          </div>
+        </motion.div>
+      </div>
+      
+      {/* Right side with registration form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 overflow-y-auto">
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="w-full max-w-md"
+        >
+          <div className="bg-white rounded-xl shadow-2xl p-8">
+            <div className="mb-8 text-center">
+              <Link to="/" className="inline-flex items-center text-indigo-600 hover:text-indigo-800 mb-4">
+                <FaArrowLeft className="mr-2" /> Back to Home
+              </Link>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Create an Account</h1>
+              <p className="text-gray-600">Join Ikimina and manage your finances with ease</p>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-4">
+                {/* Savings Group Selection */}
+                <div>
+                  <label htmlFor="savingsGroupId" className="block text-sm font-medium text-gray-700 mb-1">
+                    Savings Group
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FaUsers className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <select
+                      id="savingsGroupId"
+                      name="savingsGroupId"
+                      value={formData.savingsGroupId}
+                      onChange={handleChange}
+                      className={`block w-full pl-10 pr-3 py-2 border ${errors.savingsGroupId ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                      disabled={isLoadingGroups || formData.role === 'ADMIN'}
+                    >
+                      <option value="">Select a savings group</option>
+                      {groups.map(group => (
+                        <option key={group.id} value={group.id}>
+                          {group.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {errors.savingsGroupId && (
+                    <p className="mt-1 text-sm text-red-600">{errors.savingsGroupId}</p>
+                  )}
+                </div>
+
+                {/* First Name and Last Name */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                      First Name
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                        <FaUser className="h-5 w-5 text-indigo-400" />
+                      </div>
+                      <input
+                        id="firstName"
+                        name="firstName"
+                        type="text"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        className={`pl-10 pr-4 py-3 block w-full rounded-lg border ${
+                          errors.firstName ? 'border-red-300' : 'border-gray-300'
+                        } shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                        placeholder="John"
+                      />
+                    </div>
+                    {errors.firstName && (
+                      <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+                      Last Name
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                        <FaUser className="h-5 w-5 text-indigo-400" />
+                      </div>
+                      <input
+                        id="lastName"
+                        name="lastName"
+                        type="text"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        className={`pl-10 pr-4 py-3 block w-full rounded-lg border ${
+                          errors.lastName ? 'border-red-300' : 'border-gray-300'
+                        } shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                        placeholder="Doe"
+                      />
+                    </div>
+                    {errors.lastName && (
+                      <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                      <FaEnvelope className="h-5 w-5 text-indigo-400" />
+                    </div>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      className={`pl-10 pr-4 py-3 block w-full rounded-lg border ${
+                        errors.email ? 'border-red-300' : 'border-gray-300'
+                      } shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                      placeholder="you@example.com"
+                      value={formData.email}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                  )}
+                </div>
+
+                {/* Phone Number and Role */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                      Phone Number
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                        <FaPhone className="h-5 w-5 text-indigo-400" />
+                      </div>
+                      <input
+                        id="phoneNumber"
+                        name="phoneNumber"
+                        type="tel"
+                        value={formData.phoneNumber}
+                        onChange={handleChange}
+                        className={`pl-10 pr-4 py-3 block w-full rounded-lg border ${
+                          errors.phoneNumber ? 'border-red-300' : 'border-gray-300'
+                        } shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                        placeholder="+250 700 000 000"
+                      />
+                    </div>
+                    {errors.phoneNumber && (
+                      <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+                      Role
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                        <FaUserTie className="h-5 w-5 text-indigo-400" />
+                      </div>
+                      <select
+                        id="role"
+                        name="role"
+                        value={formData.role}
+                        onChange={handleChange}
+                        className={`pl-10 pr-4 py-3 block w-full rounded-lg border ${
+                          errors.role ? 'border-red-300' : 'border-gray-300'
+                        } shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none bg-white`}
+                      >
+                        <option value="">Select a role</option>
+                        <option value="USER">Member (Regular User)</option>
+                        <option value="ADMIN">Group Admin</option>
+                      </select>
+                    </div>
+                    {errors.role && (
+                      <p className="mt-1 text-sm text-red-600">{errors.role}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Password and Confirm Password */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                        <FaLock className="h-5 w-5 text-indigo-400" />
+                      </div>
+                      <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        autoComplete="new-password"
+                        className={`pl-10 pr-4 py-3 block w-full rounded-lg border ${
+                          errors.password ? 'border-red-300' : 'border-gray-300'
+                        } shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                        placeholder="••••••••"
+                        value={formData.password}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    {errors.password && (
+                      <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                      Confirm Password
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                        <FaLock className="h-5 w-5 text-indigo-400" />
+                      </div>
+                      <input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type="password"
+                        autoComplete="new-password"
+                        className={`pl-10 pr-4 py-3 block w-full rounded-lg border ${
+                          errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                        } shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                        placeholder="••••••••"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    {errors.confirmPassword && (
+                      <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isLoading || isSubmitting}
+                  className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 ${
+                    (isLoading || isSubmitting) ? 'opacity-70 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {isLoading || isSubmitting ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Creating Account...
+                    </>
+                  ) : 'Create Account'}
+                </button>
+              </div>
+              
+              <div className="text-center">
+                <p className="text-sm text-gray-600">
+                  Already have an account?{' '}
+                  <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+                    Sign in
+                  </Link>
+                </p>
+              </div>
+            </form>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+export default RegisterForm;

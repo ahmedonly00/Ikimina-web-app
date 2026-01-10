@@ -6,16 +6,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.ikimina.model.User;
-import com.example.ikimina.model.SavingsGroup;
 import com.example.ikimina.enums.Role;
 import com.example.ikimina.repository.UserRepository;
-import com.example.ikimina.repository.SavingsGroupRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
-import java.math.BigDecimal;
 
 @Component
 @RequiredArgsConstructor
@@ -23,7 +20,6 @@ import java.math.BigDecimal;
 public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
-    private final SavingsGroupRepository savingsGroupRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -48,7 +44,7 @@ public class DataInitializer implements CommandLineRunner {
         superAdmin.setLastName("Admin");
         superAdmin.setFullName("Super Admin");  // Set the full name
         superAdmin.setMemberNumber("SA001");  // Set member number
-        superAdmin.setPhoneNumber("+250788123456");
+        superAdmin.setPhoneNumber("+250782242930");
         superAdmin.setRole(Role.ROLE_SUPER_ADMIN);
         superAdmin.setActive(true);
         superAdmin.setCreatedAt(LocalDateTime.now());

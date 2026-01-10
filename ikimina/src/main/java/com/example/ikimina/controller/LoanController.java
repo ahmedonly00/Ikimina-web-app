@@ -15,12 +15,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.ikimina.dto.LoanDTO;
-import com.example.ikimina.model.Loans.LoanStatus;
+import com.example.ikimina.enums.LoanStatus;
 import com.example.ikimina.service.LoanService;
 
 @RestController
 @RequestMapping("/api/loans")
-@CrossOrigin(origins = "http://localhost:3000") 
+@CrossOrigin(origins = "*") 
 public class LoanController {
     
     @Autowired

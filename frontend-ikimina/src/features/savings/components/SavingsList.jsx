@@ -64,25 +64,37 @@ export const SavingsList = ({
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
+                    Member
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Date
                   </th>
                   <th
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
-                    Amount
+                    Ubwizigame
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Ingoboka
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Total
                   </th>
                   <th
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
                     Description
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Status
                   </th>
                   <th scope="col" className="relative px-6 py-3">
                     <span className="sr-only">Actions</span>
@@ -92,35 +104,42 @@ export const SavingsList = ({
               <tbody className="bg-white divide-y divide-gray-200">
                 {savings.map((saving) => (
                   <tr key={saving.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {format(new Date(saving.date), 'MMM dd, yyyy')}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{saving.memberName}</div>
+                        <div className="text-xs text-gray-500">{saving.memberNumber}</div>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ${parseFloat(saving.amount).toFixed(2)}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {format(new Date(saving.savingDate), 'MMM dd, yyyy')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-purple-600">
+                        ${saving.ubwizigameAmount.toLocaleString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-blue-600">
+                        ${saving.ingobokaAmount.toLocaleString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-gray-900">
+                        ${(saving.ubwizigameAmount + saving.ingobokaAmount).toLocaleString()}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {saving.description || 'No description'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          saving.status === 'COMPLETED'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}
-                      >
-                        {saving.status}
-                      </span>
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
-                        onClick={(e) => onEdit(saving)(e)}
+                        onClick={() => onEdit(saving)}
                         className="text-indigo-600 hover:text-indigo-900 mr-4"
                       >
                         <PencilIcon className="h-5 w-5" aria-hidden="true" />
                       </button>
                       <button
-                        onClick={(e) => onDelete(saving)(e)}
+                        onClick={() => onDelete(saving.id)}
                         className="text-red-600 hover:text-red-900"
                       >
                         <TrashIcon className="h-5 w-5" aria-hidden="true" />

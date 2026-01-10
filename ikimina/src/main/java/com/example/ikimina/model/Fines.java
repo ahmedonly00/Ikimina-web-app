@@ -10,9 +10,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.*;
 
 @Entity
 @Table(name = "fines")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor     
 public class Fines {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,56 +34,5 @@ public class Fines {
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-
-    public Fines() {
-    }
-
-    public Fines(Long id, String reason, Double amount, LocalDate date, User user) {
-        this.id = id;
-        this.reason = reason;
-        this.amount = amount;
-        this.date = date;
-        this.user = user;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public void setReason(String reason) {
-        this.reason = reason;
-    }
-
-    public Double getAmount() {
-        return amount;
-    }
-
-    public void setAmount(Double amount) {
-        this.amount = amount;
-    }
-
-    public LocalDate getDate() {
-        return date;
-    }
-
-    public void setDate(LocalDate date) {
-        this.date = date;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
 
 }

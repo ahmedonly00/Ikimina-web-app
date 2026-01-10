@@ -28,8 +28,8 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     @Bean
-    public UserDetailsService userDetailsService() {
-        return new CustomUserDetailsService();
+    public UserDetailsService userDetailsService(CustomUserDetailsService customUserDetailsService) {
+        return customUserDetailsService;
     }
 
     @Bean
@@ -51,6 +51,7 @@ public class SecurityConfig {
                     "/swagger-ui.html"
                 ).permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/user/**").hasRole("USER")
                 .anyRequest().authenticated()
             );
 

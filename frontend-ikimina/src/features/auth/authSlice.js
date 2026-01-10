@@ -6,7 +6,7 @@ const initialState = {
   isAuthenticated: false,
   loading: false,
   error: null,
-  currentGroup: null, // Current savings group info
+  currentGroup: null,
 };
 
 const authSlice = createSlice({
@@ -15,16 +15,17 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (state, action) => {
       const { user, token, savingsGroupId, savingsGroupName } = action.payload;
-      state.user = user || {}; // Handle case where user might be undefined
+      
+      state.user = user;
       state.token = token;
-      state.isAuthenticated = !!token;
+      state.isAuthenticated = true;
       state.error = null;
       
       // Set current group info if available
       if (savingsGroupId) {
         state.currentGroup = {
           id: savingsGroupId,
-          name: savingsGroupName || 'My Savings Group'
+          name: savingsGroupName
         };
       }
     },
@@ -38,6 +39,7 @@ const authSlice = createSlice({
       state.token = null;
       state.isAuthenticated = false;
       state.error = null;
+      state.currentGroup = null;
     },
     setLoading: (state, action) => {
       state.loading = action.payload;

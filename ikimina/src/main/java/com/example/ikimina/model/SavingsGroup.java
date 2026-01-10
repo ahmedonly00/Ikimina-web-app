@@ -1,6 +1,10 @@
 package com.example.ikimina.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -10,6 +14,9 @@ import java.util.Set;
 
 @Entity
 @Table(name = "savings_groups")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class SavingsGroup {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,52 +43,20 @@ public class SavingsGroup {
     
     @UpdateTimestamp
     private LocalDateTime updatedAt;
-
-    public SavingsGroup() {}
-
-    public SavingsGroup(String name, String description, User admin) {
-        this.name = name;
-        this.description = description;
-        this.admin = admin;
-    }
-
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
     
-    public User getAdmin() {
-        return admin;
-    }
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
     
-    public void setAdmin(User admin) {
-        this.admin = admin;
-    }
+    @Column(name = "is_suspended", nullable = false)
+    private Boolean isSuspended = false;
+    
+    @Column(name = "suspension_reason")
+    private String suspensionReason;
+    
+    @Column(name = "suspended_at")
+    private LocalDateTime suspendedAt;
 
-    public Set<User> getMembers() {
-        return members;
-    }
-    
+    //Helper methods to manage the relationship
     public void addMember(User user) {
         this.members.add(user);
         user.getMemberGroups().add(this);
@@ -91,12 +66,5 @@ public class SavingsGroup {
         this.members.remove(user);
         user.getMemberGroups().remove(this);
     }
-    
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
+     
 }

@@ -36,6 +36,25 @@ export const savingsApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Savings'],
     }),
+    createBulkSavings: builder.mutation({
+      query: (bulkData) => ({
+        url: '/savings/bulk',
+        method: 'POST',
+        body: bulkData,
+      }),
+      invalidatesTags: ['Savings'],
+    }),
+    getSavingsLedger: builder.query({
+      query: ({ userIds, startDate, endDate }) => ({
+        url: '/savings/ledger',
+        params: { userIds, startDate, endDate },
+      }),
+      providesTags: ['Savings'],
+    }),
+    getUsers: builder.query({
+      query: () => '/users/active',
+      providesTags: ['Users'],
+    }),
   }),
 });
 
@@ -45,4 +64,7 @@ export const {
   useCreateSavingMutation,
   useUpdateSavingMutation,
   useDeleteSavingMutation,
+  useCreateBulkSavingsMutation,
+  useGetSavingsLedgerQuery,
+  useGetUsersQuery,
 } = savingsApi;

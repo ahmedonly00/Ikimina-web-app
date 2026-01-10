@@ -27,18 +27,18 @@ public class FineController {
     @Autowired
     private FineService fineService;
     
-    @PostMapping
+    @PostMapping(value = "/create")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<FineDTO> createFine(@RequestBody FineDTO fineDTO) {
         return ResponseEntity.ok(fineService.createFine(fineDTO));
     }
     
-    @GetMapping("/user/{userId}")
+    @GetMapping(value = "/user/{userId}")
     public ResponseEntity<List<FineDTO>> getUserFines(@PathVariable Long userId) {
         return ResponseEntity.ok(fineService.getUserFines(userId));
     }
     
-    @GetMapping("/user/{userId}/total")
+    @GetMapping(value = "/user/{userId}/total")
     public ResponseEntity<Double> getUserTotalFines(
             @PathVariable Long userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,

@@ -1,20 +1,16 @@
 package com.example.ikimina.service;
 
 import com.example.ikimina.dto.UserDTO;
-import com.example.ikimina.model.SavingsGroup;
 import com.example.ikimina.model.User;
-import com.example.ikimina.repository.RoleRepository;
-import com.example.ikimina.repository.SavingsGroupRepository;
+import com.example.ikimina.enums.Role;
 import com.example.ikimina.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,11 +22,6 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
     
-    @Autowired
-    private SavingsGroupRepository savingsGroupRepository;
-    
-    @Autowired
-    private RoleRepository roleRepository;
     
     @Transactional
     public UserDTO createUser(UserDTO userDTO) {
@@ -52,25 +43,12 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         user.setActive(true);
         
-        // Set default role if not specified
-        Set<User.Role> roles = new HashSet<>();
-        if (userDTO.getRoleIds() != null && !userDTO.getRoleIds().isEmpty()) {
-            roles = roleRepository.findAllById(userDTO.getRoleIds())
-                .stream()
-                .collect(Collectors.toSet());
-        } else {
-            // Default role is ROLE_USER
-            User.Role userRole = roleRepository.findByName(User.RoleType.ROLE_USER)
-                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-            roles.add(userRole);
-        }
-        user.setRoles(roles);
+        // Set default role to ROLE_USER
+        user.setRole(Role.ROLE_USER);
         
         // If this is the first user, make them a super admin
         if (userRepository.count() == 0) {
-            User.Role adminRole = roleRepository.findByName(User.RoleType.ROLE_SUPER_ADMIN)
-                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-            user.getRoles().add(adminRole);
+            user.setRole(Role.ROLE_SUPER_ADMIN);
         }
         
         User savedUser = userRepository.save(user);
@@ -81,7 +59,8 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
-        user.setFullName(userDTO.getFullName());
+        user.setFirstName(userDTO.getFirstName());
+        user.setLastName(userDTO.getLastName());
         user.setPhoneNumber(userDTO.getPhoneNumber());
         if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
@@ -95,10 +74,9 @@ public class UserService {
         userRepository.deleteById(id);
     }
     
-    public UserDTO getUserById(Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        return convertToDTO(user);
+    public Optional<UserDTO> getUserById(Long id) {
+       return userRepository.findById(id)
+                .map(this::convertToDTO);
     }
     
     public List<UserDTO> getAllUsers() {
@@ -107,41 +85,94 @@ public class UserService {
                 .collect(Collectors.toList());
     }
     
+    public List<UserDTO> getAllActiveUsers() {
+        return userRepository.findByActive(true).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+    
+    public Optional<User> findByUsername(String username) {
+        // In this system, username is the same as email
+        return userRepository.findByEmail(username);
     }
     
     public boolean existsByEmailAndSavingsGroupId(String email, Long savingsGroupId) {
         return userRepository.existsByEmailAndSavingsGroupId(email, savingsGroupId);
     }
     
-    public List<User> getUsersBySavingsGroup(Long savingsGroupId) {
-        return userRepository.findBySavingsGroupId(savingsGroupId);
+    public List<UserDTO> getUsersBySavingsGroup(Long savingsGroupId) {
+        return userRepository.findBySavingsGroupId(savingsGroupId).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    public UserDTO getUserDTOById(Long id) {
+        return userRepository.findById(id)
+                .map(this::convertToDTO)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+    }
+
+    @Transactional
+    public UserDTO updateUserStatus(Long id, boolean active) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        
+        user.setActive(active);
+        User updatedUser = userRepository.save(user);
+        return convertToDTO(updatedUser);
+    }
+
+    @Transactional
+    public UserDTO addRoleToUser(Long userId, Long roleId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        Role role = Role.fromId(roleId)
+                .orElseThrow(() -> new RuntimeException("Invalid role ID: " + roleId));
+        
+        // Set the new role
+        user.setRole(role);
+        User updatedUser = userRepository.save(user);
+        return convertToDTO(updatedUser);
+    }
+    
+    @Transactional
+    public UserDTO removeRoleFromUser(Long userId, Long roleId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        Role role = Role.fromId(roleId)
+                .orElseThrow(() -> new RuntimeException("Invalid role ID: " + roleId));
+        
+        // Remove the role if it matches the current role
+        if (user.getRole() != null && user.getRole().equals(role)) {
+            user.setRole(null); // or set to a default role if needed
+            User updatedUser = userRepository.save(user);
+            return convertToDTO(updatedUser);
+        }
+        
+        return convertToDTO(user);
     }
     
     private UserDTO convertToDTO(User user) {
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setUsername(user.getUsername());
-        dto.setFirstName(user.getFirstName());
-        dto.setLastName(user.getLastName());
-        dto.setEmail(user.getEmail());
-        dto.setPhoneNumber(user.getPhoneNumber());
-        dto.setActive(user.isActive());
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(user.getId());
+        userDTO.setUsername(user.getUsername());
+        userDTO.setFirstName(user.getFirstName());
+        userDTO.setLastName(user.getLastName());
+        userDTO.setEmail(user.getEmail());
+        userDTO.setPhoneNumber(user.getPhoneNumber());
+        userDTO.setActive(user.isActive());
+        userDTO.setRole(user.getRole());
         
-        // Convert roles to role names
-        Set<String> roleNames = user.getRoles().stream()
-            .map(role -> role.getName().name())
-            .collect(Collectors.toSet());
-        dto.setRoles(roleNames);
-        
-        // Get first group if user is a member of any
-        Optional<SavingsGroup> firstGroup = user.getMemberGroups().stream().findFirst();
-        if (firstGroup.isPresent()) {
-            dto.setSavingsGroupId(firstGroup.get().getId());
-            dto.setSavingsGroupName(firstGroup.get().getName());
+        if (user.getMemberGroups() != null && !user.getMemberGroups().isEmpty()) {
+            userDTO.setSavingsGroupId(user.getMemberGroups().iterator().next().getId());
         }
         
-        return dto;
+        return userDTO;
     }
 }

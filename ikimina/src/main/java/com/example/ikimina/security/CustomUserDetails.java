@@ -27,7 +27,7 @@ public class CustomUserDetails implements UserDetails {
             user.getUsername(),
             user.getPassword(),
             user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName().name()))
+                .map(role -> new SimpleGrantedAuthority(role.name()))
                 .collect(java.util.stream.Collectors.toList()),
             user.getMemberGroups().stream()
                 .findFirst()

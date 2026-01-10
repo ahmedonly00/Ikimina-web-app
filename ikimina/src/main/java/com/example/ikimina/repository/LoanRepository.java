@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import com.example.ikimina.model.Loans;
 import com.example.ikimina.model.User;
-import com.example.ikimina.model.Loans.LoanStatus;
+import com.example.ikimina.enums.LoanStatus;
 
 @Repository
 public interface LoanRepository extends JpaRepository<Loans, Long> {

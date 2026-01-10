@@ -1,18 +1,17 @@
 package com.example.ikimina.controller;
 
 import com.example.ikimina.dto.UserDTO;
-import com.example.ikimina.model.User;
 import com.example.ikimina.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "*")
 public class UserController {
 
     @Autowired
@@ -22,6 +21,12 @@ public class UserController {
     @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
     public ResponseEntity<List<UserDTO>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
+    }
+
+    @GetMapping("/active")
+    @PreAuthorize("hasRole('ROLE_GROUP_ADMIN') or hasRole('ROLE_SUPER_ADMIN')")
+    public ResponseEntity<List<UserDTO>> getAllActiveUsers() {
+        return ResponseEntity.ok(userService.getAllActiveUsers());
     }
 
     @GetMapping("/{id}")
@@ -49,7 +54,7 @@ public class UserController {
     @GetMapping("/group/{groupId}")
     @PreAuthorize("hasRole('ROLE_GROUP_ADMIN')")
     public ResponseEntity<List<UserDTO>> getUsersByGroup(@PathVariable Long groupId) {
-        return ResponseEntity.ok(userService.getUsersByGroupId(groupId));
+        return ResponseEntity.ok(userService.getUsersBySavingsGroup(groupId));
     }
 
     @PostMapping("/{userId}/roles/{roleId}")

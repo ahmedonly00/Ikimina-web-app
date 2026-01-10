@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import com.example.ikimina.dto.ReportDTO;
 import com.example.ikimina.model.Reports;
 import com.example.ikimina.model.User;
-import com.example.ikimina.model.Reports.Period;
+import com.example.ikimina.enums.Period;
 import com.example.ikimina.repository.ReportRepository;
 import com.example.ikimina.repository.UserRepository;
 
@@ -92,4 +92,4 @@ public class ReportService {
                 report.getUser().getId()
         );
     }
-} 
+}

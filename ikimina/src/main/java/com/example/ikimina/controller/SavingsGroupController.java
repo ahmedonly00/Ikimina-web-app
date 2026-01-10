@@ -2,8 +2,8 @@ package com.example.ikimina.controller;
 
 import com.example.ikimina.dto.SavingsGroupDTO;
 import com.example.ikimina.model.SavingsGroup;
-import com.example.ikimina.model.User;
 import com.example.ikimina.service.GroupService;
+import com.example.ikimina.service.GroupAdminService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,10 +12,14 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/savings-groups")
+@CrossOrigin(origins = "*")
 public class SavingsGroupController {
 
     @Autowired
     private GroupService groupService;
+    
+    @Autowired
+    private GroupAdminService groupAdminService;
     
 
     @PostMapping
@@ -31,17 +35,20 @@ public class SavingsGroupController {
             group.setName(savingsGroupDTO.getName());
             group.setDescription(savingsGroupDTO.getDescription());
             
-            // Create admin user for this group
-            User adminUser = new User();
-            adminUser.setFullName(savingsGroupDTO.getAdminUserFullName());
-            adminUser.setEmail(savingsGroupDTO.getAdminUserEmail());
-            adminUser.setPassword(savingsGroupDTO.getAdminUserPassword());
-            adminUser.setPhoneNumber(savingsGroupDTO.getAdminUserPhoneNumber());
-            adminUser.setRole(User.Role.ADMIN);
+            // Save the group first
+            SavingsGroup savedGroup = groupService.createGroup(group, null);
             
-            // Save the group with the admin user
-            SavingsGroup createdGroup = groupService.createGroup(group, adminUser);
-            return ResponseEntity.ok(createdGroup);
+            // Create admin user for this group
+            GroupAdminService.GroupAdminRequest adminRequest = new GroupAdminService.GroupAdminRequest(
+                savingsGroupDTO.getAdminUserEmail(),
+                savingsGroupDTO.getAdminUserFirstName(),
+                savingsGroupDTO.getAdminUserLastName(),
+                savingsGroupDTO.getAdminUserPhoneNumber()
+            );
+            
+            groupAdminService.createGroupAdmin(savedGroup, adminRequest);
+            
+            return ResponseEntity.ok(savedGroup);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error creating group: " + e.getMessage());
         }

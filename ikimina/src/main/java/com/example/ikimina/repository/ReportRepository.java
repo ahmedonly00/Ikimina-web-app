@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import com.example.ikimina.model.Reports;
 import com.example.ikimina.model.User;
-import com.example.ikimina.model.Reports.Period;
+import com.example.ikimina.enums.Period;
 
 @Repository
 public interface ReportRepository extends JpaRepository<Reports, Long> {

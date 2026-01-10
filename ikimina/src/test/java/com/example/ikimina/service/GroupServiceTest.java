@@ -2,7 +2,6 @@ package com.example.ikimina.service;
 
 import com.example.ikimina.model.SavingsGroup;
 import com.example.ikimina.model.User;
-import com.example.ikimina.repository.RoleRepository;
 import com.example.ikimina.repository.SavingsGroupRepository;
 import com.example.ikimina.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,9 +25,6 @@ class GroupServiceTest {
 
     @Mock
     private UserRepository userRepository;
-    
-    @Mock
-    private RoleRepository roleRepository;
 
     @InjectMocks
     private GroupService groupService;
@@ -47,22 +43,18 @@ class GroupServiceTest {
         
         testUser = new User();
         testUser.setId(1L);
-        testUser.setUsername("testuser");
         testUser.setFirstName("Test");
         testUser.setLastName("User");
+        testUser.setFullName("Test User");
         testUser.setEmail("test@example.com");
+        testUser.setRole(com.example.ikimina.enums.Role.ROLE_GROUP_ADMIN);
         testUser.setActive(true);
     }
 
     @Test
     void createGroup() {
-        User.Role groupAdminRole = new User.Role();
-        groupAdminRole.setName(User.RoleType.ROLE_GROUP_ADMIN);
-        
         when(savingsGroupRepository.save(any(SavingsGroup.class))).thenReturn(testGroup);
         when(userRepository.save(any(User.class))).thenReturn(testUser);
-        when(roleRepository.findByName(User.RoleType.ROLE_GROUP_ADMIN))
-            .thenReturn(Optional.of(groupAdminRole));
 
         SavingsGroup createdGroup = groupService.createGroup(testGroup, testUser);
 
@@ -71,7 +63,6 @@ class GroupServiceTest {
         verify(userRepository, times(1)).save(testUser);
         verify(savingsGroupRepository, times(2)).save(testGroup); // Once for initial save, once after setting admin
         assertTrue(testUser.getMemberGroups().contains(testGroup));
-        assertTrue(testUser.getRoles().contains(groupAdminRole));
         assertEquals(testUser, testGroup.getAdmin());
     }
 

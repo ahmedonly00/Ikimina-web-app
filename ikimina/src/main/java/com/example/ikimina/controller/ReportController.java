@@ -13,12 +13,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.ikimina.dto.ReportDTO;
-import com.example.ikimina.model.Reports.Period;
+import com.example.ikimina.enums.Period;
 import com.example.ikimina.service.ReportService;
 
 @RestController
 @RequestMapping("/api/reports")
-@CrossOrigin(origins = "http://localhost:3000")     
+@CrossOrigin(origins = "*")     
 public class ReportController {
     
     @Autowired

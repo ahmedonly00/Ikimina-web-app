@@ -10,8 +10,9 @@ const schema = yup.object().shape({
     .required('Amount is required')
     .positive('Amount must be positive')
     .typeError('Amount must be a number'),
-  type: yup.string().oneOf(['DEPOSIT', 'WITHDRAWAL']).required('Type is required'),
+  type: yup.string().oneOf(['UBWIZIGAME', 'INGABOKE', 'BOTH', 'DEPOSIT', 'WITHDRAWAL']).required('Type is required'),
   description: yup.string(),
+  savingDate: yup.date().required('Date is required').default(new Date()),
 });
 
 export const SavingForm = ({
@@ -30,8 +31,9 @@ export const SavingForm = ({
     defaultValues: {
       memberId: '',
       amount: '',
-      type: 'DEPOSIT',
+      type: 'UBWIZIGAME',
       description: '',
+      savingDate: new Date().toISOString().split('T')[0],
       ...initialData,
     },
   });
@@ -41,8 +43,9 @@ export const SavingForm = ({
       reset({
         memberId: initialData.memberId || '',
         amount: initialData.amount || '',
-        type: initialData.type || 'DEPOSIT',
+        type: initialData.type || 'UBWIZIGAME',
         description: initialData.description || '',
+        savingDate: initialData.savingDate || new Date().toISOString().split('T')[0],
       });
     }
   }, [initialData, reset]);
@@ -60,7 +63,7 @@ export const SavingForm = ({
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
       <div>
         <label htmlFor="memberId" className="block text-sm font-medium text-gray-700">
-          Member
+          Select Member
         </label>
         <Controller
           name="memberId"
@@ -74,10 +77,12 @@ export const SavingForm = ({
               } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md`}
               disabled={isSubmitting}
             >
-              <option value="">Select a member</option>
-              {/* Replace with actual member options */}
-              <option value="1">John Doe</option>
-              <option value="2">Jane Smith</option>
+              <option value="">Select a member...</option>
+              {/* Replace with actual member options from API */}
+              <option value="1">John Doe - ID: MEM001</option>
+              <option value="2">Jane Smith - ID: MEM002</option>
+              <option value="3">Alice Johnson - ID: MEM003</option>
+              <option value="4">David Wilson - ID: MEM004</option>
             </select>
           )}
         />
@@ -117,8 +122,33 @@ export const SavingForm = ({
       </div>
 
       <div>
+        <label htmlFor="savingDate" className="block text-sm font-medium text-gray-700">
+          Saving Date
+        </label>
+        <Controller
+          name="savingDate"
+          control={control}
+          render={({ field }) => (
+            <input
+              {...field}
+              type="date"
+              id="savingDate"
+              max={new Date().toISOString().split('T')[0]}
+              className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border ${
+                errors.savingDate ? 'border-red-300' : 'border-gray-300'
+              } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md`}
+              disabled={isSubmitting}
+            />
+          )}
+        />
+        {errors.savingDate && (
+          <p className="mt-1 text-sm text-red-600">{errors.savingDate.message}</p>
+        )}
+      </div>
+
+      <div>
         <label htmlFor="type" className="block text-sm font-medium text-gray-700">
-          Transaction Type
+          Saving Type
         </label>
         <Controller
           name="type"
@@ -132,7 +162,10 @@ export const SavingForm = ({
               } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md`}
               disabled={isSubmitting}
             >
-              <option value="DEPOSIT">Deposit</option>
+              <option value="UBWIZIGAME">Ubwizigame (Regular Savings)</option>
+              <option value="INGABOKE">Ingaboke (Emergency Savings)</option>
+              <option value="BOTH">Both Types</option>
+              <option value="DEPOSIT">General Deposit</option>
               <option value="WITHDRAWAL">Withdrawal</option>
             </select>
           )}
@@ -140,6 +173,9 @@ export const SavingForm = ({
         {errors.type && (
           <p className="mt-1 text-sm text-red-600">{errors.type.message}</p>
         )}
+        <p className="mt-1 text-xs text-gray-500">
+          Select the type of savings to record for this member
+        </p>
       </div>
 
       <div>

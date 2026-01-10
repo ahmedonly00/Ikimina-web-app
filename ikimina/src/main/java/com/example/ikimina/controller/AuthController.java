@@ -2,6 +2,7 @@ package com.example.ikimina.controller;
 
 import com.example.ikimina.dto.LoginRequest;
 import com.example.ikimina.dto.UserDTO;
+import com.example.ikimina.model.User;
 import com.example.ikimina.security.CustomUserDetails;
 import com.example.ikimina.security.JwtTokenProvider;
 import com.example.ikimina.service.CustomUserDetailsService;
@@ -20,7 +21,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "*")
 public class AuthController {
     
     @Autowired
@@ -83,10 +84,16 @@ public class AuthController {
             response.put("type", "Bearer");
             
             // Add user details to the response
+            User user = userService.findByEmail(loginRequest.getEmail()).orElse(null);
             Map<String, Object> userInfo = new HashMap<>();
             userInfo.put("email", userDetails.getUsername());
+            userInfo.put("firstName", user != null ? user.getFirstName() : "");
+            userInfo.put("lastName", user != null ? user.getLastName() : "");
+            userInfo.put("role", user != null ? user.getRole().name() : "ROLE_USER");
             if (userDetails instanceof CustomUserDetails) {
                 userInfo.put("savingsGroupId", ((CustomUserDetails) userDetails).getSavingsGroupId());
+                userInfo.put("id", user != null ? user.getId() : null);
+                userInfo.put("memberNumber", user != null ? user.getMemberNumber() : "");
             }
             response.put("user", userInfo);
             

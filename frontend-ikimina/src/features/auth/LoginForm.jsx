@@ -61,32 +61,35 @@ export const LoginForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const validationErrors = validateForm();
     
-    const formErrors = validateForm();
-    if (Object.keys(formErrors).length > 0) {
-      setErrors(formErrors);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       return;
     }
-    
+
     try {
       setIsSubmitting(true);
-      // Include savingsGroupId in the login request
+      
+      // Use real login
       const loginData = {
         email: formData.email,
         password: formData.password,
         savingsGroupId: formData.savingsGroupId
       };
-      
       const userData = await login(loginData).unwrap();
+      
       dispatch(setCredentials({
-        ...userData,
-        savingsGroupId: formData.savingsGroupId
+        user: userData.user,
+        token: userData.token,
+        savingsGroupId: userData.user.savingsGroupId,
+        savingsGroupName: groups.find(g => g.id === userData.user.savingsGroupId)?.name || ''
       }));
       
       toast.success('Login successful!');
       navigate('/dashboard');
     } catch (err) {
-      const errorMessage = err?.data?.message || 'Login failed. Please check your credentials.';
+      const errorMessage = err?.data?.message || err?.data || 'Login failed. Please check your credentials.';
       toast.error(errorMessage);
       setErrors({ submit: errorMessage });
     } finally {
@@ -173,7 +176,7 @@ export const LoginForm = () => {
                   Savings Group
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
                     <FaUsers className="h-5 w-5 text-gray-400" />
                   </div>
                   <select
@@ -181,7 +184,7 @@ export const LoginForm = () => {
                     name="savingsGroupId"
                     value={formData.savingsGroupId}
                     onChange={handleChange}
-                    className={`block w-full pl-10 pr-3 py-2 border ${errors.savingsGroupId ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                    className={`block w-full pl-10 pr-10 py-2.5 border ${errors.savingsGroupId ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none`}
                     disabled={isLoadingGroups}
                   >
                     <option value="">Select a savings group</option>
@@ -202,17 +205,18 @@ export const LoginForm = () => {
                   Email Address
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
                     <FaEnvelope className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
                     type="email"
                     id="email"
                     name="email"
-                    value={formData.email}
+                    value={formData.email || ''}
                     onChange={handleChange}
-                    className={`block w-full pl-10 pr-3 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="Enter your email"
+                    className={`block w-full pl-10 pr-10 py-2.5 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                    disabled={isSubmitting}
                   />
                 </div>
                 {errors.email && (
@@ -225,17 +229,18 @@ export const LoginForm = () => {
                   Password
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
                     <FaLock className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
                     type="password"
                     id="password"
                     name="password"
-                    value={formData.password}
+                    value={formData.password || ''}
                     onChange={handleChange}
-                    className={`block w-full pl-10 pr-3 py-2 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                    className={`block w-full pl-10 pr-10 py-2.5 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     placeholder="Enter your password"
+                    disabled={isSubmitting}
                   />
                 </div>
                 {errors.password && (

@@ -4,7 +4,7 @@ import { useRegisterMutation, useGetAllGroupsQuery } from '../../app/api/apiSlic
 import { setCredentials } from './authSlice';
 import { useAppDispatch } from '../../app/hooks';
 import { toast } from 'react-toastify';
-import { FaUser, FaEnvelope, FaLock, FaArrowLeft, FaUserShield, FaChartPie, FaHandshake, FaPhone, FaUserTie, FaUsers } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaLock, FaArrowLeft, FaUserShield, FaChartPie, FaHandshake, FaPhone, FaUsers } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import registerAnimation from '../../assets/register-animation.svg';
 
@@ -14,7 +14,7 @@ export const RegisterForm = () => {
     lastName: '',
     email: '',
     phoneNumber: '',
-    role: 'USER',
+    role: 'MEMBER', // Fixed role for all signups
     password: '',
     confirmPassword: '',
     savingsGroupId: '',
@@ -76,7 +76,7 @@ export const RegisterForm = () => {
     }
 
     if (!formData.role) {
-      newErrors.role = 'Please select a role';
+      newErrors.role = 'Role is required';
     }
     
     if (!formData.password) {
@@ -104,11 +104,10 @@ export const RegisterForm = () => {
     try {
       setIsSubmitting(true);
       
-      // Include savings group in registration data if not admin
+      // Include savings group in registration data
       const registrationData = {
         ...formData,
-        // Only include savingsGroupId if the user is not an admin
-        ...(formData.role !== 'ADMIN' && { savingsGroupId: formData.savingsGroupId })
+        savingsGroupId: formData.savingsGroupId
       };
       
       const userData = await register(registrationData).unwrap();
@@ -141,7 +140,7 @@ export const RegisterForm = () => {
           transition={{ duration: 0.8 }}
           className="max-w-md"
         >
-          <h2 className="text-4xl font-bold mb-6">Join Ikimina Today</h2>
+          <h2 className="text-4xl font-bold mb-6">Join Ikimina as a Member</h2>
           <p className="text-xl mb-8 text-indigo-100">Start your journey towards better financial management and community support.</p>
           
           <div className="space-y-6">
@@ -199,8 +198,8 @@ export const RegisterForm = () => {
               <Link to="/" className="inline-flex items-center text-indigo-600 hover:text-indigo-800 mb-4">
                 <FaArrowLeft className="mr-2" /> Back to Home
               </Link>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Create an Account</h1>
-              <p className="text-gray-600">Join Ikimina and manage your finances with ease</p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Member Account</h1>
+              <p className="text-gray-600">Join your Ikimina savings group and manage your finances with ease</p>
             </div>
             
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -211,7 +210,7 @@ export const RegisterForm = () => {
                     Savings Group
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
                       <FaUsers className="h-5 w-5 text-gray-400" />
                     </div>
                     <select
@@ -219,8 +218,8 @@ export const RegisterForm = () => {
                       name="savingsGroupId"
                       value={formData.savingsGroupId}
                       onChange={handleChange}
-                      className={`block w-full pl-10 pr-3 py-2 border ${errors.savingsGroupId ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                      disabled={isLoadingGroups || formData.role === 'ADMIN'}
+                      className={`block w-full pl-14 pr-10 py-2.5 border ${errors.savingsGroupId ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none`}
+                      disabled={isLoadingGroups}
                     >
                       <option value="">Select a savings group</option>
                       {groups.map(group => (
@@ -242,8 +241,8 @@ export const RegisterForm = () => {
                       First Name
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
-                        <FaUser className="h-5 w-5 text-indigo-400" />
+                      <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                        <FaUser className="h-5 w-5 text-gray-400" />
                       </div>
                       <input
                         id="firstName"
@@ -251,9 +250,9 @@ export const RegisterForm = () => {
                         type="text"
                         value={formData.firstName}
                         onChange={handleChange}
-                        className={`pl-10 pr-4 py-3 block w-full rounded-lg border ${
-                          errors.firstName ? 'border-red-300' : 'border-gray-300'
-                        } shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                        className={`block w-full pl-14 pr-4 py-2.5 border ${
+                          errors.firstName ? 'border-red-500' : 'border-gray-300'
+                        } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                         placeholder="John"
                       />
                     </div>
@@ -267,8 +266,8 @@ export const RegisterForm = () => {
                       Last Name
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
-                        <FaUser className="h-5 w-5 text-indigo-400" />
+                      <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                        <FaUser className="h-5 w-5 text-gray-400" />
                       </div>
                       <input
                         id="lastName"
@@ -276,9 +275,9 @@ export const RegisterForm = () => {
                         type="text"
                         value={formData.lastName}
                         onChange={handleChange}
-                        className={`pl-10 pr-4 py-3 block w-full rounded-lg border ${
-                          errors.lastName ? 'border-red-300' : 'border-gray-300'
-                        } shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                        className={`block w-full pl-14 pr-4 py-2.5 border ${
+                          errors.lastName ? 'border-red-500' : 'border-gray-300'
+                        } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                         placeholder="Doe"
                       />
                     </div>
@@ -294,15 +293,15 @@ export const RegisterForm = () => {
                     Email Address
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
-                      <FaEnvelope className="h-5 w-5 text-indigo-400" />
+                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                      <FaEnvelope className="h-5 w-5 text-gray-400" />
                     </div>
                     <input
                       id="email"
                       name="email"
                       type="email"
                       autoComplete="email"
-                      className={`pl-10 pr-4 py-3 block w-full rounded-lg border ${
+                      className={`pl-14 pr-4 py-3 block w-full rounded-lg border ${
                         errors.email ? 'border-red-300' : 'border-gray-300'
                       } shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                       placeholder="you@example.com"
@@ -315,14 +314,13 @@ export const RegisterForm = () => {
                   )}
                 </div>
 
-                {/* Phone Number and Role */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                {/* Phone Number - Now full width */}
+                <div>
                     <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
                       Phone Number
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                      <div className="absolute inset-y-0 left-0 pl-5 flex items-center">
                         <FaPhone className="h-5 w-5 text-indigo-400" />
                       </div>
                       <input
@@ -331,43 +329,15 @@ export const RegisterForm = () => {
                         type="tel"
                         value={formData.phoneNumber}
                         onChange={handleChange}
-                        className={`pl-10 pr-4 py-3 block w-full rounded-lg border ${
+                        className={`pl-14 pr-4 py-3 block w-full rounded-lg border ${
                           errors.phoneNumber ? 'border-red-300' : 'border-gray-300'
                         } shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                         placeholder="+250 700 000 000"
                       />
                     </div>
-                    {errors.phoneNumber && (
-                      <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                      Role
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
-                        <FaUserTie className="h-5 w-5 text-indigo-400" />
-                      </div>
-                      <select
-                        id="role"
-                        name="role"
-                        value={formData.role}
-                        onChange={handleChange}
-                        className={`pl-10 pr-4 py-3 block w-full rounded-lg border ${
-                          errors.role ? 'border-red-300' : 'border-gray-300'
-                        } shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none bg-white`}
-                      >
-                        <option value="">Select a role</option>
-                        <option value="USER">Member (Regular User)</option>
-                        <option value="ADMIN">Group Admin</option>
-                      </select>
-                    </div>
-                    {errors.role && (
-                      <p className="mt-1 text-sm text-red-600">{errors.role}</p>
-                    )}
-                  </div>
+                  {errors.phoneNumber && (
+                    <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
+                  )}
                 </div>
 
                 {/* Password and Confirm Password */}
@@ -377,7 +347,7 @@ export const RegisterForm = () => {
                       Password
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                      <div className="absolute inset-y-0 left-0 pl-5 flex items-center">
                         <FaLock className="h-5 w-5 text-indigo-400" />
                       </div>
                       <input
@@ -385,7 +355,7 @@ export const RegisterForm = () => {
                         name="password"
                         type="password"
                         autoComplete="new-password"
-                        className={`pl-10 pr-4 py-3 block w-full rounded-lg border ${
+                        className={`pl-14 pr-4 py-3 block w-full rounded-lg border ${
                           errors.password ? 'border-red-300' : 'border-gray-300'
                         } shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                         placeholder="••••••••"
@@ -403,7 +373,7 @@ export const RegisterForm = () => {
                       Confirm Password
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                      <div className="absolute inset-y-0 left-0 pl-5 flex items-center">
                         <FaLock className="h-5 w-5 text-indigo-400" />
                       </div>
                       <input
@@ -411,7 +381,7 @@ export const RegisterForm = () => {
                         name="confirmPassword"
                         type="password"
                         autoComplete="new-password"
-                        className={`pl-10 pr-4 py-3 block w-full rounded-lg border ${
+                        className={`pl-14 pr-4 py-3 block w-full rounded-lg border ${
                           errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
                         } shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                         placeholder="••••••••"

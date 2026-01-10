@@ -17,11 +17,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.ikimina.dto.SavingsDTO;
+import com.example.ikimina.dto.BulkSavingsEntryDTO;
+import com.example.ikimina.dto.MemberSavingsLedgerDTO;
 import com.example.ikimina.service.SavingsService;
 
 @RestController
 @RequestMapping("/api/savings")
-@CrossOrigin(origins = "http://localhost:3000")     
+@CrossOrigin(origins = "*")     
 public class SavingsController {
     
     @Autowired
@@ -51,4 +53,19 @@ public class SavingsController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ResponseEntity.ok(savingsService.getTotalSavingsForDate(date));
     }
-} 
+    
+    @PostMapping("/bulk")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<SavingsDTO>> createBulkSavings(@RequestBody BulkSavingsEntryDTO bulkEntry) {
+        return ResponseEntity.ok(savingsService.createBulkSavings(bulkEntry));
+    }
+    
+    @GetMapping("/ledger")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<MemberSavingsLedgerDTO>> getSavingsLedger(
+            @RequestParam List<Long> userIds,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ResponseEntity.ok(savingsService.getMemberSavingsLedger(userIds, startDate, endDate));
+    }
+}

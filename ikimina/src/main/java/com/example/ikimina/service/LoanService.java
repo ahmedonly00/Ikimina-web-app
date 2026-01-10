@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import com.example.ikimina.dto.LoanDTO;
 import com.example.ikimina.model.Loans;
 import com.example.ikimina.model.User;
-import com.example.ikimina.model.Loans.LoanStatus;
+import com.example.ikimina.enums.LoanStatus;
 import com.example.ikimina.repository.LoanRepository;
 import com.example.ikimina.repository.UserRepository;
 

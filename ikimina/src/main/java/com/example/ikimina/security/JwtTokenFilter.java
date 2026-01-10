@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.example.ikimina.service.CustomUserDetailsService;
+
 import java.io.IOException;
 
 @Component
@@ -21,7 +23,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
     private final JwtTokenProvider tokenProvider;
     private final CustomUserDetailsService userDetailsService;
 
-    public JwtTokenFilter(JwtTokenProvider tokenProvider, CustomUserDetailsService userDetailsService) {
+    public JwtTokenFilter(JwtTokenProvider tokenProvider, com.example.ikimina.service.CustomUserDetailsService userDetailsService) {
         this.tokenProvider = tokenProvider;
         this.userDetailsService = userDetailsService;
     }

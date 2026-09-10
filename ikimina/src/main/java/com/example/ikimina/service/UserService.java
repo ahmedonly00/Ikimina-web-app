@@ -1,4 +1,6 @@
 package com.example.ikimina.service;
+import com.example.ikimina.exception.BusinessRuleException;
+import com.example.ikimina.exception.ResourceNotFoundException;
 
 import com.example.ikimina.dto.UserDTO;
 import com.example.ikimina.model.User;
@@ -14,6 +16,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional(readOnly = true)
 public class UserService {
     
     @Autowired
@@ -27,10 +30,10 @@ public class UserService {
     public UserDTO createUser(UserDTO userDTO) {
         // Check if username or email already exists
         if (userRepository.existsByUsername(userDTO.getUsername())) {
-            throw new RuntimeException("Username is already taken");
+            throw new BusinessRuleException("Username is already taken");
         }
         if (userRepository.existsByEmail(userDTO.getEmail())) {
-            throw new RuntimeException("Email is already in use");
+            throw new BusinessRuleException("Email is already in use");
         }
         
         // Create new user
@@ -55,9 +58,10 @@ public class UserService {
         return convertToDTO(savedUser);
     }
     
+    @Transactional
     public UserDTO updateUser(Long id, UserDTO userDTO) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
         user.setFirstName(userDTO.getFirstName());
         user.setLastName(userDTO.getLastName());
@@ -70,6 +74,7 @@ public class UserService {
         return convertToDTO(updatedUser);
     }
     
+    @Transactional
     public void deleteUser(Long id) {
         userRepository.deleteById(id);
     }
@@ -87,6 +92,19 @@ public class UserService {
     
     public List<UserDTO> getAllActiveUsers() {
         return userRepository.findByActive(true).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Active members of a single group.
+     *
+     * Not paged on purpose: the caller is populating a meeting sheet and needs
+     * every member, so truncating at a page boundary would silently drop people
+     * from a contribution round. It is bounded by group size instead.
+     */
+    public List<UserDTO> getActiveUsersForGroup(Long groupId) {
+        return userRepository.findActiveBySavingsGroupId(groupId).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -113,13 +131,13 @@ public class UserService {
     public UserDTO getUserDTOById(Long id) {
         return userRepository.findById(id)
                 .map(this::convertToDTO)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
     }
 
     @Transactional
     public UserDTO updateUserStatus(Long id, boolean active) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         
         user.setActive(active);
         User updatedUser = userRepository.save(user);
@@ -129,10 +147,10 @@ public class UserService {
     @Transactional
     public UserDTO addRoleToUser(Long userId, Long roleId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         
         Role role = Role.fromId(roleId)
-                .orElseThrow(() -> new RuntimeException("Invalid role ID: " + roleId));
+                .orElseThrow(() -> new BusinessRuleException("Invalid role ID: " + roleId));
         
         // Set the new role
         user.setRole(role);
@@ -143,10 +161,10 @@ public class UserService {
     @Transactional
     public UserDTO removeRoleFromUser(Long userId, Long roleId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         
         Role role = Role.fromId(roleId)
-                .orElseThrow(() -> new RuntimeException("Invalid role ID: " + roleId));
+                .orElseThrow(() -> new BusinessRuleException("Invalid role ID: " + roleId));
         
         // Remove the role if it matches the current role
         if (user.getRole() != null && user.getRole().equals(role)) {

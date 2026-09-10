@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useGetCyclesByGroupQuery, useGetCurrentCycleQuery, useStartNewCycleMutation, useCalculatePayoutsMutation } from '../savingsCycleApi';
-import { FaCalendarAlt, FaPlus, FaCalculator, FaDollarSign, FaUsers, FaClock } from 'react-icons/fa';
+import {
+  useGetCyclesByGroupQuery,
+  useGetCurrentCycleQuery,
+  useStartNewCycleMutation,
+  useCalculatePayoutsMutation,
+} from '../savingsCycleApi';
+import {
+  FaCalendarAlt,
+  FaPlus,
+  FaCalculator,
+  FaDollarSign,
+  FaUsers,
+  FaClock,
+} from 'react-icons/fa';
 import Button from '../../../components/ui/Button';
 import toast from 'react-hot-toast';
 
@@ -27,7 +39,7 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
     }
   };
 
-  const handleCalculatePayouts = async (cycleId) => {
+  const handleCalculatePayouts = async cycleId => {
     try {
       await calculatePayouts(cycleId).unwrap();
       toast.success('Payouts calculated successfully!');
@@ -36,7 +48,7 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = status => {
     switch (status) {
       case 'ACTIVE':
         return 'text-green-600 bg-green-100';
@@ -49,7 +61,7 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
     }
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = dateString => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -57,7 +69,7 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
     });
   };
 
-  const getDaysRemaining = (endDate) => {
+  const getDaysRemaining = endDate => {
     const today = new Date();
     const end = new Date(endDate);
     const diffTime = end - today;
@@ -66,25 +78,27 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
   };
 
   if (cyclesLoading) {
-    return <div className="flex justify-center items-center h-64">Loading cycles...</div>;
+    return <div className='flex justify-center items-center h-64'>Loading cycles...</div>;
   }
 
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       {/* Header */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex justify-between items-center">
+      <div className='bg-white p-6 rounded-lg shadow'>
+        <div className='flex justify-between items-center'>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">{groupName} - Savings Cycles</h2>
-            <p className="text-sm text-gray-500 mt-1">Manage 6-month savings cycles and member payouts</p>
+            <h2 className='text-2xl font-bold text-gray-900'>{groupName} - Savings Cycles</h2>
+            <p className='text-sm text-gray-500 mt-1'>
+              Manage 6-month savings cycles and member payouts
+            </p>
           </div>
           {!currentCycle && (
             <Button
               onClick={handleStartNewCycle}
               disabled={isStarting}
-              className="bg-green-600 hover:bg-green-700"
+              className='bg-green-600 hover:bg-green-700'
             >
-              <FaPlus className="mr-2" />
+              <FaPlus className='mr-2' />
               Start New Cycle
             </Button>
           )}
@@ -93,15 +107,18 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
 
       {/* Current Cycle Alert */}
       {currentCycle && (
-        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <FaClock className="h-5 w-5 text-blue-400" />
+        <div className='bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg'>
+          <div className='flex'>
+            <div className='flex-shrink-0'>
+              <FaClock className='h-5 w-5 text-blue-400' />
             </div>
-            <div className="ml-3">
-              <p className="text-sm text-blue-700">
-                <strong>Active Cycle:</strong> {formatDate(currentCycle.startDate)} - {formatDate(currentCycle.endDate)}
-                <span className="ml-2">({getDaysRemaining(currentCycle.endDate)} days remaining)</span>
+            <div className='ml-3'>
+              <p className='text-sm text-blue-700'>
+                <strong>Active Cycle:</strong> {formatDate(currentCycle.startDate)} -{' '}
+                {formatDate(currentCycle.endDate)}
+                <span className='ml-2'>
+                  ({getDaysRemaining(currentCycle.endDate)} days remaining)
+                </span>
               </p>
             </div>
           </div>
@@ -109,10 +126,10 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
       )}
 
       {/* Cycle Tabs */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8 px-6" aria-label="Tabs">
-            {cycles?.map((cycle) => (
+      <div className='bg-white rounded-lg shadow'>
+        <div className='border-b border-gray-200'>
+          <nav className='-mb-px flex space-x-8 px-6' aria-label='Tabs'>
+            {cycles?.map(cycle => (
               <button
                 key={cycle.id}
                 onClick={() => {
@@ -127,10 +144,12 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <div className="flex items-center space-x-2">
-                  <FaCalendarAlt className="h-4 w-4" />
+                <div className='flex items-center space-x-2'>
+                  <FaCalendarAlt className='h-4 w-4' />
                   <span>{formatDate(cycle.startDate)}</span>
-                  <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(cycle.status)}`}>
+                  <span
+                    className={`px-2 py-1 text-xs rounded-full ${getStatusColor(cycle.status)}`}
+                  >
                     {cycle.status}
                   </span>
                 </div>
@@ -141,58 +160,62 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
 
         {/* Cycle Details */}
         {selectedCycle && (
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 bg-green-100 rounded-md p-3">
-                    <FaDollarSign className="h-6 w-6 text-green-600" />
+          <div className='p-6'>
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6'>
+              <div className='bg-gray-50 rounded-lg p-4'>
+                <div className='flex items-center'>
+                  <div className='flex-shrink-0 bg-green-100 rounded-md p-3'>
+                    <FaDollarSign className='h-6 w-6 text-green-600' />
                   </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Total Ubwizigame</p>
-                    <p className="text-2xl font-semibold text-gray-900">
+                  <div className='ml-4'>
+                    <p className='text-sm font-medium text-gray-500'>Total Ubwizigame</p>
+                    <p className='text-2xl font-semibold text-gray-900'>
                       ${selectedCycle.totalUbwizigameCollected?.toLocaleString() || 0}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 bg-blue-100 rounded-md p-3">
-                    <FaDollarSign className="h-6 w-6 text-blue-600" />
+              <div className='bg-gray-50 rounded-lg p-4'>
+                <div className='flex items-center'>
+                  <div className='flex-shrink-0 bg-blue-100 rounded-md p-3'>
+                    <FaDollarSign className='h-6 w-6 text-blue-600' />
                   </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Total Ingoboka</p>
-                    <p className="text-2xl font-semibold text-gray-900">
+                  <div className='ml-4'>
+                    <p className='text-sm font-medium text-gray-500'>Total Ingoboka</p>
+                    <p className='text-2xl font-semibold text-gray-900'>
                       ${selectedCycle.totalIngobokaCollected?.toLocaleString() || 0}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 bg-purple-100 rounded-md p-3">
-                    <FaDollarSign className="h-6 w-6 text-purple-600" />
+              <div className='bg-gray-50 rounded-lg p-4'>
+                <div className='flex items-center'>
+                  <div className='flex-shrink-0 bg-purple-100 rounded-md p-3'>
+                    <FaDollarSign className='h-6 w-6 text-purple-600' />
                   </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">To Distribute</p>
-                    <p className="text-2xl font-semibold text-gray-900">
-                      ${(selectedCycle.totalUbwizigameCollected - selectedCycle.totalUbwizigameDistributed).toLocaleString()}
+                  <div className='ml-4'>
+                    <p className='text-sm font-medium text-gray-500'>To Distribute</p>
+                    <p className='text-2xl font-semibold text-gray-900'>
+                      $
+                      {(
+                        selectedCycle.totalUbwizigameCollected -
+                        selectedCycle.totalUbwizigameDistributed
+                      ).toLocaleString()}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 bg-yellow-100 rounded-md p-3">
-                    <FaUsers className="h-6 w-6 text-yellow-600" />
+              <div className='bg-gray-50 rounded-lg p-4'>
+                <div className='flex items-center'>
+                  <div className='flex-shrink-0 bg-yellow-100 rounded-md p-3'>
+                    <FaUsers className='h-6 w-6 text-yellow-600' />
                   </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Members</p>
-                    <p className="text-2xl font-semibold text-gray-900">
+                  <div className='ml-4'>
+                    <p className='text-sm font-medium text-gray-500'>Members</p>
+                    <p className='text-2xl font-semibold text-gray-900'>
                       {selectedCycle.memberPayouts?.length || 0}
                     </p>
                   </div>
@@ -201,14 +224,14 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end space-x-3">
+            <div className='flex justify-end space-x-3'>
               {selectedCycle.status === 'COMPLETED' && (
                 <Button
                   onClick={() => handleCalculatePayouts(selectedCycle.id)}
                   disabled={isCalculating}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className='bg-blue-600 hover:bg-blue-700'
                 >
-                  <FaCalculator className="mr-2" />
+                  <FaCalculator className='mr-2' />
                   Calculate Payouts
                 </Button>
               )}

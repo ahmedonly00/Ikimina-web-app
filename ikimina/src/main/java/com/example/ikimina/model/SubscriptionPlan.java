@@ -1,5 +1,7 @@
 package com.example.ikimina.model;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -14,8 +16,8 @@ public class SubscriptionPlan {
     @Column(nullable = false, unique = true)
     private String name;
     
-    @Column(nullable = false)
-    private Double monthlyPrice;
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal monthlyPrice;
     
     @Column(name = "currency", nullable = false)
     private String currency = "RWF";

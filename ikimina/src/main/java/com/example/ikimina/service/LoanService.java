@@ -1,10 +1,13 @@
 package com.example.ikimina.service;
+import com.example.ikimina.exception.ResourceNotFoundException;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.example.ikimina.dto.LoanDTO;
@@ -14,7 +17,10 @@ import com.example.ikimina.enums.LoanStatus;
 import com.example.ikimina.repository.LoanRepository;
 import com.example.ikimina.repository.UserRepository;
 
+import org.springframework.transaction.annotation.Transactional;
+
 @Service
+@Transactional(readOnly = true)
 public class LoanService {
     
     @Autowired
@@ -26,9 +32,10 @@ public class LoanService {
     @Autowired
     private FineService fineService;
     
+    @Transactional
     public LoanDTO requestLoan(LoanDTO loanDTO) {
         User user = userRepository.findById(loanDTO.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
         Loans loan = new Loans();
         loan.setAmount(loanDTO.getAmount());
@@ -42,18 +49,26 @@ public class LoanService {
         return convertToDTO(savedLoan);
     }
     
+    @Transactional
     public LoanDTO updateLoanStatus(Long loanId, LoanStatus status) {
         Loans loan = loanRepository.findById(loanId)
-                .orElseThrow(() -> new RuntimeException("Loan not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Loan not found"));
         
         loan.setStatus(status);
         Loans updatedLoan = loanRepository.save(loan);
         return convertToDTO(updatedLoan);
     }
     
+    /** Paged history. Member histories grow without bound over a group's life. */
+    public Page<LoanDTO> getUserLoansPaged(Long userId, Pageable pageable) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return loanRepository.findByUser(user, pageable).map(this::convertToDTO);
+    }
+
     public List<LoanDTO> getUserLoans(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
         return loanRepository.findByUser(user).stream()
                 .map(this::convertToDTO)
@@ -66,6 +81,7 @@ public class LoanService {
                 .collect(Collectors.toList());
     }
     
+    @Transactional
     public void checkAndUpdateOverdueLoans() {
         List<Loans> overdueLoans = loanRepository.findByDueDateBeforeAndStatus(LocalDate.now(), LoanStatus.APPROVED);
         

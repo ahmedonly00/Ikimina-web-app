@@ -26,6 +26,12 @@ module.exports = {
     'react-hooks/rules-of-hooks': 'error',
     'react-hooks/exhaustive-deps': 'warn',
     'prettier/prettier': 'error',
+    // A leading underscore marks a binding that is intentionally unused
+    // (e.g. an RTK Query arg kept for signature clarity).
+    'no-unused-vars': [
+      'error',
+      { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+    ],
   },
   settings: {
     react: {

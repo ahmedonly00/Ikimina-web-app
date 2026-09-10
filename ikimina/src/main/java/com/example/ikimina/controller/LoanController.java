@@ -2,10 +2,15 @@ package com.example.ikimina.controller;
 
 import java.util.List;
 
+import jakarta.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,40 +25,44 @@ import com.example.ikimina.service.LoanService;
 
 @RestController
 @RequestMapping("/api/loans")
-@CrossOrigin(origins = "*") 
 public class LoanController {
-    
+
     @Autowired
     private LoanService loanService;
-    
+
     @PostMapping("/request")
-    public ResponseEntity<LoanDTO> requestLoan(@RequestBody LoanDTO loanDTO) {
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','GROUP_ADMIN') or @userSecurity.hasAccessToUser(authentication, #loanDTO.userId)")
+    public ResponseEntity<LoanDTO> requestLoan(@Valid @RequestBody LoanDTO loanDTO) {
         return ResponseEntity.ok(loanService.requestLoan(loanDTO));
     }
-    
+
+    // Approving your own loan must not be possible: group admins and above only.
     @PutMapping("/{loanId}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','GROUP_ADMIN')")
     public ResponseEntity<LoanDTO> updateLoanStatus(
             @PathVariable Long loanId,
             @RequestBody LoanStatus status) {
         return ResponseEntity.ok(loanService.updateLoanStatus(loanId, status));
     }
-    
+
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<LoanDTO>> getUserLoans(@PathVariable Long userId) {
-        return ResponseEntity.ok(loanService.getUserLoans(userId));
+    @PreAuthorize("@userSecurity.hasAccessToUser(authentication, #userId)")
+    public ResponseEntity<Page<LoanDTO>> getUserLoans(
+            @PathVariable Long userId,
+            @PageableDefault(size = 25, sort = "requestDate", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(loanService.getUserLoansPaged(userId, pageable));
     }
-    
+
     @GetMapping("/overdue")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','GROUP_ADMIN')")
     public ResponseEntity<List<LoanDTO>> getOverdueLoans() {
         return ResponseEntity.ok(loanService.getOverdueLoans());
     }
-    
+
     @PostMapping("/check-overdue")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','GROUP_ADMIN')")
     public ResponseEntity<Void> checkAndUpdateOverdueLoans() {
         loanService.checkAndUpdateOverdueLoans();
         return ResponseEntity.ok().build();
     }
-} 
+}

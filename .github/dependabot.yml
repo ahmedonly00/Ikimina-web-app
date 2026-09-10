@@ -1,0 +1,50 @@
+version: 2
+updates:
+  # Java dependencies. Grouped so a Spring Boot bump arrives as one reviewable
+  # PR rather than thirty.
+  - package-ecosystem: maven
+    directory: /ikimina
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      spring:
+        patterns:
+          - "org.springframework*"
+          - "org.springframework.boot*"
+      test:
+        patterns:
+          - "org.junit*"
+          - "org.mockito*"
+
+  - package-ecosystem: npm
+    directory: /frontend-ikimina
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-router*"
+      tooling:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+          - "eslint*"
+          - "prettier"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+
+  - package-ecosystem: docker
+    directory: /ikimina
+    schedule:
+      interval: monthly
+  - package-ecosystem: docker
+    directory: /frontend-ikimina
+    schedule:
+      interval: monthly

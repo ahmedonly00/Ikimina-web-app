@@ -1,5 +1,7 @@
 package com.example.ikimina.model;
 
+import java.math.BigDecimal;
+
 import java.time.LocalDate;
 
 import jakarta.persistence.Column;
@@ -25,8 +27,8 @@ public class Fines {
     @Column(nullable = false)
     private String reason;
 
-    @Column(nullable = false)
-    private Double amount;
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal amount;
 
     @Column(nullable = false)
     private LocalDate date;

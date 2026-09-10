@@ -1,5 +1,7 @@
 package com.example.ikimina.dto;
 
+import java.math.BigDecimal;
+
 import java.time.LocalDate;
 
 import com.example.ikimina.enums.Period;
@@ -16,8 +18,8 @@ public class ReportDTO {
     private Period period;
     private LocalDate fromDate;
     private LocalDate toDate;
-    private Double totalSavings;
-    private Double totalFines;
+    private BigDecimal totalSavings;
+    private BigDecimal totalFines;
     private LocalDate generatedOn;
     private Long userId;
 }

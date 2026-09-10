@@ -106,19 +106,22 @@ class GroupServiceTest {
     }
 
     @Test
-    void deleteGroup_ShouldRemoveGroupAndUsers() {
-        // Arrange
-        when(userRepository.findBySavingsGroupId(1L)).thenReturn(Arrays.asList(testUser));
-        doNothing().when(savingsGroupRepository).deleteById(1L);
+    void deleteGroup_ShouldDetachMembersAndDeleteGroup() {
+        // Arrange: the group has one member, who is also its admin.
+        testUser.addMemberGroup(testGroup);
+        testGroup.setAdmin(testUser);
+        testUser.getAdminOfGroups().add(testGroup);
+        when(savingsGroupRepository.findById(1L)).thenReturn(Optional.of(testGroup));
 
         // Act
         groupService.deleteGroup(1L);
 
         // Assert
-        verify(userRepository, times(1)).findBySavingsGroupId(1L);
+        verify(savingsGroupRepository, times(1)).findById(1L);
         verify(userRepository, times(1)).save(testUser);
-        verify(savingsGroupRepository, times(1)).deleteById(1L);
-        assertNull(testUser.getSavingsGroup());
+        verify(savingsGroupRepository, times(1)).delete(testGroup);
+        assertFalse(testUser.getMemberGroups().contains(testGroup));
+        assertFalse(testUser.getAdminOfGroups().contains(testGroup));
     }
 
     @Test

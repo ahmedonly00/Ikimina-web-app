@@ -1,4 +1,8 @@
 package com.example.ikimina.service;
+import java.math.BigDecimal;
+import com.example.ikimina.money.Money;
+import com.example.ikimina.exception.BusinessRuleException;
+import com.example.ikimina.exception.ResourceNotFoundException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -46,12 +50,12 @@ public class SavingsCycleService {
     
     public SavingsCycleDTO createNewCycle(Long savingsGroupId) {
         SavingsGroup group = savingsGroupRepository.findById(savingsGroupId)
-            .orElseThrow(() -> new RuntimeException("Savings group not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Savings group not found"));
         
         // Check if there's an active cycle
         Optional<SavingsCycle> activeCycle = savingsCycleRepository.findBySavingsGroupAndStatus(group, CycleStatus.ACTIVE);
         if (activeCycle.isPresent()) {
-            throw new RuntimeException("Group already has an active savings cycle");
+            throw new BusinessRuleException("Group already has an active savings cycle");
         }
         
         SavingsCycle cycle = new SavingsCycle();
@@ -64,67 +68,77 @@ public class SavingsCycleService {
         return convertToDTO(cycle);
     }
     
+    /**
+     * Computes each member's payout for a completed cycle and records the cycle
+     * totals.
+     *
+     * All arithmetic is BigDecimal. The group totals are derived by summing the
+     * same per-member figures that are written to each payout row, so the cycle
+     * total always equals the sum of member balances exactly - see
+     * SavingsCycleServiceTest for the reconciliation property.
+     */
     public SavingsCycleDTO calculateCyclePayouts(Long cycleId) {
         SavingsCycle cycle = savingsCycleRepository.findById(cycleId)
-            .orElseThrow(() -> new RuntimeException("Savings cycle not found"));
-        
+            .orElseThrow(() -> new ResourceNotFoundException("Savings cycle not found"));
+
         if (cycle.getStatus() != CycleStatus.COMPLETED) {
-            throw new RuntimeException("Cycle must be completed before calculating payouts");
+            throw new BusinessRuleException("Cycle must be completed before calculating payouts");
         }
-        
-        // Get all members in the group
+
         List<User> members = userRepository.findBySavingsGroupId(cycle.getSavingsGroup().getId());
-        
-        // Calculate totals for each member
-        double totalUbwizigameCollected = 0.0;
-        double totalIngobokaCollected = 0.0;
-        
+
+        BigDecimal totalUbwizigameCollected = BigDecimal.ZERO;
+        BigDecimal totalIngobokaCollected = BigDecimal.ZERO;
+
         for (User member : members) {
-            // Get all savings for this member during the cycle period
             List<Savings> memberSavings = savingsRepository.findByUserIdAndDateBetween(
                 member.getId(), cycle.getStartDate(), cycle.getEndDate()
             );
-            
-            double memberUbwizigame = 0.0;
-            double memberIngoboka = 0.0;
-            
+
+            BigDecimal memberUbwizigame = BigDecimal.ZERO;
+            BigDecimal memberIngoboka = BigDecimal.ZERO;
+
             for (Savings saving : memberSavings) {
                 if (saving.getType() == SavingsType.UBWIZIGAME) {
-                    memberUbwizigame += saving.getAmount();
-                    totalUbwizigameCollected += saving.getAmount();
+                    memberUbwizigame = memberUbwizigame.add(saving.getAmount());
                 } else if (saving.getType() == SavingsType.INGOBOKA) {
-                    memberIngoboka += saving.getAmount();
-                    totalIngobokaCollected += saving.getAmount();
+                    memberIngoboka = memberIngoboka.add(saving.getAmount());
                 }
             }
-            
-            // Create or update member payout
+
+            memberUbwizigame = Money.of(memberUbwizigame);
+            memberIngoboka = Money.of(memberIngoboka);
+
+            // Group totals are the sum of exactly what each member is credited,
+            // so the two can never disagree.
+            totalUbwizigameCollected = totalUbwizigameCollected.add(memberUbwizigame);
+            totalIngobokaCollected = totalIngobokaCollected.add(memberIngoboka);
+
             MemberPayout payout = memberPayoutRepository.findBySavingsCycleAndMember(cycle, member)
                 .orElse(new MemberPayout());
-            
+
             payout.setSavingsCycle(cycle);
             payout.setMember(member);
             payout.setTotalUbwizigame(memberUbwizigame);
             payout.setTotalIngoboka(memberIngoboka);
             payout.setPayoutAmount(memberUbwizigame); // Only Ubwizigame is paid out
             payout.setStatus(PayoutStatus.PENDING);
-            
+
             memberPayoutRepository.save(payout);
         }
-        
-        // Update cycle totals
-        cycle.setTotalUbwizigameCollected(totalUbwizigameCollected);
-        cycle.setTotalIngobokaCollected(totalIngobokaCollected);
+
+        cycle.setTotalUbwizigameCollected(Money.of(totalUbwizigameCollected));
+        cycle.setTotalIngobokaCollected(Money.of(totalIngobokaCollected));
         cycle.setStatus(CycleStatus.DISTRIBUTED);
         cycle.setDistributedAt(LocalDate.now());
-        
+
         cycle = savingsCycleRepository.save(cycle);
         return convertToDTO(cycle);
     }
     
     public List<SavingsCycleDTO> getCyclesByGroup(Long savingsGroupId) {
         SavingsGroup group = savingsGroupRepository.findById(savingsGroupId)
-            .orElseThrow(() -> new RuntimeException("Savings group not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Savings group not found"));
         
         return savingsCycleRepository.findBySavingsGroupOrderByStartDateDesc(group)
             .stream()
@@ -134,7 +148,7 @@ public class SavingsCycleService {
     
     public SavingsCycleDTO getCurrentCycle(Long savingsGroupId) {
         SavingsGroup group = savingsGroupRepository.findById(savingsGroupId)
-            .orElseThrow(() -> new RuntimeException("Savings group not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Savings group not found"));
         
         Optional<SavingsCycle> activeCycle = savingsCycleRepository.findBySavingsGroupAndStatus(group, CycleStatus.ACTIVE);
         return activeCycle.map(this::convertToDTO).orElse(null);
@@ -142,7 +156,7 @@ public class SavingsCycleService {
     
     public List<MemberPayoutDTO> getMemberPayouts(Long cycleId) {
         SavingsCycle cycle = savingsCycleRepository.findById(cycleId)
-            .orElseThrow(() -> new RuntimeException("Savings cycle not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Savings cycle not found"));
         
         return memberPayoutRepository.findBySavingsCycle(cycle)
             .stream()
@@ -152,7 +166,7 @@ public class SavingsCycleService {
     
     public void markPayoutAsPaid(Long payoutId) {
         MemberPayout payout = memberPayoutRepository.findById(payoutId)
-            .orElseThrow(() -> new RuntimeException("Payout not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Payout not found"));
         
         payout.setStatus(PayoutStatus.PAID);
         payout.setPaidAt(LocalDate.now());
@@ -160,7 +174,7 @@ public class SavingsCycleService {
         // Update cycle distributed total
         SavingsCycle cycle = payout.getSavingsCycle();
         cycle.setTotalUbwizigameDistributed(
-            cycle.getTotalUbwizigameDistributed() + payout.getPayoutAmount()
+            Money.add(cycle.getTotalUbwizigameDistributed(), payout.getPayoutAmount())
         );
         
         savingsCycleRepository.save(cycle);

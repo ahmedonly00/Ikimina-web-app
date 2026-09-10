@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logging configuration.
+
+  Development keeps the readable console pattern. Production emits one JSON
+  object per line so logs are queryable in an aggregator rather than
+  grep-only - and so a stack trace stays attached to its event instead of
+  being split across lines.
+
+  Every line carries requestId (see RequestIdFilter), which is what makes it
+  possible to reconstruct a single member's request across services.
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProfile name="!prod">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} %-5level [%X{requestId:-no-request}] %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="prod">
+        <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeMdcKeyName>requestId</includeMdcKeyName>
+                <includeMdcKeyName>userId</includeMdcKeyName>
+                <timeZone>UTC</timeZone>
+                <fieldNames>
+                    <timestamp>@timestamp</timestamp>
+                    <message>message</message>
+                    <thread>thread</thread>
+                    <logger>logger</logger>
+                    <levelValue>[ignore]</levelValue>
+                </fieldNames>
+                <!--
+                  Field-level redaction. Anything that looks like a credential or
+                  a bearer token must not reach the log stream: under Rwanda's
+                  Law 058/2021 that is a reportable incident, and it is how the
+                  group-admin passwords leaked before.
+                -->
+                <jsonGeneratorDecorator class="net.logstash.logback.decorate.MaskingJsonGeneratorDecorator">
+                    <defaultMask>****</defaultMask>
+                    <path>password</path>
+                    <path>token</path>
+                    <path>secret</path>
+                    <path>authorization</path>
+                    <path>temporaryPassword</path>
+                    <path>adminTemporaryPassword</path>
+                </jsonGeneratorDecorator>
+            </encoder>
+        </appender>
+        <root level="WARN">
+            <appender-ref ref="JSON"/>
+        </root>
+        <logger name="com.example.ikimina" level="INFO"/>
+    </springProfile>
+</configuration>

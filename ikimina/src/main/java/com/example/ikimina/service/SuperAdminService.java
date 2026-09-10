@@ -1,10 +1,13 @@
 package com.example.ikimina.service;
+import com.example.ikimina.exception.ResourceNotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,13 +42,13 @@ public class SuperAdminService {
     private AuditLogRepository auditRepository;
     
     // Group Management
-    public List<SavingsGroup> getAllGroups() {
-        return groupRepository.findAll();
+    public Page<SavingsGroup> getAllGroups(Pageable pageable) {
+        return groupRepository.findAll(pageable);
     }
     
     public SavingsGroup activateGroup(Long groupId, String reason, Long activatedBy) {
         SavingsGroup group = groupRepository.findById(groupId)
-            .orElseThrow(() -> new RuntimeException("Group not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
         
         if (!group.getIsActive()) {
             group.setIsActive(true);
@@ -59,7 +62,7 @@ public class SuperAdminService {
     
     public SavingsGroup suspendGroup(Long groupId, String reason, Long suspendedBy) {
         SavingsGroup group = groupRepository.findById(groupId)
-            .orElseThrow(() -> new RuntimeException("Group not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
         
         if (group.getIsActive()) {
             group.setIsActive(false);
@@ -84,7 +87,7 @@ public class SuperAdminService {
     
     public SavingsGroup forceReadOnlyMode(Long groupId, String reason, Long activatedBy) {
         SavingsGroup group = groupRepository.findById(groupId)
-            .orElseThrow(() -> new RuntimeException("Group not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
         
         group.setIsSuspended(true);
         group.setSuspensionReason("READ_ONLY: " + reason);
@@ -97,13 +100,13 @@ public class SuperAdminService {
     }
     
     // User Management
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    public Page<User> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable);
     }
     
     public User promoteToGroupAdmin(Long userId, Long promotedBy) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
         if (user.getRole() != Role.ROLE_GROUP_ADMIN) {
             String oldRole = user.getRole().name();
@@ -118,7 +121,7 @@ public class SuperAdminService {
     
     public User demoteFromGroupAdmin(Long userId, Long demotedBy) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
         if (user.getRole() == Role.ROLE_GROUP_ADMIN) {
             String oldRole = user.getRole().name();
@@ -133,7 +136,7 @@ public class SuperAdminService {
     
     public User suspendUser(Long userId, String reason, Long suspendedBy) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
         if (user.isActive()) {
             user.setActive(false);
@@ -147,7 +150,7 @@ public class SuperAdminService {
     
     public User reactivateUser(Long userId, String reason, Long reactivatedBy) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
         if (!user.isActive()) {
             user.setActive(true);
@@ -171,7 +174,7 @@ public class SuperAdminService {
     
     public SubscriptionPlan updateSubscriptionPlan(SubscriptionPlan plan, Long updatedBy) {
         SubscriptionPlan existing = planRepository.findById(plan.getId())
-            .orElseThrow(() -> new RuntimeException("Plan not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Plan not found"));
         
         // Log changes
         logAction("SUBSCRIPTION_PLAN", plan.getId(), "UPDATE", 
@@ -193,20 +196,24 @@ public class SuperAdminService {
     }
     
     // Audit Logs
-    public List<AuditLog> getAuditLogs(String entityType, LocalDateTime since) {
+    /**
+     * Audit history, newest first. Paged because this table grows with every
+     * money movement and previously returned the whole thing, filtered in
+     * memory in the application.
+     */
+    public Page<AuditLog> getAuditLogs(String entityType, LocalDateTime since, Pageable pageable) {
         if (entityType != null && since != null) {
-            return auditRepository.findByCreatedAtBetween(since, LocalDateTime.now())
-                .stream()
-                .filter(log -> entityType.equals(log.getEntityType()))
-                .collect(Collectors.toList());
-        } else if (entityType != null) {
-            return auditRepository.findByEntityType(entityType);
-        } else if (since != null) {
-            return auditRepository.findByCreatedAtBetween(since, LocalDateTime.now());
+            return auditRepository.findByEntityTypeAndCreatedAtAfterOrderByCreatedAtDesc(
+                    entityType, since, pageable);
         }
-        return auditRepository.findAll();
-    }
-    
+        if (entityType != null) {
+            return auditRepository.findByEntityTypeOrderByCreatedAtDesc(entityType, pageable);
+        }
+        if (since != null) {
+            return auditRepository.findByCreatedAtAfterOrderByCreatedAtDesc(since, pageable);
+        }
+        return auditRepository.findAllByOrderByCreatedAtDesc(pageable);
+    }    
     // Global Settings
     public void updateGlobalSettings(String key, String value, Long updatedBy) {
         // This would typically use a settings table

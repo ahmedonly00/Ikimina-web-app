@@ -1,10 +1,14 @@
 package com.example.ikimina.model;
 
+import java.math.BigDecimal;
+
 import java.time.LocalDate;
 
 import com.example.ikimina.enums.SavingsType;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -26,10 +30,11 @@ public class Savings {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Double amount;
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal amount;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private SavingsType type;
 
     @Column(nullable = false)

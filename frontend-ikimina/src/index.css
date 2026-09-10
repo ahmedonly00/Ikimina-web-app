@@ -4,15 +4,26 @@
 
 /* Custom base styles */
 @layer base {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
   }
-  
-  html, body {
+
+  html,
+  body {
     @apply bg-gray-50 text-gray-900 m-0 p-0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family:
+      'Inter',
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow: hidden;
@@ -24,7 +35,7 @@
   .dark {
     color-scheme: dark;
   }
-  
+
   .dark html,
   .dark body {
     @apply bg-gray-900 text-gray-100;
@@ -174,7 +185,10 @@
     @apply text-indigo-600 hover:text-indigo-800 transition-colors duration-200;
   }
 
-  button, [type='button'], [type='reset'], [type='submit'] {
+  button,
+  [type='button'],
+  [type='reset'],
+  [type='submit'] {
     @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
   }
 

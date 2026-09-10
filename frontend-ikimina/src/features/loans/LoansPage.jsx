@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import QueryError from '../../components/ui/QueryError';
 import Modal from '../../components/ui/Modal';
-import { FaDollarSign, FaEdit, FaCheckCircle, FaClock, FaTimesCircle } from 'react-icons/fa';
+import { FaMoneyBillWave, FaEdit, FaCheckCircle, FaClock, FaTimesCircle } from 'react-icons/fa';
 import { useAppContext } from '../../contexts/AppContext';
 import {
   useGetLoansQuery,
@@ -14,6 +14,7 @@ import {
 } from '../../app/api/apiSlice';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../auth/authSlice';
+import { formatCurrency } from '../../i18n';
 
 const LoansPage = () => {
   const location = useLocation();
@@ -116,9 +117,9 @@ const LoansPage = () => {
 
   const getStatusBadge = status => {
     const styles = {
-      PENDING: 'bg-yellow-100 text-yellow-800',
-      APPROVED: 'bg-green-100 text-green-800',
-      REJECTED: 'bg-red-100 text-red-800',
+      PENDING: 'bg-warning-subtle text-warning',
+      APPROVED: 'bg-success-subtle text-success',
+      REJECTED: 'bg-danger-subtle text-danger',
     };
     const icons = {
       PENDING: <FaClock className='mr-1' />,
@@ -147,17 +148,15 @@ const LoansPage = () => {
   );
 
   return (
-    <div className='h-full w-full overflow-y-auto bg-gray-50'>
+    <div className='h-full w-full overflow-y-auto bg-bg'>
       <div className='px-2 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-full xl:max-w-7xl mx-auto'>
         <QueryError error={error} onRetry={refetch} title='Could not load loans' />
         {/* Header with stats */}
         <div className='mb-6'>
           <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 space-y-4 sm:space-y-0'>
             <div>
-              <h1 className='text-xl sm:text-2xl font-bold text-gray-800'>
-                {t('loansManagement')}
-              </h1>
-              <p className='mt-1 text-sm text-gray-500'>{t('loansManagementDescription')}</p>
+              <h1 className='text-xl sm:text-2xl font-bold text-fg'>{t('loansManagement')}</h1>
+              <p className='mt-1 text-sm text-fg-muted'>{t('loansManagementDescription')}</p>
             </div>
             <Button
               onClick={() => setIsModalOpen(true)}
@@ -186,56 +185,54 @@ const LoansPage = () => {
 
           {/* Stats Cards */}
           <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
-            <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
+            <div className='bg-surface rounded-lg shadow p-4 sm:p-6'>
               <div className='flex items-center'>
-                <div className='flex-shrink-0 bg-indigo-100 rounded-md p-3'>
-                  <FaDollarSign className='h-6 w-6 text-indigo-600' />
+                <div className='flex-shrink-0 bg-primary-subtle rounded-md p-3'>
+                  <FaMoneyBillWave className='h-6 w-6 text-primary' />
                 </div>
                 <div className='ml-4'>
-                  <p className='text-sm font-medium text-gray-500'>{t('totalApproved')}</p>
-                  <p className='text-2xl font-semibold text-gray-900'>
-                    ${totalLoans.toLocaleString()}
-                  </p>
+                  <p className='text-sm font-medium text-fg-muted'>{t('totalApproved')}</p>
+                  <p className='text-2xl font-semibold text-fg'>{formatCurrency(totalLoans)}</p>
                 </div>
               </div>
             </div>
 
-            <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
+            <div className='bg-surface rounded-lg shadow p-4 sm:p-6'>
               <div className='flex items-center'>
-                <div className='flex-shrink-0 bg-yellow-100 rounded-md p-3'>
-                  <FaClock className='h-6 w-6 text-yellow-600' />
+                <div className='flex-shrink-0 bg-warning-subtle rounded-md p-3'>
+                  <FaClock className='h-6 w-6 text-warning' />
                 </div>
                 <div className='ml-4'>
-                  <p className='text-sm font-medium text-gray-500'>{t('pending')}</p>
-                  <p className='text-2xl font-semibold text-gray-900'>
+                  <p className='text-sm font-medium text-fg-muted'>{t('pending')}</p>
+                  <p className='text-2xl font-semibold text-fg'>
                     {loans.filter(l => l.status === 'PENDING').length}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
+            <div className='bg-surface rounded-lg shadow p-4 sm:p-6'>
               <div className='flex items-center'>
-                <div className='flex-shrink-0 bg-green-100 rounded-md p-3'>
-                  <FaCheckCircle className='h-6 w-6 text-green-600' />
+                <div className='flex-shrink-0 bg-success-subtle rounded-md p-3'>
+                  <FaCheckCircle className='h-6 w-6 text-success' />
                 </div>
                 <div className='ml-4'>
-                  <p className='text-sm font-medium text-gray-500'>{t('approved')}</p>
-                  <p className='text-2xl font-semibold text-gray-900'>
+                  <p className='text-sm font-medium text-fg-muted'>{t('approved')}</p>
+                  <p className='text-2xl font-semibold text-fg'>
                     {loans.filter(l => l.status === 'APPROVED').length}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
+            <div className='bg-surface rounded-lg shadow p-4 sm:p-6'>
               <div className='flex items-center'>
-                <div className='flex-shrink-0 bg-red-100 rounded-md p-3'>
-                  <FaTimesCircle className='h-6 w-6 text-red-600' />
+                <div className='flex-shrink-0 bg-danger-subtle rounded-md p-3'>
+                  <FaTimesCircle className='h-6 w-6 text-danger' />
                 </div>
                 <div className='ml-4'>
-                  <p className='text-sm font-medium text-gray-500'>{t('rejected')}</p>
-                  <p className='text-2xl font-semibold text-gray-900'>
+                  <p className='text-sm font-medium text-fg-muted'>{t('rejected')}</p>
+                  <p className='text-2xl font-semibold text-fg'>
                     {loans.filter(l => l.status === 'REJECTED').length}
                   </p>
                 </div>
@@ -245,54 +242,54 @@ const LoansPage = () => {
         </div>
 
         {/* Loans Table */}
-        <div className='bg-white shadow overflow-hidden sm:rounded-lg'>
+        <div className='bg-surface shadow overflow-hidden sm:rounded-lg'>
           <div className='overflow-x-auto'>
-            <table className='min-w-full divide-y divide-gray-200'>
-              <thead className='bg-gray-50'>
+            <table className='min-w-full divide-y divide-border'>
+              <thead className='bg-bg'>
                 <tr>
-                  <th className='px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  <th className='px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider'>
                     {t('member')}
                   </th>
-                  <th className='px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  <th className='px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider'>
                     {t('amount')}
                   </th>
-                  <th className='px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  <th className='px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider'>
                     {t('interest')}
                   </th>
-                  <th className='px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  <th className='px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider'>
                     {t('term')}
                   </th>
-                  <th className='px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  <th className='px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider'>
                     {t('purpose')}
                   </th>
-                  <th className='px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  <th className='px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider'>
                     {t('status')}
                   </th>
-                  <th className='px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  <th className='px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider'>
                     {t('actions')}
                   </th>
                 </tr>
               </thead>
-              <tbody className='bg-white divide-y divide-gray-200'>
+              <tbody className='bg-surface divide-y divide-border'>
                 {loans.map(loan => (
-                  <tr key={loan.id} className='hover:bg-gray-50'>
+                  <tr key={loan.id} className='hover:bg-bg'>
                     <td className='px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap'>
                       <div>
-                        <div className='text-sm font-medium text-gray-900'>{loan.memberName}</div>
-                        <div className='text-xs text-gray-500'>{loan.memberNumber}</div>
+                        <div className='text-sm font-medium text-fg'>{loan.memberName}</div>
+                        <div className='text-xs text-fg-muted'>{loan.memberNumber}</div>
                       </div>
                     </td>
                     <td className='px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap'>
-                      <div className='text-sm text-gray-900'>${loan.amount.toLocaleString()}</div>
+                      <div className='text-sm text-fg'>{formatCurrency(loan.amount)}</div>
                     </td>
                     <td className='px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap'>
-                      <div className='text-sm text-gray-900'>{loan.interestRate}%</div>
+                      <div className='text-sm text-fg'>{loan.interestRate}%</div>
                     </td>
                     <td className='px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap'>
-                      <div className='text-sm text-gray-900'>{loan.term} months</div>
+                      <div className='text-sm text-fg'>{loan.term} months</div>
                     </td>
                     <td className='px-3 sm:px-4 lg:px-6 py-3 sm:py-4'>
-                      <div className='text-sm text-gray-900 truncate max-w-xs'>{loan.purpose}</div>
+                      <div className='text-sm text-fg truncate max-w-xs'>{loan.purpose}</div>
                     </td>
                     <td className='px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap'>
                       {getStatusBadge(loan.status)}
@@ -303,14 +300,14 @@ const LoansPage = () => {
                           <>
                             <button
                               onClick={() => handleStatusChange(loan.id, 'APPROVED')}
-                              className='text-green-600 hover:text-green-900'
+                              className='text-success hover:opacity-80'
                               title={t('approve')}
                             >
                               <FaCheckCircle />
                             </button>
                             <button
                               onClick={() => handleStatusChange(loan.id, 'REJECTED')}
-                              className='text-red-600 hover:text-red-900'
+                              className='text-danger hover:opacity-80'
                               title={t('reject')}
                             >
                               <FaTimesCircle />
@@ -319,7 +316,7 @@ const LoansPage = () => {
                         )}
                         <button
                           onClick={() => handleEdit(loan)}
-                          className='text-indigo-600 hover:text-indigo-900'
+                          className='text-primary hover:text-primary'
                           title={t('edit')}
                         >
                           <FaEdit />
@@ -328,6 +325,17 @@ const LoansPage = () => {
                     </td>
                   </tr>
                 ))}
+                {/* Without this the table rendered its headers above a large
+                    blank area, which reads as a failed load rather than as
+                    "there is nothing here yet". */}
+                {!loansLoading && loans.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className='px-6 py-12 text-center'>
+                      <p className='text-sm font-medium text-fg'>{t('noLoans')}</p>
+                      <p className='mt-1 text-sm text-fg-muted'>{t('noLoansHint')}</p>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -352,13 +360,13 @@ const LoansPage = () => {
         >
           <form onSubmit={handleSubmit} className='space-y-4'>
             <div>
-              <label className='block text-sm font-medium text-gray-700'>{t('member')}</label>
+              <label className='block text-sm font-medium text-fg'>{t('member')}</label>
               <select
                 name='memberId'
                 value={formData.memberId}
                 onChange={handleInputChange}
                 required
-                className='mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md'
+                className='mt-1 block w-full pl-3 pr-10 py-2 text-base border-border focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md'
                 disabled={busy}
               >
                 <option value=''>{t('selectMember')}</option>
@@ -371,7 +379,7 @@ const LoansPage = () => {
 
             <div className='grid grid-cols-2 gap-4'>
               <div>
-                <label className='block text-sm font-medium text-gray-700'>{t('amount')} ($)</label>
+                <label className='block text-sm font-medium text-fg'>{t('amount')} ($)</label>
                 <input
                   type='number'
                   name='amount'
@@ -379,14 +387,12 @@ const LoansPage = () => {
                   onChange={handleInputChange}
                   required
                   min='1'
-                  className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                  className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                   disabled={busy}
                 />
               </div>
               <div>
-                <label className='block text-sm font-medium text-gray-700'>
-                  {t('interestRate')} (%)
-                </label>
+                <label className='block text-sm font-medium text-fg'>{t('interestRate')} (%)</label>
                 <input
                   type='number'
                   name='interestRate'
@@ -396,14 +402,14 @@ const LoansPage = () => {
                   min='0'
                   max='100'
                   step='0.1'
-                  className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                  className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                   disabled={busy}
                 />
               </div>
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700'>
+              <label className='block text-sm font-medium text-fg'>
                 {t('term')} ({t('months')})
               </label>
               <input
@@ -413,20 +419,20 @@ const LoansPage = () => {
                 onChange={handleInputChange}
                 required
                 min='1'
-                className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                 disabled={busy}
               />
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700'>{t('purpose')}</label>
+              <label className='block text-sm font-medium text-fg'>{t('purpose')}</label>
               <textarea
                 name='purpose'
                 value={formData.purpose}
                 onChange={handleInputChange}
                 required
                 rows={3}
-                className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                 disabled={busy}
                 placeholder={t('loanPurposePlaceholder')}
               />
@@ -434,12 +440,12 @@ const LoansPage = () => {
 
             {currentLoan && (
               <div>
-                <label className='block text-sm font-medium text-gray-700'>{t('status')}</label>
+                <label className='block text-sm font-medium text-fg'>{t('status')}</label>
                 <select
                   name='status'
                   value={formData.status}
                   onChange={handleInputChange}
-                  className='mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md'
+                  className='mt-1 block w-full pl-3 pr-10 py-2 text-base border-border focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md'
                   disabled={busy}
                 >
                   <option value='PENDING'>{t('pending')}</option>
@@ -457,14 +463,14 @@ const LoansPage = () => {
                   setCurrentLoan(null);
                 }}
                 disabled={busy}
-                className='bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50'
+                className='bg-surface py-2 px-4 border border-border rounded-md shadow-sm text-sm font-medium text-fg hover:bg-bg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50'
               >
                 {t('cancel')}
               </button>
               <button
                 type='submit'
                 disabled={busy}
-                className='inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50'
+                className='inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50'
               >
                 {isLoading
                   ? t('processing')

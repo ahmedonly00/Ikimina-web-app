@@ -12,6 +12,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.validation.ConstraintViolationException;
 
@@ -84,6 +85,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
         return problem(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    /**
+     * An unmapped URL is a 404, not a server fault. Without this it fell
+     * through to the catch-all below, which answered 500 and logged a full
+     * stack trace - so a client typo, a stale frontend build calling a route
+     * that no longer exists, or a bot probing for /wp-login.php all looked
+     * like the application had broken.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ProblemDetail handleNoResource(NoResourceFoundException ex) {
+        log.debug("No handler for {}", ex.getResourcePath());
+        return problem(HttpStatus.NOT_FOUND, "No endpoint matches this path");
     }
 
     /**

@@ -60,7 +60,7 @@ export const SavingForm = ({ initialData = {}, onSubmit, isSubmitting = false, o
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className='space-y-6'>
       <div>
-        <label htmlFor='memberId' className='block text-sm font-medium text-gray-700'>
+        <label htmlFor='memberId' className='block text-sm font-medium text-fg'>
           Select Member
         </label>
         <Controller
@@ -71,8 +71,8 @@ export const SavingForm = ({ initialData = {}, onSubmit, isSubmitting = false, o
               {...field}
               id='memberId'
               className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border ${
-                errors.memberId ? 'border-red-300' : 'border-gray-300'
-              } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md`}
+                errors.memberId ? 'border-red-300' : 'border-border'
+              } focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md`}
               disabled={isSubmitting}
             >
               <option value=''>Select a member...</option>
@@ -88,12 +88,12 @@ export const SavingForm = ({ initialData = {}, onSubmit, isSubmitting = false, o
       </div>
 
       <div>
-        <label htmlFor='amount' className='block text-sm font-medium text-gray-700'>
+        <label htmlFor='amount' className='block text-sm font-medium text-fg'>
           Amount
         </label>
         <div className='mt-1 relative rounded-md shadow-sm'>
           <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-            <span className='text-gray-500 sm:text-sm'>$</span>
+            <span className='text-fg-muted sm:text-sm'>RWF</span>
           </div>
           <Controller
             name='amount'
@@ -103,10 +103,12 @@ export const SavingForm = ({ initialData = {}, onSubmit, isSubmitting = false, o
                 {...field}
                 type='text'
                 id='amount'
-                className={`block w-full pl-7 pr-12 sm:text-sm border ${
-                  errors.amount ? 'border-red-300' : 'border-gray-300'
-                } rounded-md focus:ring-indigo-500 focus:border-indigo-500`}
-                placeholder='0.00'
+                // pl-14 clears the "RWF" prefix; pl-7 only cleared a "$".
+                className={`block w-full rounded-md border py-2 pl-14 pr-4 sm:text-sm ${
+                  errors.amount ? 'border-danger' : 'border-border'
+                } bg-surface text-fg focus:border-primary focus:ring-primary`}
+                // Rwandan francs have no minor unit in everyday use.
+                placeholder='0'
                 disabled={isSubmitting}
               />
             )}
@@ -116,7 +118,7 @@ export const SavingForm = ({ initialData = {}, onSubmit, isSubmitting = false, o
       </div>
 
       <div>
-        <label htmlFor='savingDate' className='block text-sm font-medium text-gray-700'>
+        <label htmlFor='savingDate' className='block text-sm font-medium text-fg'>
           Saving Date
         </label>
         <Controller
@@ -129,8 +131,8 @@ export const SavingForm = ({ initialData = {}, onSubmit, isSubmitting = false, o
               id='savingDate'
               max={new Date().toISOString().split('T')[0]}
               className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border ${
-                errors.savingDate ? 'border-red-300' : 'border-gray-300'
-              } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md`}
+                errors.savingDate ? 'border-red-300' : 'border-border'
+              } focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md`}
               disabled={isSubmitting}
             />
           )}
@@ -141,7 +143,7 @@ export const SavingForm = ({ initialData = {}, onSubmit, isSubmitting = false, o
       </div>
 
       <div>
-        <label htmlFor='type' className='block text-sm font-medium text-gray-700'>
+        <label htmlFor='type' className='block text-sm font-medium text-fg'>
           Saving Type
         </label>
         <Controller
@@ -152,8 +154,8 @@ export const SavingForm = ({ initialData = {}, onSubmit, isSubmitting = false, o
               {...field}
               id='type'
               className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border ${
-                errors.type ? 'border-red-300' : 'border-gray-300'
-              } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md`}
+                errors.type ? 'border-red-300' : 'border-border'
+              } focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md`}
               disabled={isSubmitting}
             >
               <option value='UBWIZIGAME'>Ubwizigame (Regular Savings)</option>
@@ -165,13 +167,13 @@ export const SavingForm = ({ initialData = {}, onSubmit, isSubmitting = false, o
           )}
         />
         {errors.type && <p className='mt-1 text-sm text-red-600'>{errors.type.message}</p>}
-        <p className='mt-1 text-xs text-gray-500'>
+        <p className='mt-1 text-xs text-fg-muted'>
           Select the type of savings to record for this member
         </p>
       </div>
 
       <div>
-        <label htmlFor='description' className='block text-sm font-medium text-gray-700'>
+        <label htmlFor='description' className='block text-sm font-medium text-fg'>
           Description (Optional)
         </label>
         <div className='mt-1'>
@@ -183,8 +185,8 @@ export const SavingForm = ({ initialData = {}, onSubmit, isSubmitting = false, o
                 {...field}
                 id='description'
                 rows={3}
-                className={`shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border ${
-                  errors.description ? 'border-red-300' : 'border-gray-300'
+                className={`shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border ${
+                  errors.description ? 'border-red-300' : 'border-border'
                 } rounded-md`}
                 placeholder='Add a description...'
                 disabled={isSubmitting}
@@ -202,14 +204,14 @@ export const SavingForm = ({ initialData = {}, onSubmit, isSubmitting = false, o
           type='button'
           onClick={onCancel}
           disabled={isSubmitting}
-          className='bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50'
+          className='bg-surface py-2 px-4 border border-border rounded-md shadow-sm text-sm font-medium text-fg hover:bg-bg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50'
         >
           Cancel
         </button>
         <button
           type='submit'
           disabled={isSubmitting}
-          className='inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50'
+          className='inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50'
         >
           {isSubmitting ? (
             <>

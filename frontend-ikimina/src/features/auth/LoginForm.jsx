@@ -5,16 +5,40 @@ import { setCredentials } from './authSlice';
 import { useAppDispatch } from '../../app/hooks';
 import toast from 'react-hot-toast';
 import {
-  FaEnvelope,
-  FaLock,
-  FaArrowLeft,
-  FaUserPlus,
-  FaMoneyBillWave,
-  FaChartLine,
-  FaUsers,
-} from 'react-icons/fa';
+  FiMail,
+  FiLock,
+  FiArrowLeft,
+  FiUsers,
+  FiEye,
+  FiEyeOff,
+  FiTrendingUp,
+  FiShield,
+  FiPieChart,
+} from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import loginAnimation from '../../assets/login-animation.svg';
+
+/*
+ * The brand panel is a fixed indigo gradient in both themes, so its text is
+ * set with explicit white rather than a theme token - a token that flips with
+ * the theme would put dark text on the gradient in one of the two modes.
+ */
+const FEATURES = [
+  {
+    icon: FiPieChart,
+    title: 'Every figure from the ledger',
+    body: 'Contributions, loans and fines are recorded once, append-only, and reconciled.',
+  },
+  {
+    icon: FiTrendingUp,
+    title: 'Built for group savings',
+    body: 'Cycles, payouts and member balances the way an ikimina actually runs.',
+  },
+  {
+    icon: FiShield,
+    title: 'Records stay yours',
+    body: 'Ikimina keeps the books. Money moves between members directly, never through us.',
+  },
+];
 
 export const LoginForm = () => {
   const [formData, setFormData] = useState({
@@ -22,9 +46,13 @@ export const LoginForm = () => {
     password: '',
     savingsGroupId: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Fetch all savings groups
-  const { data: groups = [], isLoading: isLoadingGroups } = useGetPublicGroupsQuery();
+  const {
+    data: groups = [],
+    isLoading: isLoadingGroups,
+    error: groupsError,
+  } = useGetPublicGroupsQuery();
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,10 +69,7 @@ export const LoginForm = () => {
 
   const handleChange = e => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const validateForm = () => {
@@ -79,13 +104,11 @@ export const LoginForm = () => {
     try {
       setIsSubmitting(true);
 
-      // Use real login
-      const loginData = {
+      const userData = await login({
         email: formData.email,
         password: formData.password,
         savingsGroupId: formData.savingsGroupId,
-      };
-      const userData = await login(loginData).unwrap();
+      }).unwrap();
 
       dispatch(
         setCredentials({
@@ -96,7 +119,7 @@ export const LoginForm = () => {
         })
       );
 
-      toast.success('Login successful!');
+      toast.success('Signed in');
       navigate('/dashboard');
     } catch (err) {
       const errorMessage =
@@ -108,244 +131,267 @@ export const LoginForm = () => {
     }
   };
 
+  const busy = isLoading || isSubmitting;
+
   return (
-    <div className='min-h-screen bg-white flex'>
-      {/* Left side with animation */}
-      <div className='hidden lg:flex flex-col justify-center items-center w-1/2 bg-gradient-to-br from-indigo-600 to-blue-600 p-12 text-white'>
+    <div className='flex min-h-screen bg-bg'>
+      {/* Brand panel - fixed gradient, explicit white text (see FEATURES note) */}
+      <div className='relative hidden w-1/2 flex-col justify-center overflow-hidden bg-gradient-to-br from-indigo-700 via-indigo-600 to-blue-600 p-12 text-white lg:flex xl:p-16'>
+        {/* Soft light source, purely decorative */}
+        <div
+          className='pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10 blur-3xl'
+          aria-hidden='true'
+        />
+        <div
+          className='pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-blue-400/20 blur-3xl'
+          aria-hidden='true'
+        />
+
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className='max-w-md'
+          transition={{ duration: 0.6 }}
+          className='relative max-w-md'
         >
-          <h2 className='text-4xl font-bold mb-6'>Welcome to Ikimina</h2>
-          <p className='text-xl mb-8 text-indigo-100'>
-            Your financial journey starts here. Manage your savings and loans with ease.
+          <span className='inline-flex items-center rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-medium tracking-wide'>
+            Ikimina
+          </span>
+
+          <h2 className='mt-6 text-4xl font-semibold leading-tight tracking-tight'>
+            Savings groups,
+            <br />
+            kept straight.
+          </h2>
+          <p className='mt-4 text-lg leading-relaxed text-indigo-100'>
+            One shared record of who paid what, and when — for the whole group.
           </p>
 
-          <div className='space-y-6'>
-            <div className='flex items-start'>
-              <div className='bg-indigo-500 p-3 rounded-full mr-4'>
-                <FaMoneyBillWave className='h-6 w-6' />
-              </div>
-              <div>
-                <h3 className='font-semibold text-lg'>Track Savings</h3>
-                <p className='text-indigo-100'>
-                  Monitor your savings growth and set financial goals.
-                </p>
-              </div>
-            </div>
-
-            <div className='flex items-start'>
-              <div className='bg-indigo-500 p-3 rounded-full mr-4'>
-                <FaChartLine className='h-6 w-6' />
-              </div>
-              <div>
-                <h3 className='font-semibold text-lg'>Smart Analytics</h3>
-                <p className='text-indigo-100'>Get insights into your financial health.</p>
-              </div>
-            </div>
-
-            <div className='flex items-start'>
-              <div className='bg-indigo-500 p-3 rounded-full mr-4'>
-                <FaUserPlus className='h-6 w-6' />
-              </div>
-              <div>
-                <h3 className='font-semibold text-lg'>Join Our Community</h3>
-                <p className='text-indigo-100'>Be part of a growing financial community.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className='mt-12'>
-            <img
-              src={loginAnimation}
-              alt='Financial growth illustration'
-              className='w-full h-auto'
-            />
-          </div>
+          <ul className='mt-12 space-y-7'>
+            {FEATURES.map(({ icon: Icon, title, body }) => (
+              <li key={title} className='flex gap-4'>
+                <span
+                  className='flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10'
+                  aria-hidden='true'
+                >
+                  <Icon className='h-5 w-5' />
+                </span>
+                <div>
+                  <h3 className='font-medium'>{title}</h3>
+                  <p className='mt-1 text-sm leading-relaxed text-indigo-100'>{body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
         </motion.div>
       </div>
 
-      {/* Right side with login form */}
-      <div className='w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8'>
+      {/* Sign-in form */}
+      <div className='flex w-full items-center justify-center px-4 py-10 sm:px-8 lg:w-1/2'>
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.1 }}
           className='w-full max-w-md'
         >
-          <div className='bg-white rounded-xl shadow-2xl p-8'>
-            <div className='mb-8 text-center'>
-              <Link
-                to='/'
-                className='inline-flex items-center text-indigo-600 hover:text-indigo-800 mb-4'
-              >
-                <FaArrowLeft className='mr-2' /> Back to Home
-              </Link>
-              <h1 className='text-3xl font-bold text-gray-900 mb-2'>Welcome Back</h1>
-              <p className='text-gray-600'>Sign in to access your Ikimina account</p>
+          <Link
+            to='/'
+            className='mb-6 inline-flex items-center gap-2 text-sm text-fg-muted transition hover:text-fg'
+          >
+            <FiArrowLeft className='h-4 w-4' aria-hidden='true' /> Back to home
+          </Link>
+
+          <div className='card p-6 sm:p-8'>
+            <div className='mb-7'>
+              <h1 className='text-2xl font-semibold tracking-tight text-fg'>Welcome back</h1>
+              <p className='mt-1.5 text-sm text-fg-muted'>Sign in to your Ikimina account.</p>
             </div>
 
-            <form onSubmit={handleSubmit} className='space-y-6'>
-              <div className='space-y-4'>
-                <div>
-                  <label
-                    htmlFor='savingsGroupId'
-                    className='block text-sm font-medium text-gray-700 mb-1'
-                  >
-                    Savings Group
-                  </label>
-                  <div className='relative'>
-                    <div className='absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none'>
-                      <FaUsers className='h-5 w-5 text-gray-400' />
-                    </div>
-                    <select
-                      id='savingsGroupId'
-                      name='savingsGroupId'
-                      value={formData.savingsGroupId}
-                      onChange={handleChange}
-                      className={`block w-full pl-10 pr-10 py-2.5 border ${errors.savingsGroupId ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none`}
-                      disabled={isLoadingGroups}
-                    >
-                      <option value=''>Select a savings group</option>
-                      {groups.map(group => (
-                        <option key={group.id} value={group.id}>
-                          {group.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {errors.savingsGroupId && (
-                    <p className='mt-1 text-sm text-red-600'>{errors.savingsGroupId}</p>
-                  )}
-                </div>
+            {/* A failed group lookup is stated, not left as an empty dropdown */}
+            {groupsError && (
+              <div
+                className='mb-5 rounded-lg border border-danger/40 bg-danger-subtle px-4 py-3 text-sm text-danger'
+                role='alert'
+              >
+                Could not load savings groups. Check your connection and reload.
+              </div>
+            )}
 
-                <div>
-                  <label htmlFor='email' className='block text-sm font-medium text-gray-700 mb-1'>
-                    Email Address
-                  </label>
-                  <div className='relative'>
-                    <div className='absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none'>
-                      <FaEnvelope className='h-5 w-5 text-gray-400' />
-                    </div>
-                    <input
-                      type='email'
-                      id='email'
-                      name='email'
-                      value={formData.email || ''}
-                      onChange={handleChange}
-                      placeholder='Enter your email'
-                      className={`block w-full pl-10 pr-10 py-2.5 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                  {errors.email && <p className='mt-1 text-sm text-red-600'>{errors.email}</p>}
-                </div>
+            {errors.submit && (
+              <div
+                className='mb-5 rounded-lg border border-danger/40 bg-danger-subtle px-4 py-3 text-sm text-danger'
+                role='alert'
+              >
+                {String(errors.submit)}
+              </div>
+            )}
 
-                <div>
-                  <label
-                    htmlFor='password'
-                    className='block text-sm font-medium text-gray-700 mb-1'
+            <form onSubmit={handleSubmit} className='space-y-5' noValidate>
+              <div>
+                <label htmlFor='savingsGroupId' className='label'>
+                  Savings group
+                </label>
+                <div className='relative'>
+                  <FiUsers
+                    className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle'
+                    aria-hidden='true'
+                  />
+                  <select
+                    id='savingsGroupId'
+                    name='savingsGroupId'
+                    value={formData.savingsGroupId}
+                    onChange={handleChange}
+                    className={`input appearance-none pl-9 pr-9 ${
+                      errors.savingsGroupId ? 'input-error' : ''
+                    }`}
+                    disabled={isLoadingGroups || busy}
+                    aria-invalid={Boolean(errors.savingsGroupId)}
                   >
-                    Password
-                  </label>
-                  <div className='relative'>
-                    <div className='absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none'>
-                      <FaLock className='h-5 w-5 text-gray-400' />
-                    </div>
-                    <input
-                      type='password'
-                      id='password'
-                      name='password'
-                      value={formData.password || ''}
-                      onChange={handleChange}
-                      className={`block w-full pl-10 pr-10 py-2.5 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                      placeholder='Enter your password'
-                      disabled={isSubmitting}
+                    <option value=''>
+                      {isLoadingGroups ? 'Loading groups…' : 'Select a savings group'}
+                    </option>
+                    {groups.map(group => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                  {/* Own chevron, since appearance-none removes the native one */}
+                  <svg
+                    className='pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle'
+                    viewBox='0 0 20 20'
+                    fill='currentColor'
+                    aria-hidden='true'
+                  >
+                    <path
+                      fillRule='evenodd'
+                      d='M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z'
+                      clipRule='evenodd'
                     />
-                  </div>
-                  {errors.password && (
-                    <p className='mt-1 text-sm text-red-600'>{errors.password}</p>
-                  )}
+                  </svg>
                 </div>
+                {errors.savingsGroupId && <p className='field-error'>{errors.savingsGroupId}</p>}
               </div>
 
-              <div className='flex items-center'>
-                <input
-                  id='remember-me'
-                  name='remember-me'
-                  type='checkbox'
-                  className='h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded'
-                />
-                <label htmlFor='remember-me' className='ml-2 block text-sm text-gray-700'>
+              <div>
+                <label htmlFor='email' className='label'>
+                  Email address
+                </label>
+                <div className='relative'>
+                  <FiMail
+                    className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle'
+                    aria-hidden='true'
+                  />
+                  <input
+                    type='email'
+                    id='email'
+                    name='email'
+                    autoComplete='email'
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder='you@example.com'
+                    className={`input pl-9 ${errors.email ? 'input-error' : ''}`}
+                    disabled={busy}
+                    aria-invalid={Boolean(errors.email)}
+                  />
+                </div>
+                {errors.email && <p className='field-error'>{errors.email}</p>}
+              </div>
+
+              <div>
+                <label htmlFor='password' className='label'>
+                  Password
+                </label>
+                <div className='relative'>
+                  <FiLock
+                    className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle'
+                    aria-hidden='true'
+                  />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    id='password'
+                    name='password'
+                    autoComplete='current-password'
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder='Enter your password'
+                    className={`input pl-9 pr-10 ${errors.password ? 'input-error' : ''}`}
+                    disabled={busy}
+                    aria-invalid={Boolean(errors.password)}
+                  />
+                  <button
+                    type='button'
+                    onClick={() => setShowPassword(v => !v)}
+                    className='absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-fg-subtle transition hover:text-fg'
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <FiEyeOff className='h-4 w-4' />
+                    ) : (
+                      <FiEye className='h-4 w-4' />
+                    )}
+                  </button>
+                </div>
+                {errors.password && <p className='field-error'>{errors.password}</p>}
+              </div>
+
+              <div className='flex items-center justify-between'>
+                <label htmlFor='remember-me' className='flex items-center gap-2 text-sm text-fg'>
+                  <input
+                    id='remember-me'
+                    name='remember-me'
+                    type='checkbox'
+                    className='h-4 w-4 rounded border-border text-primary focus:ring-primary/30'
+                  />
                   Remember me
                 </label>
               </div>
 
-              <div className='pt-2'>
-                <button
-                  type='submit'
-                  disabled={isLoading || isSubmitting}
-                  className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 ${isLoading || isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {isLoading || isSubmitting ? (
-                    <>
-                      <svg
-                        className='animate-spin -ml-1 mr-3 h-5 w-5 text-white'
-                        xmlns='http://www.w3.org/2000/svg'
-                        fill='none'
-                        viewBox='0 0 24 24'
-                      >
-                        <circle
-                          className='opacity-25'
-                          cx='12'
-                          cy='12'
-                          r='10'
-                          stroke='currentColor'
-                          strokeWidth='4'
-                        ></circle>
-                        <path
-                          className='opacity-75'
-                          fill='currentColor'
-                          d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-                        ></path>
-                      </svg>
-                      Signing in...
-                    </>
-                  ) : (
-                    'Sign in'
-                  )}
-                </button>
-              </div>
-
-              <div className='text-center'>
-                <p className='text-sm text-gray-600'>
-                  Don&apos;t have an account?{' '}
-                  <Link
-                    to='/register'
-                    className='font-medium text-indigo-600 hover:text-indigo-500'
+              <button type='submit' disabled={busy} className='btn-primary w-full py-2.5'>
+                {busy && (
+                  <svg
+                    className='h-4 w-4 animate-spin'
+                    viewBox='0 0 24 24'
+                    fill='none'
+                    aria-hidden='true'
                   >
-                    Sign up
-                  </Link>
-                </p>
-              </div>
-            </form>
+                    <circle
+                      className='opacity-25'
+                      cx='12'
+                      cy='12'
+                      r='10'
+                      stroke='currentColor'
+                      strokeWidth='4'
+                    />
+                    <path
+                      className='opacity-75'
+                      fill='currentColor'
+                      d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z'
+                    />
+                  </svg>
+                )}
+                {busy ? 'Signing in…' : 'Sign in'}
+              </button>
 
-            <div className='mt-6 text-center text-sm text-gray-600'>
-              <p>
-                By signing in, you agree to our{' '}
-                <button type='button' className='text-indigo-600 hover:text-indigo-500'>
-                  Terms of Service
-                </button>{' '}
-                and{' '}
-                <button type='button' className='text-indigo-600 hover:text-indigo-500'>
-                  Privacy Policy
-                </button>
-                .
+              <p className='text-center text-sm text-fg-muted'>
+                Don&apos;t have an account?{' '}
+                <Link to='/register' className='font-medium text-primary hover:underline'>
+                  Sign up
+                </Link>
               </p>
-            </div>
+            </form>
           </div>
+
+          <p className='mt-6 text-center text-xs leading-relaxed text-fg-subtle'>
+            By signing in you agree to our{' '}
+            <button type='button' className='text-fg-muted underline hover:text-fg'>
+              Terms of Service
+            </button>{' '}
+            and{' '}
+            <button type='button' className='text-fg-muted underline hover:text-fg'>
+              Privacy Policy
+            </button>
+            .
+          </p>
         </motion.div>
       </div>
     </div>

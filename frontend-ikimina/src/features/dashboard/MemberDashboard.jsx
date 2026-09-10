@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  FiDollarSign,
+  FiBriefcase,
   FiCreditCard,
   FiCalendar,
   FiTrendingUp,
@@ -91,7 +91,7 @@ const MemberDashboard = () => {
         <h1 className='text-3xl font-bold mb-2'>
           {t('welcome')}, {user?.firstName || 'Member'}!
         </h1>
-        <p className='text-indigo-100'>
+        <p className='text-sidebar-fg'>
           {t('dashboardWelcomeMessage') || "Here's an overview of your savings and loan status"}
         </p>
       </div>
@@ -99,16 +99,16 @@ const MemberDashboard = () => {
       {/* Stats Grid */}
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
         {/* Total Savings */}
-        <div className='bg-white dark:bg-gray-800 rounded-lg shadow p-6'>
+        <div className='bg-surface dark:bg-surface rounded-lg shadow p-6'>
           <div className='flex items-center'>
             <div className='flex-shrink-0 bg-green-100 dark:bg-green-900 rounded-md p-3'>
-              <FiDollarSign className='h-6 w-6 text-green-600 dark:text-green-400' />
+              <FiBriefcase className='h-6 w-6 text-green-600 dark:text-green-400' />
             </div>
             <div className='ml-4'>
-              <p className='text-sm font-medium text-gray-500 dark:text-gray-400'>
+              <p className='text-sm font-medium text-fg-muted dark:text-fg-subtle'>
                 {t('totalSavings')}
               </p>
-              <p className='text-2xl font-semibold text-gray-900 dark:text-gray-100'>
+              <p className='text-2xl font-semibold text-fg dark:text-fg'>
                 {formatCurrency(memberStats.totalSavings)}
               </p>
               <p className='text-sm text-green-600 dark:text-green-400'>
@@ -120,19 +120,19 @@ const MemberDashboard = () => {
         </div>
 
         {/* Current Loan */}
-        <div className='bg-white dark:bg-gray-800 rounded-lg shadow p-6'>
+        <div className='bg-surface dark:bg-surface rounded-lg shadow p-6'>
           <div className='flex items-center'>
             <div className='flex-shrink-0 bg-blue-100 dark:bg-blue-900 rounded-md p-3'>
               <FiCreditCard className='h-6 w-6 text-blue-600 dark:text-blue-400' />
             </div>
             <div className='ml-4'>
-              <p className='text-sm font-medium text-gray-500 dark:text-gray-400'>
+              <p className='text-sm font-medium text-fg-muted dark:text-fg-subtle'>
                 {t('currentLoan')}
               </p>
-              <p className='text-2xl font-semibold text-gray-900 dark:text-gray-100'>
+              <p className='text-2xl font-semibold text-fg dark:text-fg'>
                 {formatCurrency(memberStats.loanBalance)}
               </p>
-              <p className='text-sm text-gray-500 dark:text-gray-400'>
+              <p className='text-sm text-fg-muted dark:text-fg-subtle'>
                 {t('of')} {formatCurrency(memberStats.currentLoan)}
               </p>
             </div>
@@ -140,19 +140,19 @@ const MemberDashboard = () => {
         </div>
 
         {/* Monthly Contribution */}
-        <div className='bg-white dark:bg-gray-800 rounded-lg shadow p-6'>
+        <div className='bg-surface dark:bg-surface rounded-lg shadow p-6'>
           <div className='flex items-center'>
             <div className='flex-shrink-0 bg-purple-100 dark:bg-purple-900 rounded-md p-3'>
               <FiCalendar className='h-6 w-6 text-purple-600 dark:text-purple-400' />
             </div>
             <div className='ml-4'>
-              <p className='text-sm font-medium text-gray-500 dark:text-gray-400'>
+              <p className='text-sm font-medium text-fg-muted dark:text-fg-subtle'>
                 {t('monthlyContribution')}
               </p>
-              <p className='text-2xl font-semibold text-gray-900 dark:text-gray-100'>
+              <p className='text-2xl font-semibold text-fg dark:text-fg'>
                 {formatCurrency(memberStats.monthlyContribution)}
               </p>
-              <p className='text-sm text-gray-500 dark:text-gray-400'>
+              <p className='text-sm text-fg-muted dark:text-fg-subtle'>
                 {t('nextDue')}: {formatDate(memberStats.nextPaymentDue)}
               </p>
             </div>
@@ -160,30 +160,28 @@ const MemberDashboard = () => {
         </div>
 
         {/* Contributions Count */}
-        <div className='bg-white dark:bg-gray-800 rounded-lg shadow p-6'>
+        <div className='bg-surface dark:bg-surface rounded-lg shadow p-6'>
           <div className='flex items-center'>
             <div className='flex-shrink-0 bg-yellow-100 dark:bg-yellow-900 rounded-md p-3'>
               <FiTrendingUp className='h-6 w-6 text-yellow-600 dark:text-yellow-400' />
             </div>
             <div className='ml-4'>
-              <p className='text-sm font-medium text-gray-500 dark:text-gray-400'>
+              <p className='text-sm font-medium text-fg-muted dark:text-fg-subtle'>
                 {t('totalContributions')}
               </p>
-              <p className='text-2xl font-semibold text-gray-900 dark:text-gray-100'>
+              <p className='text-2xl font-semibold text-fg dark:text-fg'>
                 {memberStats.totalContributions}
               </p>
-              <p className='text-sm text-gray-500 dark:text-gray-400'>{t('thisYear')}</p>
+              <p className='text-sm text-fg-muted dark:text-fg-subtle'>{t('thisYear')}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className='bg-white dark:bg-gray-800 rounded-lg shadow'>
-        <div className='px-6 py-4 border-b border-gray-200 dark:border-gray-700'>
-          <h2 className='text-lg font-medium text-gray-900 dark:text-gray-100'>
-            {t('quickActions')}
-          </h2>
+      <div className='bg-surface dark:bg-surface rounded-lg shadow'>
+        <div className='px-6 py-4 border-b border-border dark:border-border'>
+          <h2 className='text-lg font-medium text-fg dark:text-fg'>{t('quickActions')}</h2>
         </div>
         <div className='p-6'>
           <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
@@ -191,7 +189,7 @@ const MemberDashboard = () => {
               onClick={() => navigate('/dashboard/savings')}
               className='flex items-center justify-center px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors'
             >
-              <FiDollarSign className='mr-2 h-5 w-5' />
+              <FiBriefcase className='mr-2 h-5 w-5' />
               {t('makeDeposit')}
             </button>
             <button
@@ -210,7 +208,7 @@ const MemberDashboard = () => {
             </Link>
             <button
               onClick={() => navigate('/dashboard/member')}
-              className='flex items-center justify-center px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors'
+              className='flex items-center justify-center px-4 py-3 bg-surface-3 hover:bg-surface-2 text-white rounded-md transition-colors'
             >
               <FiUser className='mr-2 h-5 w-5' />
               {t('updateProfile')}
@@ -221,21 +219,19 @@ const MemberDashboard = () => {
 
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
         {/* Recent Transactions */}
-        <div className='bg-white dark:bg-gray-800 rounded-lg shadow'>
-          <div className='px-6 py-4 border-b border-gray-200 dark:border-gray-700'>
-            <h2 className='text-lg font-medium text-gray-900 dark:text-gray-100'>
-              {t('recentTransactions')}
-            </h2>
+        <div className='bg-surface dark:bg-surface rounded-lg shadow'>
+          <div className='px-6 py-4 border-b border-border dark:border-border'>
+            <h2 className='text-lg font-medium text-fg dark:text-fg'>{t('recentTransactions')}</h2>
           </div>
-          <div className='divide-y divide-gray-200 dark:divide-gray-700'>
+          <div className='divide-y divide-border dark:divide-border'>
             {recentTransactions.map(transaction => (
               <div key={transaction.id} className='px-6 py-4'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+                    <p className='text-sm font-medium text-fg dark:text-fg'>
                       {transaction.description}
                     </p>
-                    <p className='text-sm text-gray-500 dark:text-gray-400'>
+                    <p className='text-sm text-fg-muted dark:text-fg-subtle'>
                       {formatDate(transaction.date)}
                     </p>
                   </div>
@@ -261,10 +257,10 @@ const MemberDashboard = () => {
               </div>
             ))}
           </div>
-          <div className='px-6 py-3 border-t border-gray-200 dark:border-gray-700'>
+          <div className='px-6 py-3 border-t border-border dark:border-border'>
             <Link
               to='/dashboard/savings'
-              className='text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300'
+              className='text-sm text-primary dark:text-sidebar-fg-muted hover:text-primary-hover dark:hover:text-sidebar-fg-muted'
             >
               {t('viewAllTransactions')} →
             </Link>
@@ -272,13 +268,11 @@ const MemberDashboard = () => {
         </div>
 
         {/* Upcoming Activities */}
-        <div className='bg-white dark:bg-gray-800 rounded-lg shadow'>
-          <div className='px-6 py-4 border-b border-gray-200 dark:border-gray-700'>
-            <h2 className='text-lg font-medium text-gray-900 dark:text-gray-100'>
-              {t('upcomingActivities')}
-            </h2>
+        <div className='bg-surface dark:bg-surface rounded-lg shadow'>
+          <div className='px-6 py-4 border-b border-border dark:border-border'>
+            <h2 className='text-lg font-medium text-fg dark:text-fg'>{t('upcomingActivities')}</h2>
           </div>
-          <div className='divide-y divide-gray-200 dark:divide-gray-700'>
+          <div className='divide-y divide-border dark:divide-border'>
             {upcomingActivities.map(activity => (
               <div key={activity.id} className='px-6 py-4'>
                 <div className='flex items-start'>
@@ -286,20 +280,18 @@ const MemberDashboard = () => {
                     className={`flex-shrink-0 rounded-md p-2 ${
                       activity.type === 'payment'
                         ? 'bg-red-100 dark:bg-red-900'
-                        : 'bg-indigo-100 dark:bg-indigo-900'
+                        : 'bg-primary-subtle dark:bg-sidebar'
                     }`}
                   >
                     {activity.type === 'payment' ? (
                       <FiCalendar className='h-5 w-5 text-red-600 dark:text-red-400' />
                     ) : (
-                      <FiBell className='h-5 w-5 text-indigo-600 dark:text-indigo-400' />
+                      <FiBell className='h-5 w-5 text-primary dark:text-sidebar-fg-muted' />
                     )}
                   </div>
                   <div className='ml-4'>
-                    <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
-                      {activity.title}
-                    </p>
-                    <p className='text-sm text-gray-500 dark:text-gray-400'>
+                    <p className='text-sm font-medium text-fg dark:text-fg'>{activity.title}</p>
+                    <p className='text-sm text-fg-muted dark:text-fg-subtle'>
                       {t('due')}: {formatDate(activity.dueDate)}
                       {activity.time && ` at ${activity.time}`}
                     </p>
@@ -313,10 +305,10 @@ const MemberDashboard = () => {
               </div>
             ))}
           </div>
-          <div className='px-6 py-3 border-t border-gray-200 dark:border-gray-700'>
+          <div className='px-6 py-3 border-t border-border dark:border-border'>
             <button
               onClick={() => navigate('/dashboard/savings')}
-              className='text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300'
+              className='text-sm text-primary dark:text-sidebar-fg-muted hover:text-primary-hover dark:hover:text-sidebar-fg-muted'
             >
               {t('viewAllActivities')} →
             </button>

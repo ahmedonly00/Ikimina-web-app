@@ -9,7 +9,7 @@ import QueryError from '../../components/ui/QueryError';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import {
-  FaDollarSign,
+  FaMoneyBillWave,
   FaCalendarAlt,
   FaUser,
   FaFileExcel,
@@ -17,11 +17,16 @@ import {
   FaTable,
 } from 'react-icons/fa';
 import { useAppContext } from '../../contexts/AppContext';
-import { useGetSavingsQuery, useCreateSavingMutation } from '../../app/api/apiSlice';
+import {
+  useGetSavingsQuery,
+  useGetGroupSavingsQuery,
+  useCreateSavingMutation,
+} from '../../app/api/apiSlice';
 import { useCreateBulkSavingsMutation } from './savingsApi';
 import * as XLSX from 'xlsx';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../auth/authSlice';
+import { formatCurrency } from '../../i18n';
 
 export const SavingsPage = () => {
   const location = useLocation();
@@ -33,8 +38,36 @@ export const SavingsPage = () => {
   const [selectedSaving, setSelectedSaving] = useState(null);
   const [view, setView] = useState('list'); // 'list' or 'ledger'
 
-  // Use RTK Query hooks
-  const { data: savings = [], isLoading, error, refetch } = useGetSavingsQuery(currentUser?.id);
+  /*
+   * An admin manages a group, so this screen must show the whole group.
+   * It previously always called getSavings(currentUser.id), so a group admin
+   * saw only their own entries - an empty page while the dashboard reported a
+   * non-zero group balance. Members still see just their own.
+   */
+  const isAdmin =
+    currentUser?.role === 'ROLE_GROUP_ADMIN' || currentUser?.role === 'ROLE_SUPER_ADMIN';
+  const groupId = currentUser?.savingsGroupId;
+
+  /*
+   * The week this screen reports on, asked for by date rather than sliced out
+   * of an arbitrary page. Memoised so the query argument is stable and RTK
+   * Query does not refetch on every render.
+   */
+  const week = useMemo(() => {
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    const iso = d => d.toISOString().slice(0, 10);
+    return { start, end, from: iso(start), to: iso(end) };
+  }, []);
+
+  const groupQuery = useGetGroupSavingsQuery(
+    { groupId, from: week.from, to: week.to },
+    { skip: !isAdmin || !groupId }
+  );
+  const userQuery = useGetSavingsQuery(currentUser?.id, { skip: isAdmin || !currentUser?.id });
+  const { data: savings = [], isLoading, error, refetch } = isAdmin ? groupQuery : userQuery;
   const [createBulkSavings, { isLoading: _isBulkLoading }] = useCreateBulkSavingsMutation();
   const [createSaving, { isLoading: _isCreateLoading }] = useCreateSavingMutation();
 
@@ -117,26 +150,65 @@ export const SavingsPage = () => {
     }
   };
 
+  /*
+   * The API stores one row per contribution type:
+   *   { id, amount, type: 'UBWIZIGAME' | 'INGOBOKA', date, userId, memberName,
+   *     memberNumber }
+   *
+   * This screen was written against a shape that does not exist - it read
+   * ubwizigameAmount, ingobokaAmount, savingDate and memberId off a single
+   * row. Every one of those is undefined, so the totals evaluated to NaN and
+   * the weekly filter compared against an Invalid Date and matched nothing.
+   *
+   * A member contributes both types at the same meeting, so the two rows
+   * sharing a member and a date are one entry as far as this view is
+   * concerned. Pair them here, once, and let the tables below stay as they
+   * are.
+   */
+  const entries = useMemo(() => {
+    const byKey = new Map();
+
+    for (const s of savings) {
+      const key = `${s.userId}:${s.date}`;
+      let entry = byKey.get(key);
+      if (!entry) {
+        entry = {
+          id: key,
+          memberId: s.userId,
+          memberName: s.memberName || `Member ${s.userId}`,
+          memberNumber: s.memberNumber || '',
+          savingDate: s.date,
+          ubwizigameAmount: 0,
+          ingobokaAmount: 0,
+        };
+        byKey.set(key, entry);
+      }
+
+      const amount = Number(s.amount) || 0;
+      if (s.type === 'UBWIZIGAME') {
+        entry.ubwizigameAmount += amount;
+      } else if (s.type === 'INGOBOKA') {
+        entry.ingobokaAmount += amount;
+      }
+    }
+
+    // Most recent first, matching the server's sort.
+    return [...byKey.values()].sort((a, b) => (a.savingDate < b.savingDate ? 1 : -1));
+  }, [savings]);
+
   // Calculate totals
-  const totalSavings = savings.reduce((sum, s) => sum + s.ubwizigameAmount + s.ingobokaAmount, 0);
-  const totalUbwizigame = savings.reduce((sum, s) => sum + s.ubwizigameAmount, 0);
-  const totalIngoboka = savings.reduce((sum, s) => sum + s.ingobokaAmount, 0);
+  const totalUbwizigame = entries.reduce((sum, s) => sum + s.ubwizigameAmount, 0);
+  const totalIngoboka = entries.reduce((sum, s) => sum + s.ingobokaAmount, 0);
+  const totalSavings = totalUbwizigame + totalIngoboka;
   // Calculate weekly totals for each member
   const weeklyTotals = useMemo(() => {
     const totals = {};
-    const today = new Date();
-    const weekStart = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate() - today.getDay()
-    );
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
 
-    savings
+    entries
+      // Same week the query asked for, so the two can never disagree.
       .filter(s => {
         const savingDate = new Date(s.savingDate);
-        return savingDate >= weekStart && savingDate <= weekEnd;
+        return savingDate >= week.start && savingDate <= week.end;
       })
       .forEach(saving => {
         if (!totals[saving.memberId]) {
@@ -156,7 +228,7 @@ export const SavingsPage = () => {
       });
 
     return totals;
-  }, [savings]);
+  }, [entries, week]);
 
   // Generate report function
   const generateReport = format => {
@@ -340,28 +412,33 @@ startxref
   };
 
   return (
-    <div className='h-full w-full overflow-y-auto bg-gray-50'>
+    <div className='h-full w-full overflow-y-auto bg-bg'>
       <div className='px-2 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-full xl:max-w-7xl mx-auto'>
         <QueryError error={error} onRetry={refetch} title='Could not load savings' />
         {/* Header with stats */}
         <div className='mb-6'>
           <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 space-y-4 sm:space-y-0'>
             <div>
-              <h1 className='text-xl sm:text-2xl font-bold text-gray-800'>{t('memberSavings')}</h1>
-              <p className='mt-1 text-sm text-gray-500'>{t('savingsDescription')}</p>
+              <h1 className='text-xl sm:text-2xl font-bold text-fg'>{t('memberSavings')}</h1>
+              <p className='mt-1 text-sm text-fg-muted'>{t('savingsDescription')}</p>
             </div>
             <div className='flex space-x-2'>
+              {/* One primary action (Record Savings). These two were a grey
+                  and a green button of equal weight, which read as three
+                  competing primary actions with no hierarchy. */}
               <Button
+                variant='secondary'
                 onClick={() => setView(view === 'list' ? 'ledger' : 'list')}
-                className='w-full sm:w-auto bg-gray-600 hover:bg-gray-700'
+                className='w-full sm:w-auto'
               >
                 <FaTable className='mr-2' />
                 {view === 'list' ? 'Ledger View' : 'List View'}
               </Button>
               <Button
+                variant='secondary'
                 onClick={() => setIsBulkModalOpen(true)}
                 disabled={isLoading}
-                className='w-full sm:w-auto bg-green-600 hover:bg-green-700'
+                className='w-full sm:w-auto'
               >
                 <span className='flex items-center'>
                   <svg
@@ -408,27 +485,27 @@ startxref
           </div>
 
           {/* Weekly Totals Section */}
-          <div className='bg-white rounded-lg shadow p-6 mb-6'>
+          <div className='bg-surface rounded-lg shadow p-6 mb-6'>
             <div className='flex justify-between items-center mb-4'>
-              <h2 className='text-lg font-semibold text-gray-900'>{t('weeklySavingsTotals')}</h2>
+              <h2 className='text-lg font-semibold text-fg'>{t('weeklySavingsTotals')}</h2>
               <div className='flex space-x-2'>
                 <button
                   onClick={() => generateReport('pdf')}
-                  className='inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                  className='inline-flex items-center px-3 py-2 border border-border shadow-sm text-sm leading-4 font-medium rounded-md text-fg bg-surface hover:bg-bg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary'
                 >
                   <FaFilePdf className='mr-2 h-4 w-4 text-red-500' />
                   {t('exportPDF')}
                 </button>
                 <button
                   onClick={() => generateReport('excel')}
-                  className='inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                  className='inline-flex items-center px-3 py-2 border border-border shadow-sm text-sm leading-4 font-medium rounded-md text-fg bg-surface hover:bg-bg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary'
                 >
                   <FaFileExcel className='mr-2 h-4 w-4 text-green-500' />
                   {t('exportExcel')}
                 </button>
               </div>
             </div>
-            <div className='text-sm text-gray-500 mb-4'>
+            <div className='text-sm text-fg-muted mb-4'>
               {new Date().toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
@@ -437,75 +514,75 @@ startxref
               })}
             </div>
             <div className='overflow-x-auto'>
-              <table className='min-w-full divide-y divide-gray-200'>
-                <thead className='bg-gray-50'>
+              <table className='min-w-full divide-y divide-border'>
+                <thead className='bg-bg'>
                   <tr>
-                    <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    <th className='px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider'>
                       {t('member')}
                     </th>
-                    <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    <th className='px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider'>
                       {t('ubwizigame')}
                     </th>
-                    <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    <th className='px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider'>
                       {t('ingoboka')}
                     </th>
-                    <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    <th className='px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider'>
                       {t('weeklyTotal')}
                     </th>
                   </tr>
                 </thead>
-                <tbody className='bg-white divide-y divide-gray-200'>
+                <tbody className='bg-surface divide-y divide-border'>
                   {Object.values(weeklyTotals).map(member => (
                     <tr key={member.memberNumber}>
                       <td className='px-4 py-3 whitespace-nowrap'>
-                        <div className='text-sm font-medium text-gray-900'>{member.memberName}</div>
-                        <div className='text-xs text-gray-500'>{member.memberNumber}</div>
+                        <div className='text-sm font-medium text-fg'>{member.memberName}</div>
+                        <div className='text-xs text-fg-muted'>{member.memberNumber}</div>
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap'>
-                        <div className='text-sm font-medium text-purple-600'>
-                          ${member.ubwizigameTotal.toLocaleString()}
+                        <div className='text-sm font-medium text-primary'>
+                          {formatCurrency(member.ubwizigameTotal)}
                         </div>
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap'>
-                        <div className='text-sm font-medium text-blue-600'>
-                          ${member.ingobokaTotal.toLocaleString()}
+                        <div className='text-sm font-medium text-info'>
+                          {formatCurrency(member.ingobokaTotal)}
                         </div>
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap'>
-                        <div className='text-sm font-bold text-gray-900'>
-                          ${member.grandTotal.toLocaleString()}
+                        <div className='text-sm font-bold text-fg'>
+                          {formatCurrency(member.grandTotal)}
                         </div>
                       </td>
                     </tr>
                   ))}
                   {Object.keys(weeklyTotals).length === 0 && (
                     <tr>
-                      <td colSpan='4' className='px-4 py-8 text-center text-sm text-gray-500'>
+                      <td colSpan='4' className='px-4 py-8 text-center text-sm text-fg-muted'>
                         {t('noSavingsRecorded')}
                       </td>
                     </tr>
                   )}
                 </tbody>
-                <tfoot className='bg-gray-50'>
+                {/* These three cells hardcoded a "$" and called toLocaleString
+                    directly, so the footer read "$0" while every other figure
+                    on the page was formatted as RWF by formatCurrency. */}
+                <tfoot className='bg-surface-2'>
                   <tr>
-                    <td className='px-4 py-3 font-semibold text-gray-900'>{t('grandTotal')}</td>
-                    <td className='px-4 py-3 font-semibold text-purple-600'>
-                      $
-                      {Object.values(weeklyTotals)
-                        .reduce((sum, m) => sum + m.ubwizigameTotal, 0)
-                        .toLocaleString()}
+                    <td className='px-4 py-3 font-semibold text-fg'>{t('grandTotal')}</td>
+                    <td className='tabular px-4 py-3 font-semibold text-fg'>
+                      {formatCurrency(
+                        Object.values(weeklyTotals).reduce((sum, m) => sum + m.ubwizigameTotal, 0)
+                      )}
                     </td>
-                    <td className='px-4 py-3 font-semibold text-blue-600'>
-                      $
-                      {Object.values(weeklyTotals)
-                        .reduce((sum, m) => sum + m.ingobokaTotal, 0)
-                        .toLocaleString()}
+                    <td className='tabular px-4 py-3 font-semibold text-fg'>
+                      {formatCurrency(
+                        Object.values(weeklyTotals).reduce((sum, m) => sum + m.ingobokaTotal, 0)
+                      )}
                     </td>
-                    <td className='px-4 py-3 font-bold text-gray-900'>
-                      $
-                      {Object.values(weeklyTotals)
-                        .reduce((sum, m) => sum + m.grandTotal, 0)
-                        .toLocaleString()}
+                    <td className='tabular px-4 py-3 font-bold text-fg'>
+                      {formatCurrency(
+                        Object.values(weeklyTotals).reduce((sum, m) => sum + m.grandTotal, 0)
+                      )}
                     </td>
                   </tr>
                 </tfoot>
@@ -515,58 +592,54 @@ startxref
 
           {/* Stats Cards */}
           <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
-            <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
+            <div className='bg-surface rounded-lg shadow p-4 sm:p-6'>
               <div className='flex items-center'>
-                <div className='flex-shrink-0 bg-indigo-100 rounded-md p-3'>
-                  <FaDollarSign className='h-6 w-6 text-indigo-600' />
+                <div className='flex-shrink-0 bg-primary-subtle rounded-md p-3'>
+                  <FaMoneyBillWave className='h-6 w-6 text-primary' />
                 </div>
                 <div className='ml-4'>
-                  <p className='text-sm font-medium text-gray-500'>{t('ubwizigameTotal')}</p>
-                  <p className='text-2xl font-semibold text-gray-900'>
-                    ${totalUbwizigame.toLocaleString()}
+                  <p className='text-sm font-medium text-fg-muted'>{t('ubwizigameTotal')}</p>
+                  <p className='text-2xl font-semibold text-fg'>
+                    {formatCurrency(totalUbwizigame)}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
+            <div className='bg-surface rounded-lg shadow p-4 sm:p-6'>
               <div className='flex items-center'>
-                <div className='flex-shrink-0 bg-blue-100 rounded-md p-3'>
-                  <FaDollarSign className='h-6 w-6 text-blue-600' />
+                <div className='flex-shrink-0 bg-info-subtle rounded-md p-3'>
+                  <FaMoneyBillWave className='h-6 w-6 text-info' />
                 </div>
                 <div className='ml-4'>
-                  <p className='text-sm font-medium text-gray-500'>{t('ingobokaTotal')}</p>
-                  <p className='text-2xl font-semibold text-gray-900'>
-                    ${totalIngoboka.toLocaleString()}
+                  <p className='text-sm font-medium text-fg-muted'>{t('ingobokaTotal')}</p>
+                  <p className='text-2xl font-semibold text-fg'>{formatCurrency(totalIngoboka)}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className='bg-surface rounded-lg shadow p-4 sm:p-6'>
+              <div className='flex items-center'>
+                <div className='flex-shrink-0 bg-success-subtle rounded-md p-3'>
+                  <FaUser className='h-6 w-6 text-success' />
+                </div>
+                <div className='ml-4'>
+                  <p className='text-sm font-medium text-fg-muted'>{t('activeMembers')}</p>
+                  <p className='text-2xl font-semibold text-fg'>
+                    {new Set(entries.map(s => s.memberId)).size}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
+            <div className='bg-surface rounded-lg shadow p-4 sm:p-6'>
               <div className='flex items-center'>
-                <div className='flex-shrink-0 bg-green-100 rounded-md p-3'>
-                  <FaUser className='h-6 w-6 text-green-600' />
+                <div className='flex-shrink-0 bg-primary-subtle rounded-md p-3'>
+                  <FaCalendarAlt className='h-6 w-6 text-primary' />
                 </div>
                 <div className='ml-4'>
-                  <p className='text-sm font-medium text-gray-500'>{t('activeMembers')}</p>
-                  <p className='text-2xl font-semibold text-gray-900'>
-                    {new Set(savings.map(s => s.memberId)).size}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
-              <div className='flex items-center'>
-                <div className='flex-shrink-0 bg-purple-100 rounded-md p-3'>
-                  <FaCalendarAlt className='h-6 w-6 text-purple-600' />
-                </div>
-                <div className='ml-4'>
-                  <p className='text-sm font-medium text-gray-500'>{t('totalSavings')}</p>
-                  <p className='text-2xl font-semibold text-gray-900'>
-                    ${totalSavings.toLocaleString()}
-                  </p>
+                  <p className='text-sm font-medium text-fg-muted'>{t('totalSavings')}</p>
+                  <p className='text-2xl font-semibold text-fg'>{formatCurrency(totalSavings)}</p>
                 </div>
               </div>
             </div>
@@ -578,7 +651,7 @@ startxref
           <SavingsLedger />
         ) : (
           <SavingsList
-            savings={savings}
+            savings={entries}
             isLoading={isLoading}
             onEdit={handleEdit}
             onDelete={handleDelete}

@@ -57,6 +57,33 @@ public interface SavingsRepository extends JpaRepository<Savings, Long> {
                                               @Param("startDate") LocalDate startDate,
                                               @Param("endDate") LocalDate endDate);
 
+    /**
+     * Every savings row belonging to any member of one group.
+     *
+     * The admin savings screen had no such query and fell back to
+     * "my own savings", so a group admin saw an empty page while the group's
+     * ledger balance was non-zero - the dashboard and the savings screen
+     * disagreed about the same group.
+     */
+    @Query("SELECT s FROM Savings s JOIN s.user u JOIN u.memberGroups g "
+            + "WHERE g.id = :groupId")
+    Page<Savings> findByGroupId(@Param("groupId") Long groupId, Pageable pageable);
+
+    /**
+     * As above, restricted to a date range.
+     *
+     * The savings screen sums the rows it received to produce a weekly total.
+     * Over an unbounded page that sum silently reports whatever fitted on page
+     * one, so the range has to be pushed into the query rather than applied
+     * after paging.
+     */
+    @Query("SELECT s FROM Savings s JOIN s.user u JOIN u.memberGroups g "
+            + "WHERE g.id = :groupId AND s.date BETWEEN :startDate AND :endDate")
+    Page<Savings> findByGroupIdAndDateBetween(@Param("groupId") Long groupId,
+                                              @Param("startDate") LocalDate startDate,
+                                              @Param("endDate") LocalDate endDate,
+                                              Pageable pageable);
+
     @Query("SELECT s FROM Savings s WHERE s.date = :date AND s.user.id = :userId AND s.type = :type")
     Savings findByDateAndUserAndType(@Param("date") LocalDate date,
                                      @Param("userId") Long userId,

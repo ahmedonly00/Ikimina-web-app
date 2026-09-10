@@ -3,8 +3,10 @@ import com.example.ikimina.exception.BusinessRuleException;
 import com.example.ikimina.exception.ResourceNotFoundException;
 
 import com.example.ikimina.dto.UserDTO;
+import com.example.ikimina.model.SavingsGroup;
 import com.example.ikimina.model.User;
 import com.example.ikimina.enums.Role;
+import com.example.ikimina.repository.SavingsGroupRepository;
 import com.example.ikimina.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +26,9 @@ public class UserService {
     
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private SavingsGroupRepository savingsGroupRepository;
     
     
     @Transactional
@@ -54,8 +59,42 @@ public class UserService {
             user.setRole(Role.ROLE_SUPER_ADMIN);
         }
         
+        // member_number is NOT NULL UNIQUE, and nothing was setting it, so every
+        // registration failed on the insert.
+        SavingsGroup group = null;
+        if (userDTO.getSavingsGroupId() != null) {
+            group = savingsGroupRepository.findById(userDTO.getSavingsGroupId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Savings group not found: " + userDTO.getSavingsGroupId()));
+        }
+        user.setMemberNumber(nextMemberNumber(group));
+
+        // The requested group was also being ignored, so a registered member
+        // belonged to no group - and login requires group membership, so they
+        // could never sign in.
+        if (group != null) {
+            user.addMemberGroup(group);
+        }
+
         User savedUser = userRepository.save(user);
         return convertToDTO(savedUser);
+    }
+
+    /**
+     * Human-readable member number, unique per group.
+     *
+     * Derived from the current member count, so two simultaneous registrations
+     * into the same group can collide; the unique constraint rejects the loser
+     * and the caller sees a conflict rather than a duplicate number. Groups add
+     * members one at a time in practice, so a sequence table would be more
+     * machinery than the problem warrants.
+     */
+    private String nextMemberNumber(SavingsGroup group) {
+        if (group == null) {
+            return String.format("M%05d", userRepository.count() + 1);
+        }
+        long seq = userRepository.findBySavingsGroupId(group.getId()).size() + 1L;
+        return String.format("G%dM%04d", group.getId(), seq);
     }
     
     @Transactional

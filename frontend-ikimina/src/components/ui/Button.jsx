@@ -1,13 +1,20 @@
 import React, { forwardRef } from 'react';
 import { twMerge } from 'tailwind-merge';
 
+/*
+ * Every variant pairs a token background with a token foreground.
+ * `secondary` was 'bg-surface-3 text-white', and surface-3 is slate-200 in
+ * light mode - white-on-light-grey, so its label was effectively invisible
+ * until the theme happened to be dark. `danger` used raw red-600/red-700
+ * rather than the danger token, so it ignored the theme entirely.
+ */
 const variantClasses = {
-  primary: 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500',
-  secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500',
-  danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-  outline: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-indigo-500',
-  ghost: 'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-indigo-500',
-  link: 'bg-transparent text-indigo-600 hover:text-indigo-800 hover:underline focus:ring-indigo-500',
+  primary: 'bg-primary text-fg-oncolor hover:bg-primary-hover focus:ring-primary',
+  secondary: 'bg-surface-2 text-fg border border-border hover:bg-surface-3 focus:ring-primary',
+  danger: 'bg-danger text-fg-oncolor hover:opacity-90 focus:ring-danger',
+  outline: 'bg-surface text-fg border border-border hover:bg-surface-2 focus:ring-primary',
+  ghost: 'bg-transparent text-fg-muted hover:bg-surface-2 hover:text-fg focus:ring-primary',
+  link: 'bg-transparent text-primary hover:underline focus:ring-primary',
 };
 
 const sizeClasses = {

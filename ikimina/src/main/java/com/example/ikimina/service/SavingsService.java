@@ -144,6 +144,24 @@ public class SavingsService {
         return savingsRepository.findByUser(user, pageable).map(this::convertToDTO);
     }
 
+    /**
+     * Every member's savings for one group, for the admin savings screen.
+     * A null date bound means "no bound on that side".
+     */
+    public Page<SavingsDTO> getGroupSavingsPaged(Long groupId, LocalDate startDate,
+                                                 LocalDate endDate, Pageable pageable) {
+        Page<Savings> page;
+        if (startDate == null && endDate == null) {
+            page = savingsRepository.findByGroupId(groupId, pageable);
+        } else {
+            // Open-ended on either side rather than rejecting a half-range.
+            LocalDate from = startDate != null ? startDate : LocalDate.of(1970, 1, 1);
+            LocalDate to = endDate != null ? endDate : LocalDate.now();
+            page = savingsRepository.findByGroupIdAndDateBetween(groupId, from, to, pageable);
+        }
+        return page.map(this::convertToDTO);
+    }
+
     public List<SavingsDTO> getUserSavings(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -174,12 +192,15 @@ public class SavingsService {
     }
     
     private SavingsDTO convertToDTO(Savings savings) {
+        User owner = savings.getUser();
         return new SavingsDTO(
                 savings.getId(),
                 savings.getAmount(),
                 savings.getType(),
                 savings.getDate(),
-                savings.getUser().getId()
+                owner.getId(),
+                owner.getFullName(),
+                owner.getMemberNumber()
         );
     }
     

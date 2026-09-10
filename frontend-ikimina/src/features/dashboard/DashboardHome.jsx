@@ -1,278 +1,215 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  FiArrowUp,
-  FiArrowDown,
-  FiDollarSign,
+  // A briefcase, not a dollar sign - the figures are Rwandan francs.
+  FiBriefcase,
   FiUsers,
-  FiCreditCard,
-  FiPieChart,
+  FiTrendingUp,
+  FiCheckCircle,
+  FiAlertTriangle,
+  FiPlusCircle,
+  FiFileText,
+  FiUserPlus,
 } from 'react-icons/fi';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAppSelector } from '../../app/hooks';
-import { selectCurrentUser } from '../auth/authSlice';
+import { selectCurrentUser, selectCurrentGroup } from '../auth/authSlice';
+import { useGetGroupSummaryQuery } from '../../app/api/apiSlice';
+import QueryError from '../../components/ui/QueryError';
 import MemberDashboard from './MemberDashboard';
 
-const DashboardHome = () => {
+/**
+ * Group dashboard.
+ *
+ * Every figure comes from the ledger via /api/ledger/groups/{id}/summary.
+ * This screen previously rendered hardcoded values - a total of "$24,780",
+ * "48 members", and a Recent Activity list of invented people. On a financial
+ * product that is worse than showing nothing, because an admin cannot tell
+ * invented numbers from real ones.
+ *
+ * Where there is no data source yet (activity feed, payment schedule), the
+ * section says so rather than filling the space with plausible fiction.
+ */
+/*
+ * Literal class strings rather than `bg-<tone>-subtle`. Tailwind builds its CSS
+ * by scanning source text for class names, so an interpolated name matches
+ * nothing and the icon would render with no background at all.
+ */
+const TONES = {
+  primary: 'bg-primary-subtle text-primary',
+  success: 'bg-success-subtle text-success',
+  info: 'bg-info-subtle text-info',
+  warning: 'bg-warning-subtle text-warning',
+};
+
+const StatCard = ({ icon: Icon, label, value, tone = 'primary', hint }) => (
+  <div className='card p-5'>
+    <div className='flex items-center gap-3'>
+      <span
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+          TONES[tone] ?? TONES.primary
+        }`}
+        aria-hidden='true'
+      >
+        <Icon className='h-5 w-5' />
+      </span>
+      <div className='min-w-0'>
+        <p className='truncate text-sm text-fg-muted'>{label}</p>
+        <p className='tabular mt-0.5 text-xl font-semibold text-fg'>{value}</p>
+      </div>
+    </div>
+    {hint && <p className='mt-3 text-xs text-fg-subtle'>{hint}</p>}
+  </div>
+);
+
+const EmptySection = ({ title, subtitle, note }) => (
+  <section className='card'>
+    <header className='border-b border-border px-5 py-4'>
+      <h2>{title}</h2>
+      <p className='mt-0.5 text-sm text-fg-muted'>{subtitle}</p>
+    </header>
+    <div className='px-5 py-10 text-center'>
+      <p className='text-sm text-fg-muted'>{note}</p>
+    </div>
+  </section>
+);
+
+/*
+ * Split out of DashboardHome so the summary query is never called
+ * conditionally. A hook after an early return breaks the Rules of Hooks -
+ * React tracks hooks by call order, and that order would change with the role.
+ */
+const GroupDashboard = () => {
   const user = useAppSelector(selectCurrentUser);
-  const { t } = useAppContext();
+  const currentGroup = useAppSelector(selectCurrentGroup);
+  const { t, formatCurrency } = useAppContext();
 
-  // If user is a member, show the member dashboard
-  if (user?.role === 'MEMBER') {
-    return <MemberDashboard />;
-  }
+  const groupId = currentGroup?.id ?? user?.savingsGroupId;
+  const {
+    data: summary,
+    isLoading,
+    error,
+    refetch,
+  } = useGetGroupSummaryQuery(groupId, { skip: !groupId });
 
-  const stats = [
-    {
-      name: t('totalSavings'),
-      value: '$24,780',
-      change: '+12.5%',
-      changeType: 'increase',
-      icon: FiDollarSign,
-    },
-    {
-      name: t('totalMembers'),
-      value: '48',
-      change: '+4',
-      changeType: 'increase',
-      icon: FiUsers,
-    },
-    {
-      name: t('activeLoans'),
-      value: '12',
-      change: '2.1%',
-      changeType: 'decrease',
-      icon: FiCreditCard,
-    },
-    {
-      name: t('monthlySavings'),
-      value: '$3,200',
-      change: '+8.2%',
-      changeType: 'increase',
-      icon: FiPieChart,
-    },
-  ];
-
-  const recentActivities = [
-    { id: 1, user: 'John Doe', action: t('savingsDeposit') + ' of $500', time: '2 minutes ago' },
-    { id: 2, user: 'Jane Smith', action: t('newLoanRequest') + ' of $2,000', time: '1 hour ago' },
-    {
-      id: 3,
-      user: 'Robert Johnson',
-      action: t('loanRepayment') + ' of $1,200',
-      time: '3 hours ago',
-    },
-    { id: 4, user: 'Sarah Williams', action: t('updatedProfile'), time: '5 hours ago' },
-    { id: 5, user: 'Michael Brown', action: t('savingsDeposit') + ' of $1,000', time: '1 day ago' },
-  ];
-
-  const upcomingPayments = [
-    {
-      id: 1,
-      member: 'Alice Johnson',
-      type: t('loanRepayment'),
-      amount: '$350',
-      dueDate: t('tomorrow'),
-    },
-    {
-      id: 2,
-      member: 'David Wilson',
-      type: t('monthlySavings'),
-      amount: '$200',
-      dueDate: t('in2Days'),
-    },
-    {
-      id: 3,
-      member: 'Emma Davis',
-      type: t('loanRepayment'),
-      amount: '$450',
-      dueDate: t('in3Days'),
-    },
-  ];
+  const dash = '—';
+  const money = v => (v === undefined || v === null ? dash : formatCurrency(v));
+  const count = v => (v === undefined || v === null ? dash : String(v));
 
   return (
-    <div className='h-full w-full overflow-y-auto bg-gray-50'>
-      <div className='px-2 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-full xl:max-w-7xl mx-auto'>
-        <div>
-          <h1 className='text-xl sm:text-2xl font-bold text-gray-900'>{t('dashboard')}</h1>
-          <p className='mt-1 text-xs sm:text-sm text-gray-500'>{t('dashboardWelcome')}</p>
+    <div className='h-full w-full overflow-y-auto bg-bg'>
+      <div className='mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8'>
+        <header className='mb-6'>
+          <h1>{t('dashboard')}</h1>
+          <p className='mt-1 text-sm text-fg-muted'>
+            {currentGroup?.name ? currentGroup.name : t('dashboardWelcome')}
+          </p>
+        </header>
+
+        <QueryError error={error} onRetry={refetch} title={t('error')} />
+
+        {!groupId && (
+          <div className='card mb-6 p-5'>
+            <p className='text-sm text-fg-muted'>
+              No group selected. Choose a group to see its figures.
+            </p>
+          </div>
+        )}
+
+        {/* A failed reconciliation is surfaced, not hidden: it means the ledger
+            and the member balances disagree and someone needs to look. */}
+        {summary && !summary.reconciled && (
+          <div
+            className='mb-6 flex items-start gap-3 rounded-card border-l-4 border-warning bg-warning-subtle p-4'
+            role='alert'
+          >
+            <FiAlertTriangle className='mt-0.5 shrink-0 text-warning' aria-hidden='true' />
+            <p className='text-sm text-fg'>
+              This group&apos;s fund balance does not match the sum of its member balances. Check
+              the reconciliation report before relying on these totals.
+            </p>
+          </div>
+        )}
+
+        <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4'>
+          <StatCard
+            icon={FiBriefcase}
+            label={t('totalSavings')}
+            value={isLoading ? dash : money(summary?.fundBalance)}
+            hint='Held by the group, summed from the ledger'
+          />
+          <StatCard
+            icon={FiTrendingUp}
+            label={t('monthlySavings')}
+            value={isLoading ? dash : money(summary?.thisMonth)}
+            tone='success'
+            hint='Net movement this month'
+          />
+          <StatCard
+            icon={FiUsers}
+            label={t('activeMembers')}
+            value={isLoading ? dash : count(summary?.activeMembers)}
+            tone='info'
+            hint='On the group roster'
+          />
+          {/* Distinct from Active Members. These two cards previously both read
+              summary.activeMembers under different labels, so the dashboard
+              showed the same number twice and implied it meant two things. */}
+          <StatCard
+            icon={FiCheckCircle}
+            label={t('contributingMembers')}
+            value={isLoading ? dash : count(summary?.contributingMembers)}
+            tone='warning'
+            hint='With at least one recorded contribution'
+          />
         </div>
 
-        {/* Stats Grid */}
-        <div className='grid grid-cols-1 gap-3 sm:gap-4 lg:gap-5 sm:grid-cols-2 xl:grid-cols-4'>
-          {stats.map(stat => (
-            <div key={stat.name} className='bg-white overflow-hidden shadow rounded-lg'>
-              <div className='p-3 sm:p-5'>
-                <div className='flex items-center'>
-                  <div className='flex-shrink-0'>
-                    <div className='p-2 sm:p-3 rounded-md bg-indigo-500 bg-opacity-10'>
-                      <stat.icon
-                        className='h-5 w-5 sm:h-6 sm:w-6 text-indigo-600'
-                        aria-hidden='true'
-                      />
-                    </div>
-                  </div>
-                  <div className='ml-3 sm:ml-5 w-0 flex-1'>
-                    <dl>
-                      <dt className='text-xs sm:text-sm font-medium text-gray-500 truncate'>
-                        {stat.name}
-                      </dt>
-                      <dd>
-                        <div className='text-base sm:text-lg font-medium text-gray-900'>
-                          {stat.value}
-                        </div>
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-              <div className='bg-gray-50 px-3 sm:px-5 py-2 sm:py-3'>
-                <div className='text-xs sm:text-sm'>
-                  <span
-                    className={`font-medium ${stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'} flex items-center`}
-                  >
-                    {stat.changeType === 'increase' ? (
-                      <FiArrowUp className='h-3 w-3 sm:h-4 sm:w-4 mr-1' />
-                    ) : (
-                      <FiArrowDown className='h-3 w-3 sm:h-4 sm:w-4 mr-1' />
-                    )}
-                    {stat.change}
-                  </span>
-                  <span className='text-gray-500 ml-2 hidden sm:inline'>vs last month</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className='grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-1 xl:grid-cols-3'>
-          {/* Recent Activity */}
-          <div className='xl:col-span-2 lg:col-span-1'>
-            <div className='bg-white shadow overflow-hidden sm:rounded-lg'>
-              <div className='px-3 sm:px-4 py-3 sm:py-5 border-b border-gray-200'>
-                <h3 className='text-base sm:text-lg leading-6 font-medium text-gray-900'>
-                  {t('recentActivity')}
-                </h3>
-                <p className='mt-1 max-w-2xl text-xs sm:text-sm text-gray-500'>
-                  {t('latestActivities')}
-                </p>
-              </div>
-              <div className='divide-y divide-gray-200'>
-                {recentActivities.map(activity => (
-                  <div key={activity.id} className='px-3 sm:px-4 py-3 sm:py-4 hover:bg-gray-50'>
-                    <div className='flex flex-col sm:flex-row sm:items-start sm:items-center'>
-                      <div className='min-w-0 flex-1 mb-2 sm:mb-0'>
-                        <p className='text-xs sm:text-sm font-medium text-indigo-600 truncate'>
-                          {activity.user}
-                        </p>
-                        <p className='text-xs sm:text-sm text-gray-500 truncate mt-1'>
-                          {activity.action}
-                        </p>
-                      </div>
-                      <div className='sm:ml-5 flex-shrink-0'>
-                        <p className='text-xs sm:text-sm text-gray-500'>{activity.time}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className='bg-gray-50 px-3 sm:px-4 py-3 sm:py-4'>
-                <Link
-                  to='/dashboard/loans'
-                  className='text-xs sm:text-sm font-medium text-indigo-600 hover:text-indigo-500'
-                >
-                  {t('viewAll')}
-                </Link>
-              </div>
-            </div>
+        <div className='mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3'>
+          <div className='lg:col-span-2'>
+            <EmptySection
+              title={t('recentActivity')}
+              subtitle={t('latestActivities')}
+              note='An activity feed is not wired up yet. Contributions appear on the Savings page.'
+            />
           </div>
 
-          {/* Upcoming Payments */}
-          <div>
-            <div className='bg-white shadow overflow-hidden sm:rounded-lg'>
-              <div className='px-3 sm:px-4 py-3 sm:py-5 border-b border-gray-200'>
-                <h3 className='text-base sm:text-lg leading-6 font-medium text-gray-900'>
-                  {t('upcomingPayments')}
-                </h3>
-                <p className='mt-1 max-w-2xl text-xs sm:text-sm text-gray-500'>
-                  {t('scheduledPayments')}
-                </p>
-              </div>
-              <div className='divide-y divide-gray-200'>
-                {upcomingPayments.map(payment => (
-                  <div key={payment.id} className='px-3 sm:px-4 py-3 sm:py-4 hover:bg-gray-50'>
-                    <div className='flex flex-col sm:flex-row sm:items-start sm:items-center'>
-                      <div className='flex-1 mb-2 sm:mb-0'>
-                        <p className='text-xs sm:text-sm font-medium text-gray-900'>
-                          {payment.member}
-                        </p>
-                        <p className='text-xs sm:text-sm text-gray-500'>{payment.type}</p>
-                      </div>
-                      <div className='sm:ml-2 flex-shrink-0'>
-                        <p className='text-xs sm:text-sm font-medium text-gray-900'>
-                          {payment.amount}
-                        </p>
-                      </div>
-                    </div>
-                    <div className='mt-2'>
-                      <span className='px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800'>
-                        {payment.dueDate}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className='bg-gray-50 px-3 sm:px-4 py-3 sm:py-4'>
-                <Link
-                  to='/dashboard/loans'
-                  className='text-xs sm:text-sm font-medium text-indigo-600 hover:text-indigo-500'
-                >
-                  {t('viewAll')}
+          <div className='space-y-6'>
+            <section className='card'>
+              <header className='border-b border-border px-5 py-4'>
+                <h2>{t('quickActions')}</h2>
+              </header>
+              <div className='grid grid-cols-1 gap-2 p-4'>
+                <Link to='/dashboard/savings' className='btn-secondary justify-start'>
+                  <FiPlusCircle className='h-4 w-4' aria-hidden='true' />
+                  {t('recordPayment')}
+                </Link>
+                <Link to='/dashboard/members' className='btn-secondary justify-start'>
+                  <FiUserPlus className='h-4 w-4' aria-hidden='true' />
+                  {t('addMember')}
+                </Link>
+                <Link to='/dashboard/reports' className='btn-secondary justify-start'>
+                  <FiFileText className='h-4 w-4' aria-hidden='true' />
+                  {t('generateReport')}
                 </Link>
               </div>
-            </div>
+            </section>
 
-            {/* Quick Actions */}
-            <div className='mt-4 sm:mt-6 bg-white shadow overflow-hidden sm:rounded-lg'>
-              <div className='px-3 sm:px-4 py-3 sm:py-5'>
-                <h3 className='text-base sm:text-lg leading-6 font-medium text-gray-900'>
-                  {t('quickActions')}
-                </h3>
-              </div>
-              <div className='px-3 sm:px-4 pb-4 sm:pb-5'>
-                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
-                  <Link
-                    to='/dashboard/loans'
-                    className='inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-3 border border-transparent text-xs sm:text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-                  >
-                    {t('recordPayment')}
-                  </Link>
-                  <Link
-                    to='/dashboard/loans'
-                    className='inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 text-xs sm:text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-                  >
-                    {t('newLoan')}
-                  </Link>
-                  <Link
-                    to='/dashboard/members'
-                    className='inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-3 border border-transparent text-xs sm:text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-                  >
-                    {t('addMember')}
-                  </Link>
-                  <Link
-                    to='/dashboard/reports'
-                    className='inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-3 border border-transparent text-xs sm:text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-                  >
-                    {t('generateReport')}
-                  </Link>
-                </div>
-              </div>
-            </div>
+            <EmptySection
+              title={t('upcomingPayments')}
+              subtitle={t('scheduledPayments')}
+              note='Payment scheduling is not implemented yet.'
+            />
           </div>
         </div>
       </div>
     </div>
   );
+};
+
+const DashboardHome = () => {
+  const user = useAppSelector(selectCurrentUser);
+  // Members get a different screen entirely; admins get the group view.
+  return user?.role === 'ROLE_USER' ? <MemberDashboard /> : <GroupDashboard />;
 };
 
 export default DashboardHome;

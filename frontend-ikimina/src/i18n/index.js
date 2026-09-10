@@ -119,6 +119,9 @@ export const formatCurrency = (amount, language = i18n.language) => {
     return new Intl.NumberFormat(localeFor(language), {
       style: 'currency',
       currency: 'RWF',
+      // ICU's short symbol for RWF is "RF", which is easy to misread and is
+      // not what Rwandan statements use. The ISO code is unambiguous.
+      currencyDisplay: 'code',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(numeric);

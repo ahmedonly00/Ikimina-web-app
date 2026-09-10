@@ -26,6 +26,16 @@ root.render(
           toastOptions={{
             duration: 5000,
             error: { duration: 6000 },
+            /*
+             * react-hot-toast hardcodes a white background inline, so in dark
+             * mode the toast came out white-on-white. Pointing it at the theme
+             * tokens makes it follow whichever theme is active.
+             */
+            style: {
+              background: 'rgb(var(--c-surface))',
+              color: 'rgb(var(--c-fg))',
+              border: '1px solid rgb(var(--c-border))',
+            },
           }}
         />
       </BrowserRouter>

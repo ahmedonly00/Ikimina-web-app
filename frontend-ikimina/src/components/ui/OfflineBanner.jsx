@@ -56,7 +56,7 @@ const OfflineBanner = ({ isOnline, pendingCount, isReplaying, onRetry }) => {
           <button
             type='button'
             onClick={onRetry}
-            className='flex-shrink-0 rounded-md border border-blue-300 bg-white px-3 py-1.5 text-sm font-medium text-blue-800 hover:bg-blue-100'
+            className='flex-shrink-0 rounded-md border border-blue-300 bg-surface px-3 py-1.5 text-sm font-medium text-blue-800 hover:bg-blue-100'
           >
             Send now
           </button>

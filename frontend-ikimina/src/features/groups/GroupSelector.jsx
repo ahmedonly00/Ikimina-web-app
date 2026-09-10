@@ -19,10 +19,10 @@ export const GroupSelector = () => {
 
   if (isLoading) {
     return (
-      <div className='flex items-center px-4 py-2 text-gray-600'>
+      <div className='flex items-center px-4 py-2 text-fg-muted'>
         <div className='animate-pulse flex space-x-2'>
-          <div className='h-4 w-4 bg-gray-300 rounded'></div>
-          <div className='h-4 w-24 bg-gray-300 rounded'></div>
+          <div className='h-4 w-4 bg-surface-3 rounded'></div>
+          <div className='h-4 w-24 bg-surface-3 rounded'></div>
         </div>
       </div>
     );
@@ -36,19 +36,19 @@ export const GroupSelector = () => {
     <div className='relative'>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className='flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200'
+        className='flex items-center space-x-2 px-4 py-2 text-sm font-medium text-fg hover:bg-surface-2 rounded-md transition-colors duration-200'
       >
-        <FaUsers className='text-indigo-600' />
+        <FaUsers className='text-primary' />
         <span className='truncate max-w-xs'>{currentGroup?.name || 'Select Group'}</span>
         <FaChevronDown
-          className={`text-xs text-gray-500 transition-transform duration-200 ${isOpen ? 'transform rotate-180' : ''}`}
+          className={`text-xs text-fg-muted transition-transform duration-200 ${isOpen ? 'transform rotate-180' : ''}`}
         />
       </button>
 
       {isOpen && (
-        <div className='absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg overflow-hidden z-50'>
+        <div className='absolute right-0 mt-2 w-56 bg-surface rounded-md shadow-lg overflow-hidden z-50'>
           <div className='py-1'>
-            <div className='px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider'>
+            <div className='px-4 py-2 text-xs font-semibold text-fg-muted uppercase tracking-wider'>
               Switch Group
             </div>
             {groups.map(group => (
@@ -60,21 +60,21 @@ export const GroupSelector = () => {
                 }}
                 className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${
                   currentGroup?.id === group.id
-                    ? 'bg-indigo-50 text-indigo-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-primary-subtle text-primary'
+                    : 'text-fg hover:bg-surface-2'
                 }`}
               >
                 <span className='truncate'>{group.name}</span>
-                {currentGroup?.id === group.id && <FaCheck className='text-indigo-600' />}
+                {currentGroup?.id === group.id && <FaCheck className='text-primary' />}
               </button>
             ))}
-            <div className='border-t border-gray-100'>
+            <div className='border-t border-border'>
               <button
                 onClick={() => {
                   // Handle create new group
                   setIsOpen(false);
                 }}
-                className='w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50'
+                className='w-full text-left px-4 py-2 text-sm text-primary hover:bg-primary-subtle'
               >
                 + Create New Group
               </button>

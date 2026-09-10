@@ -288,17 +288,14 @@ const SavingsLedger = () => {
   return (
     <div className='space-y-6'>
       {/* Filters */}
-      <div className='bg-white p-6 rounded-lg shadow'>
-        <h3 className='text-lg font-medium text-gray-900 mb-4 flex items-center'>
+      <div className='bg-surface p-6 rounded-lg shadow'>
+        <h3 className='text-lg font-medium text-fg mb-4 flex items-center'>
           <FaFilter className='mr-2' />
           Filters
         </h3>
         <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
           <div>
-            <label
-              htmlFor='ledger-start-date'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
+            <label htmlFor='ledger-start-date' className='block text-sm font-medium text-fg mb-1'>
               <FaCalendarAlt className='inline mr-1' />
               Start Date
             </label>
@@ -307,14 +304,11 @@ const SavingsLedger = () => {
               type='date'
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              className='w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
             />
           </div>
           <div>
-            <label
-              htmlFor='ledger-end-date'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
+            <label htmlFor='ledger-end-date' className='block text-sm font-medium text-fg mb-1'>
               <FaCalendarAlt className='inline mr-1' />
               End Date
             </label>
@@ -323,16 +317,13 @@ const SavingsLedger = () => {
               type='date'
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              className='w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
             />
           </div>
           <div className='md:col-span-2'>
             {/* Labels a group of toggle buttons rather than one control, so it
                 is exposed as a labelled group instead of a form label. */}
-            <span
-              id='ledger-members-label'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
+            <span id='ledger-members-label' className='block text-sm font-medium text-fg mb-1'>
               Members
             </span>
             <div
@@ -346,7 +337,7 @@ const SavingsLedger = () => {
                 className={`px-3 py-1 rounded text-sm ${
                   selectedUsers.length === users?.length
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700'
+                    : 'bg-surface-3 text-fg'
                 }`}
               >
                 {selectedUsers.length === users?.length ? 'Deselect All' : 'Select All'}
@@ -359,7 +350,7 @@ const SavingsLedger = () => {
                   className={`px-3 py-1 rounded text-sm ${
                     selectedUsers.includes(user.id)
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700'
+                      : 'bg-surface-3 text-fg'
                   }`}
                 >
                   {user.firstName} {user.lastName}
@@ -391,53 +382,53 @@ const SavingsLedger = () => {
       </div>
 
       {/* Ledger Table */}
-      <div className='bg-white shadow-lg rounded-lg overflow-hidden'>
+      <div className='bg-surface shadow-lg rounded-lg overflow-hidden'>
         <div className='overflow-x-auto'>
-          <table className='min-w-full divide-y divide-gray-200'>
-            <thead className='bg-gray-50'>
+          <table className='min-w-full divide-y divide-border'>
+            <thead className='bg-bg'>
               <tr>
-                <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16'>
+                <th className='px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider w-16'>
                   No
                 </th>
-                <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-48'>
+                <th className='px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider min-w-48'>
                   AMAZINA
                 </th>
                 {weeks.map(week => (
                   <React.Fragment key={week.weekNumber}>
-                    <th className='px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    <th className='px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider'>
                       UBWIZIGAME
                       <div className='text-xs font-normal'>{week.label}</div>
-                      <div className='text-xs text-gray-400'>
+                      <div className='text-xs text-fg-subtle'>
                         {week.startDate} - {week.endDate}
                       </div>
                     </th>
-                    <th className='px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    <th className='px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider'>
                       INGOBOKA
                       <div className='text-xs font-normal'>{week.label}</div>
-                      <div className='text-xs text-gray-400'>
+                      <div className='text-xs text-fg-subtle'>
                         {week.startDate} - {week.endDate}
                       </div>
                     </th>
                   </React.Fragment>
                 ))}
-                <th className='px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50'>
+                <th className='px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider bg-blue-50'>
                   MONTHLY
                   <br />
                   TOTAL UBWIZIGAME
                 </th>
-                <th className='px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50'>
+                <th className='px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider bg-blue-50'>
                   MONTHLY
                   <br />
                   TOTAL INGOBOKA
                 </th>
-                <th className='px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50'>
+                <th className='px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider bg-blue-50'>
                   MONTHLY
                   <br />
                   GRAND TOTAL
                 </th>
               </tr>
             </thead>
-            <tbody className='bg-white divide-y divide-gray-200'>
+            <tbody className='bg-surface divide-y divide-border'>
               {isLoading ? (
                 <tr>
                   <td colSpan={3 + weeks.length * 2 + 3} className='px-4 py-8 text-center'>
@@ -459,11 +450,9 @@ const SavingsLedger = () => {
                   let monthlyIngoboka = 0;
 
                   return (
-                    <tr key={member.memberId} className='hover:bg-gray-50'>
-                      <td className='px-4 py-4 text-sm text-gray-900'>{index + 1}</td>
-                      <td className='px-4 py-4 text-sm font-medium text-gray-900'>
-                        {member.memberName}
-                      </td>
+                    <tr key={member.memberId} className='hover:bg-bg'>
+                      <td className='px-4 py-4 text-sm text-fg'>{index + 1}</td>
+                      <td className='px-4 py-4 text-sm font-medium text-fg'>{member.memberName}</td>
                       {weeks.map(week => {
                         const weekSavings = getWeekSavings(member, week.startDate, week.endDate);
                         monthlyUbwizigame += weekSavings.ubwizigame || 0;
@@ -471,22 +460,22 @@ const SavingsLedger = () => {
 
                         return (
                           <React.Fragment key={week.weekNumber}>
-                            <td className='px-4 py-4 text-sm text-gray-900 text-center'>
+                            <td className='px-4 py-4 text-sm text-fg text-center'>
                               {weekSavings.ubwizigame || '-'}
                             </td>
-                            <td className='px-4 py-4 text-sm text-gray-900 text-center'>
+                            <td className='px-4 py-4 text-sm text-fg text-center'>
                               {weekSavings.ingoboka || '-'}
                             </td>
                           </React.Fragment>
                         );
                       })}
-                      <td className='px-4 py-4 text-sm font-bold text-gray-900 text-center bg-blue-50'>
+                      <td className='px-4 py-4 text-sm font-bold text-fg text-center bg-blue-50'>
                         {monthlyUbwizigame || 0}
                       </td>
-                      <td className='px-4 py-4 text-sm font-bold text-gray-900 text-center bg-blue-50'>
+                      <td className='px-4 py-4 text-sm font-bold text-fg text-center bg-blue-50'>
                         {monthlyIngoboka || 0}
                       </td>
-                      <td className='px-4 py-4 text-sm font-bold text-gray-900 text-center bg-blue-50'>
+                      <td className='px-4 py-4 text-sm font-bold text-fg text-center bg-blue-50'>
                         {monthlyUbwizigame + monthlyIngoboka || 0}
                       </td>
                     </tr>
@@ -496,7 +485,7 @@ const SavingsLedger = () => {
                 <tr>
                   <td
                     colSpan={3 + weeks.length * 2 + 3}
-                    className='px-4 py-8 text-center text-gray-500'
+                    className='px-4 py-8 text-center text-fg-muted'
                   >
                     No savings data found for the selected period
                   </td>
@@ -505,8 +494,8 @@ const SavingsLedger = () => {
 
               {/* Totals Row */}
               {ledgerData && ledgerData.length > 0 && (
-                <tr className='bg-gray-100 font-bold'>
-                  <td className='px-4 py-4 text-sm text-gray-900' colSpan='2'>
+                <tr className='bg-surface-2 font-bold'>
+                  <td className='px-4 py-4 text-sm text-fg' colSpan='2'>
                     TOTALS
                   </td>
                   {weeks.map(week => {
@@ -521,10 +510,10 @@ const SavingsLedger = () => {
 
                     return (
                       <React.Fragment key={`total-${week.weekNumber}`}>
-                        <td className='px-4 py-4 text-sm text-gray-900 text-center'>
+                        <td className='px-4 py-4 text-sm text-fg text-center'>
                           {weekUbwizigameTotal}
                         </td>
-                        <td className='px-4 py-4 text-sm text-gray-900 text-center'>
+                        <td className='px-4 py-4 text-sm text-fg text-center'>
                           {weekIngobokaTotal}
                         </td>
                       </React.Fragment>
@@ -546,13 +535,13 @@ const SavingsLedger = () => {
 
                     return (
                       <>
-                        <td className='px-4 py-4 text-sm text-gray-900 text-center bg-blue-100'>
+                        <td className='px-4 py-4 text-sm text-fg text-center bg-blue-100'>
                           {totalMonthlyUbwizigame}
                         </td>
-                        <td className='px-4 py-4 text-sm text-gray-900 text-center bg-blue-100'>
+                        <td className='px-4 py-4 text-sm text-fg text-center bg-blue-100'>
                           {totalMonthlyIngoboka}
                         </td>
-                        <td className='px-4 py-4 text-sm text-gray-900 text-center bg-blue-100'>
+                        <td className='px-4 py-4 text-sm text-fg text-center bg-blue-100'>
                           {totalMonthlyUbwizigame + totalMonthlyIngoboka}
                         </td>
                       </>

@@ -79,7 +79,7 @@ const BulkSavingsForm = ({ onClose, onSubmit }) => {
   return (
     <form onSubmit={handleSubmit} className='space-y-6'>
       <div>
-        <label htmlFor='bulk-savings-date' className='block text-sm font-medium text-gray-700 mb-2'>
+        <label htmlFor='bulk-savings-date' className='block text-sm font-medium text-fg mb-2'>
           <FaCalendarAlt className='inline mr-2' />
           Date
         </label>
@@ -88,14 +88,14 @@ const BulkSavingsForm = ({ onClose, onSubmit }) => {
           type='date'
           value={date}
           onChange={e => setDate(e.target.value)}
-          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+          className='w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
           required
         />
       </div>
 
       <div className='space-y-4'>
         <div className='flex justify-between items-center'>
-          <h3 className='text-lg font-medium text-gray-900'>Member Savings</h3>
+          <h3 className='text-lg font-medium text-fg'>Member Savings</h3>
           <Button
             type='button'
             onClick={handleAddMember}
@@ -108,13 +108,13 @@ const BulkSavingsForm = ({ onClose, onSubmit }) => {
         </div>
 
         {memberSavings.map((member, index) => (
-          <div key={index} className='border border-gray-200 rounded-lg p-4 space-y-4'>
+          <div key={index} className='border border-border rounded-lg p-4 space-y-4'>
             <div className='flex justify-between items-start'>
               <div className='flex-1 grid grid-cols-1 md:grid-cols-4 gap-4'>
                 <div>
                   <label
                     htmlFor={`bulk-member-${index}`}
-                    className='block text-sm font-medium text-gray-700 mb-1'
+                    className='block text-sm font-medium text-fg mb-1'
                   >
                     <FaUser className='inline mr-1' />
                     Member
@@ -123,7 +123,7 @@ const BulkSavingsForm = ({ onClose, onSubmit }) => {
                     id={`bulk-member-${index}`}
                     value={member.userId}
                     onChange={e => handleMemberChange(index, 'userId', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    className='w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                     required
                   >
                     <option value=''>Select Member</option>
@@ -144,7 +144,7 @@ const BulkSavingsForm = ({ onClose, onSubmit }) => {
                 <div>
                   <label
                     htmlFor={`bulk-ubwizigame-${index}`}
-                    className='block text-sm font-medium text-gray-700 mb-1'
+                    className='block text-sm font-medium text-fg mb-1'
                   >
                     UBWIZIGAME Amount
                   </label>
@@ -155,7 +155,7 @@ const BulkSavingsForm = ({ onClose, onSubmit }) => {
                     min='0'
                     value={member.ubwizigameAmount}
                     onChange={e => handleMemberChange(index, 'ubwizigameAmount', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    className='w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                     placeholder='0.00'
                   />
                 </div>
@@ -163,7 +163,7 @@ const BulkSavingsForm = ({ onClose, onSubmit }) => {
                 <div>
                   <label
                     htmlFor={`bulk-ingoboka-${index}`}
-                    className='block text-sm font-medium text-gray-700 mb-1'
+                    className='block text-sm font-medium text-fg mb-1'
                   >
                     INGOBOKA Amount
                   </label>
@@ -174,7 +174,7 @@ const BulkSavingsForm = ({ onClose, onSubmit }) => {
                     min='0'
                     value={member.ingobokaAmount}
                     onChange={e => handleMemberChange(index, 'ingobokaAmount', e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    className='w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                     placeholder='0.00'
                   />
                 </div>
@@ -197,7 +197,7 @@ const BulkSavingsForm = ({ onClose, onSubmit }) => {
       </div>
 
       <div className='flex justify-end space-x-4 pt-4 border-t'>
-        <Button type='button' onClick={onClose} className='bg-gray-500 hover:bg-gray-600'>
+        <Button type='button' onClick={onClose} className='bg-fg hover:bg-surface-3'>
           Cancel
         </Button>
         <Button type='submit' className='bg-blue-600 hover:bg-blue-700'>

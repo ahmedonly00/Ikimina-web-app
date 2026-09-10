@@ -11,7 +11,7 @@ const SettingsPage = () => {
   // Form states
   const [generalForm, setGeneralForm] = useState({
     appName: 'Ikimina Savings Manager',
-    currency: 'USD',
+    currency: 'RWF',
     timeZone: 'Africa/Kigali',
   });
 
@@ -74,44 +74,40 @@ const SettingsPage = () => {
     switch (activeTab) {
       case 'general':
         return (
-          <div className='bg-white rounded-lg shadow'>
+          <div className='bg-surface rounded-lg shadow'>
             <div className='px-4 py-5 sm:p-6'>
-              <h3 className='text-lg leading-6 font-medium text-gray-900 mb-4'>
-                {t('generalSettings')}
-              </h3>
+              <h3 className='text-lg leading-6 font-medium text-fg mb-4'>{t('generalSettings')}</h3>
 
               <div className='space-y-6'>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700'>
+                  <label className='block text-sm font-medium text-fg'>
                     {t('applicationName')}
                   </label>
                   <input
                     type='text'
-                    className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                    className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                     value={generalForm.appName}
                     onChange={e => setGeneralForm({ ...generalForm, appName: e.target.value })}
                   />
                 </div>
 
                 <div>
-                  <label className='block text-sm font-medium text-gray-700'>
+                  <label className='block text-sm font-medium text-fg'>
                     {t('defaultCurrency')}
                   </label>
                   <select
-                    className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                    className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                     value={generalForm.currency}
                     onChange={e => setGeneralForm({ ...generalForm, currency: e.target.value })}
                   >
-                    <option value='USD'>USD - US Dollar</option>
                     <option value='RWF'>RWF - Rwandan Franc</option>
-                    <option value='EUR'>EUR - Euro</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className='block text-sm font-medium text-gray-700'>{t('timeZone')}</label>
+                  <label className='block text-sm font-medium text-fg'>{t('timeZone')}</label>
                   <select
-                    className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                    className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                     value={generalForm.timeZone}
                     onChange={e => setGeneralForm({ ...generalForm, timeZone: e.target.value })}
                   >
@@ -125,7 +121,7 @@ const SettingsPage = () => {
                   <button
                     onClick={() => handleSave('general')}
                     disabled={isSaving}
-                    className='bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50'
+                    className='bg-primary py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50'
                   >
                     {isSaving ? (
                       <div className='flex items-center'>
@@ -166,48 +162,46 @@ const SettingsPage = () => {
 
       case 'profile':
         return (
-          <div className='bg-white rounded-lg shadow'>
+          <div className='bg-surface rounded-lg shadow'>
             <div className='px-4 py-5 sm:p-6'>
-              <h3 className='text-lg leading-6 font-medium text-gray-900 mb-4'>
-                {t('profileSettings')}
-              </h3>
+              <h3 className='text-lg leading-6 font-medium text-fg mb-4'>{t('profileSettings')}</h3>
 
               <div className='space-y-6'>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700'>{t('fullName')}</label>
+                  <label className='block text-sm font-medium text-fg'>{t('fullName')}</label>
                   <input
                     type='text'
-                    className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                    className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                     value={profileForm.fullName}
                     onChange={e => setProfileForm({ ...profileForm, fullName: e.target.value })}
                   />
                 </div>
 
                 <div>
-                  <label className='block text-sm font-medium text-gray-700'>{t('email')}</label>
+                  <label className='block text-sm font-medium text-fg'>{t('email')}</label>
                   <input
                     type='email'
-                    className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                    className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                     value={profileForm.email}
                     onChange={e => setProfileForm({ ...profileForm, email: e.target.value })}
                   />
                 </div>
 
                 <div>
-                  <label className='block text-sm font-medium text-gray-700'>{t('phone')}</label>
+                  <label className='block text-sm font-medium text-fg'>{t('phone')}</label>
                   <input
                     type='tel'
-                    className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                    className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                     value={profileForm.phone}
                     onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })}
                   />
                 </div>
 
                 <div>
-                  <label className='block text-sm font-medium text-gray-700'>{t('bio')}</label>
+                  <label className='block text-sm font-medium text-fg'>{t('bio')}</label>
                   <textarea
                     rows={3}
-                    className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                    className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                     value={profileForm.bio}
                     onChange={e => setProfileForm({ ...profileForm, bio: e.target.value })}
                   />
@@ -217,7 +211,7 @@ const SettingsPage = () => {
                   <button
                     onClick={() => handleSave('profile')}
                     disabled={isSaving}
-                    className='bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50'
+                    className='bg-primary py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50'
                   >
                     <FaSave className='mr-2 inline' />
                     {t('saveChanges')}
@@ -230,25 +224,23 @@ const SettingsPage = () => {
 
       case 'notifications':
         return (
-          <div className='bg-white rounded-lg shadow'>
+          <div className='bg-surface rounded-lg shadow'>
             <div className='px-4 py-5 sm:p-6'>
-              <h3 className='text-lg leading-6 font-medium text-gray-900 mb-4'>
+              <h3 className='text-lg leading-6 font-medium text-fg mb-4'>
                 {t('notificationSettings')}
               </h3>
 
               <div className='space-y-6'>
                 <div className='flex items-center justify-between'>
                   <div>
-                    <label className='text-sm font-medium text-gray-700'>
-                      {t('emailNotifications')}
-                    </label>
-                    <p className='text-sm text-gray-500'>
+                    <label className='text-sm font-medium text-fg'>{t('emailNotifications')}</label>
+                    <p className='text-sm text-fg-muted'>
                       Receive email notifications about your account
                     </p>
                   </div>
                   <input
                     type='checkbox'
-                    className='h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded'
+                    className='h-4 w-4 text-primary focus:ring-primary border-border rounded'
                     checked={notificationForm.email}
                     onChange={e =>
                       setNotificationForm({ ...notificationForm, email: e.target.checked })
@@ -258,16 +250,14 @@ const SettingsPage = () => {
 
                 <div className='flex items-center justify-between'>
                   <div>
-                    <label className='text-sm font-medium text-gray-700'>
-                      {t('pushNotifications')}
-                    </label>
-                    <p className='text-sm text-gray-500'>
+                    <label className='text-sm font-medium text-fg'>{t('pushNotifications')}</label>
+                    <p className='text-sm text-fg-muted'>
                       Receive push notifications in your browser
                     </p>
                   </div>
                   <input
                     type='checkbox'
-                    className='h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded'
+                    className='h-4 w-4 text-primary focus:ring-primary border-border rounded'
                     checked={notificationForm.push}
                     onChange={e =>
                       setNotificationForm({ ...notificationForm, push: e.target.checked })
@@ -277,16 +267,14 @@ const SettingsPage = () => {
 
                 <div className='flex items-center justify-between'>
                   <div>
-                    <label className='text-sm font-medium text-gray-700'>
-                      {t('smsNotifications')}
-                    </label>
-                    <p className='text-sm text-gray-500'>
+                    <label className='text-sm font-medium text-fg'>{t('smsNotifications')}</label>
+                    <p className='text-sm text-fg-muted'>
                       Receive SMS notifications for important updates
                     </p>
                   </div>
                   <input
                     type='checkbox'
-                    className='h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded'
+                    className='h-4 w-4 text-primary focus:ring-primary border-border rounded'
                     checked={notificationForm.sms}
                     onChange={e =>
                       setNotificationForm({ ...notificationForm, sms: e.target.checked })
@@ -298,7 +286,7 @@ const SettingsPage = () => {
                   <button
                     onClick={() => handleSave('notifications')}
                     disabled={isSaving}
-                    className='bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50'
+                    className='bg-primary py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50'
                   >
                     <FaSave className='mr-2 inline' />
                     {t('saveChanges')}
@@ -311,20 +299,20 @@ const SettingsPage = () => {
 
       case 'security':
         return (
-          <div className='bg-white rounded-lg shadow'>
+          <div className='bg-surface rounded-lg shadow'>
             <div className='px-4 py-5 sm:p-6'>
-              <h3 className='text-lg leading-6 font-medium text-gray-900 mb-4'>
+              <h3 className='text-lg leading-6 font-medium text-fg mb-4'>
                 {t('securitySettings')}
               </h3>
 
               <div className='space-y-6'>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700'>
+                  <label className='block text-sm font-medium text-fg'>
                     {t('currentPassword')}
                   </label>
                   <input
                     type='password'
-                    className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                    className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                     value={securityForm.currentPassword}
                     onChange={e =>
                       setSecurityForm({ ...securityForm, currentPassword: e.target.value })
@@ -333,12 +321,10 @@ const SettingsPage = () => {
                 </div>
 
                 <div>
-                  <label className='block text-sm font-medium text-gray-700'>
-                    {t('newPassword')}
-                  </label>
+                  <label className='block text-sm font-medium text-fg'>{t('newPassword')}</label>
                   <input
                     type='password'
-                    className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                    className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                     value={securityForm.newPassword}
                     onChange={e =>
                       setSecurityForm({ ...securityForm, newPassword: e.target.value })
@@ -347,12 +333,12 @@ const SettingsPage = () => {
                 </div>
 
                 <div>
-                  <label className='block text-sm font-medium text-gray-700'>
+                  <label className='block text-sm font-medium text-fg'>
                     {t('confirmPassword')}
                   </label>
                   <input
                     type='password'
-                    className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                    className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                     value={securityForm.confirmPassword}
                     onChange={e =>
                       setSecurityForm({ ...securityForm, confirmPassword: e.target.value })
@@ -364,7 +350,7 @@ const SettingsPage = () => {
                   <button
                     onClick={() => handleSave('security')}
                     disabled={isSaving}
-                    className='bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50'
+                    className='bg-primary py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50'
                   >
                     <FaSave className='mr-2 inline' />
                     {t('saveChanges')}
@@ -377,17 +363,15 @@ const SettingsPage = () => {
 
       case 'appearance':
         return (
-          <div className='bg-white rounded-lg shadow'>
+          <div className='bg-surface rounded-lg shadow'>
             <div className='px-4 py-5 sm:p-6'>
-              <h3 className='text-lg leading-6 font-medium text-gray-900 mb-4'>
+              <h3 className='text-lg leading-6 font-medium text-fg mb-4'>
                 {t('appearanceSettings')}
               </h3>
 
               <div className='space-y-6'>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-3'>
-                    {t('theme')}
-                  </label>
+                  <label className='block text-sm font-medium text-fg mb-3'>{t('theme')}</label>
                   <div className='space-y-2'>
                     <label className='flex items-center'>
                       <input
@@ -398,9 +382,9 @@ const SettingsPage = () => {
                         onChange={e =>
                           setAppearanceForm({ ...appearanceForm, theme: e.target.value })
                         }
-                        className='h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300'
+                        className='h-4 w-4 text-primary focus:ring-primary border-border'
                       />
-                      <span className='ml-2 text-sm text-gray-700'>{t('lightMode')}</span>
+                      <span className='ml-2 text-sm text-fg'>{t('lightMode')}</span>
                     </label>
                     <label className='flex items-center'>
                       <input
@@ -411,9 +395,9 @@ const SettingsPage = () => {
                         onChange={e =>
                           setAppearanceForm({ ...appearanceForm, theme: e.target.value })
                         }
-                        className='h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300'
+                        className='h-4 w-4 text-primary focus:ring-primary border-border'
                       />
-                      <span className='ml-2 text-sm text-gray-700'>{t('darkMode')}</span>
+                      <span className='ml-2 text-sm text-fg'>{t('darkMode')}</span>
                     </label>
                     <label className='flex items-center'>
                       <input
@@ -424,9 +408,9 @@ const SettingsPage = () => {
                         onChange={e =>
                           setAppearanceForm({ ...appearanceForm, theme: e.target.value })
                         }
-                        className='h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300'
+                        className='h-4 w-4 text-primary focus:ring-primary border-border'
                       />
-                      <span className='ml-2 text-sm text-gray-700'>{t('system')}</span>
+                      <span className='ml-2 text-sm text-fg'>{t('system')}</span>
                     </label>
                   </div>
                 </div>
@@ -435,7 +419,7 @@ const SettingsPage = () => {
                   <button
                     onClick={() => handleSave('appearance')}
                     disabled={isSaving}
-                    className='bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50'
+                    className='bg-primary py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50'
                   >
                     <FaSave className='mr-2 inline' />
                     {t('saveChanges')}
@@ -448,17 +432,17 @@ const SettingsPage = () => {
 
       case 'language':
         return (
-          <div className='bg-white rounded-lg shadow'>
+          <div className='bg-surface rounded-lg shadow'>
             <div className='px-4 py-5 sm:p-6'>
-              <h3 className='text-lg leading-6 font-medium text-gray-900 mb-4'>
+              <h3 className='text-lg leading-6 font-medium text-fg mb-4'>
                 {t('languageSettings')}
               </h3>
 
               <div className='space-y-6'>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700'>{t('language')}</label>
+                  <label className='block text-sm font-medium text-fg'>{t('language')}</label>
                   <select
-                    className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                    className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                     value={languageForm.language}
                     onChange={e => setLanguageForm({ ...languageForm, language: e.target.value })}
                   >
@@ -466,7 +450,7 @@ const SettingsPage = () => {
                     <option value='fr'>{t('french')}</option>
                     <option value='rw'>{t('kinyarwanda')}</option>
                   </select>
-                  <p className='mt-2 text-sm text-gray-500'>
+                  <p className='mt-2 text-sm text-fg-muted'>
                     {languageForm.language === 'en' &&
                       'Select your preferred language for the interface.'}
                     {languageForm.language === 'fr' &&
@@ -476,11 +460,9 @@ const SettingsPage = () => {
                 </div>
 
                 <div>
-                  <label className='block text-sm font-medium text-gray-700'>
-                    {t('dateFormat')}
-                  </label>
+                  <label className='block text-sm font-medium text-fg'>{t('dateFormat')}</label>
                   <select
-                    className='mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-3 py-2 border'
+                    className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
                     value={languageForm.dateFormat}
                     onChange={e => setLanguageForm({ ...languageForm, dateFormat: e.target.value })}
                   >
@@ -494,7 +476,7 @@ const SettingsPage = () => {
                   <button
                     onClick={() => handleSave('language')}
                     disabled={isSaving}
-                    className='bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50'
+                    className='bg-primary py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50'
                   >
                     {isSaving ? (
                       <div className='flex items-center'>
@@ -539,11 +521,9 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className='h-full w-full overflow-y-auto bg-gray-50 dark:bg-gray-900'>
+    <div className='h-full w-full overflow-y-auto bg-bg dark:bg-surface'>
       <div className='px-2 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-full xl:max-w-7xl mx-auto'>
-        <h1 className='text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6'>
-          {t('settings')}
-        </h1>
+        <h1 className='text-2xl font-bold text-fg dark:text-fg mb-6'>{t('settings')}</h1>
 
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
           <div className='lg:col-span-1'>
@@ -552,8 +532,8 @@ const SettingsPage = () => {
                 onClick={() => setActiveTab('general')}
                 className={`w-full flex items-center px-4 py-2 text-sm font-medium rounded-md ${
                   activeTab === 'general'
-                    ? 'bg-indigo-100 text-indigo-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-primary-subtle text-primary'
+                    : 'text-fg hover:bg-surface-2'
                 }`}
               >
                 <FaCog className='mr-3' />
@@ -563,8 +543,8 @@ const SettingsPage = () => {
                 onClick={() => setActiveTab('profile')}
                 className={`w-full flex items-center px-4 py-2 text-sm font-medium rounded-md ${
                   activeTab === 'profile'
-                    ? 'bg-indigo-100 text-indigo-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-primary-subtle text-primary'
+                    : 'text-fg hover:bg-surface-2'
                 }`}
               >
                 <FaUser className='mr-3' />
@@ -574,8 +554,8 @@ const SettingsPage = () => {
                 onClick={() => setActiveTab('notifications')}
                 className={`w-full flex items-center px-4 py-2 text-sm font-medium rounded-md ${
                   activeTab === 'notifications'
-                    ? 'bg-indigo-100 text-indigo-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-primary-subtle text-primary'
+                    : 'text-fg hover:bg-surface-2'
                 }`}
               >
                 <FaBell className='mr-3' />
@@ -585,8 +565,8 @@ const SettingsPage = () => {
                 onClick={() => setActiveTab('security')}
                 className={`w-full flex items-center px-4 py-2 text-sm font-medium rounded-md ${
                   activeTab === 'security'
-                    ? 'bg-indigo-100 text-indigo-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-primary-subtle text-primary'
+                    : 'text-fg hover:bg-surface-2'
                 }`}
               >
                 <FaLock className='mr-3' />
@@ -596,8 +576,8 @@ const SettingsPage = () => {
                 onClick={() => setActiveTab('appearance')}
                 className={`w-full flex items-center px-4 py-2 text-sm font-medium rounded-md ${
                   activeTab === 'appearance'
-                    ? 'bg-indigo-100 text-indigo-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-primary-subtle text-primary'
+                    : 'text-fg hover:bg-surface-2'
                 }`}
               >
                 <FaPalette className='mr-3' />
@@ -607,8 +587,8 @@ const SettingsPage = () => {
                 onClick={() => setActiveTab('language')}
                 className={`w-full flex items-center px-4 py-2 text-sm font-medium rounded-md ${
                   activeTab === 'language'
-                    ? 'bg-indigo-100 text-indigo-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-primary-subtle text-primary'
+                    : 'text-fg hover:bg-surface-2'
                 }`}
               >
                 <FaGlobe className='mr-3' />

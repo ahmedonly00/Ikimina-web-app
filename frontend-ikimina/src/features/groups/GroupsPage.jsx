@@ -72,7 +72,7 @@ const GroupsPage = () => {
   if (isLoading) {
     return (
       <div className='flex items-center justify-center h-64'>
-        <FaSpinner className='animate-spin text-2xl text-indigo-600' />
+        <FaSpinner className='animate-spin text-2xl text-primary' />
       </div>
     );
   }
@@ -101,7 +101,7 @@ const GroupsPage = () => {
           <button
             type='button'
             onClick={() => setCreatedAdmin(null)}
-            className='mt-3 rounded-md border border-amber-400 bg-white px-3 py-1.5 text-sm font-medium text-amber-900 hover:bg-amber-100'
+            className='mt-3 rounded-md border border-amber-400 bg-surface px-3 py-1.5 text-sm font-medium text-amber-900 hover:bg-amber-100'
           >
             I have saved these credentials
           </button>
@@ -110,8 +110,8 @@ const GroupsPage = () => {
 
       <div className='sm:flex sm:items-center'>
         <div className='sm:flex-auto'>
-          <h1 className='text-2xl font-semibold text-gray-900'>Savings Groups</h1>
-          <p className='mt-2 text-sm text-gray-700'>
+          <h1 className='text-2xl font-semibold text-fg'>Savings Groups</h1>
+          <p className='mt-2 text-sm text-fg'>
             Manage your savings groups or create a new one to get started.
           </p>
         </div>
@@ -119,7 +119,7 @@ const GroupsPage = () => {
           <button
             type='button'
             onClick={() => setShowCreateModal(true)}
-            className='inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto'
+            className='inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 sm:w-auto'
           >
             <FaPlus className='-ml-1 mr-2 h-4 w-4' />
             New Group
@@ -131,25 +131,19 @@ const GroupsPage = () => {
         <div className='-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8'>
           <div className='inline-block min-w-full py-2 align-middle md:px-6 lg:px-8'>
             <div className='overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg'>
-              <table className='min-w-full divide-y divide-gray-300'>
-                <thead className='bg-gray-50'>
+              <table className='min-w-full divide-y divide-border'>
+                <thead className='bg-bg'>
                   <tr>
                     <th
                       scope='col'
-                      className='py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6'
+                      className='py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-fg sm:pl-6'
                     >
                       Group Name
                     </th>
-                    <th
-                      scope='col'
-                      className='px-3 py-3.5 text-left text-sm font-semibold text-gray-900'
-                    >
+                    <th scope='col' className='px-3 py-3.5 text-left text-sm font-semibold text-fg'>
                       Description
                     </th>
-                    <th
-                      scope='col'
-                      className='px-3 py-3.5 text-left text-sm font-semibold text-gray-900'
-                    >
+                    <th scope='col' className='px-3 py-3.5 text-left text-sm font-semibold text-fg'>
                       Members
                     </th>
                     <th scope='col' className='relative py-3.5 pl-3 pr-4 sm:pr-6'>
@@ -157,18 +151,18 @@ const GroupsPage = () => {
                     </th>
                   </tr>
                 </thead>
-                <tbody className='divide-y divide-gray-200 bg-white'>
+                <tbody className='divide-y divide-border bg-surface'>
                   {groups.map(group => (
                     <tr
                       key={group.id}
-                      className={`cursor-pointer hover:bg-gray-50 ${
-                        currentGroup?.id === group.id ? 'bg-indigo-50' : ''
+                      className={`cursor-pointer hover:bg-bg ${
+                        currentGroup?.id === group.id ? 'bg-primary-subtle' : ''
                       }`}
                       onClick={() => handleGroupSelect(group.id)}
                     >
-                      <td className='whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6'>
+                      <td className='whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-fg sm:pl-6'>
                         <div className='flex items-center'>
-                          <FaUsers className='h-5 w-5 text-indigo-500 mr-2' />
+                          <FaUsers className='h-5 w-5 text-primary mr-2' />
                           {group.name}
                           {currentGroup?.id === group.id && (
                             <span className='ml-2 inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800'>
@@ -177,10 +171,10 @@ const GroupsPage = () => {
                           )}
                         </div>
                       </td>
-                      <td className='whitespace-nowrap px-3 py-4 text-sm text-gray-500'>
+                      <td className='whitespace-nowrap px-3 py-4 text-sm text-fg-muted'>
                         {group.description || 'No description'}
                       </td>
-                      <td className='whitespace-nowrap px-3 py-4 text-sm text-gray-500'>
+                      <td className='whitespace-nowrap px-3 py-4 text-sm text-fg-muted'>
                         {group.memberCount || 0} members
                       </td>
                       <td className='relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6'>
@@ -190,7 +184,7 @@ const GroupsPage = () => {
                               e.stopPropagation();
                               // Handle edit
                             }}
-                            className='text-indigo-600 hover:text-indigo-900'
+                            className='text-primary hover:text-primary'
                           >
                             <FaEdit className='h-4 w-4' />
                           </button>
@@ -224,7 +218,7 @@ const GroupsPage = () => {
         >
           <div className='flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0'>
             <div
-              className='fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity'
+              className='fixed inset-0 bg-fg bg-opacity-75 transition-opacity'
               aria-hidden='true'
               onClick={() => setShowCreateModal(false)}
             ></div>
@@ -238,12 +232,12 @@ const GroupsPage = () => {
                 only stops a click inside the panel from dismissing it. */}
             <div
               role='presentation'
-              className='inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6'
+              className='inline-block align-bottom bg-surface rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6'
               onClick={e => e.stopPropagation()}
             >
               <div>
                 <div className='mt-3 text-center sm:mt-5'>
-                  <h3 className='text-lg leading-6 font-medium text-gray-900' id='modal-title'>
+                  <h3 className='text-lg leading-6 font-medium text-fg' id='modal-title'>
                     Create New Group
                   </h3>
                   <div className='mt-2'>
@@ -252,7 +246,7 @@ const GroupsPage = () => {
                         <div>
                           <label
                             htmlFor='name'
-                            className='block text-sm font-medium text-gray-700 text-left'
+                            className='block text-sm font-medium text-fg text-left'
                           >
                             Group Name <span className='text-red-500'>*</span>
                           </label>
@@ -262,8 +256,8 @@ const GroupsPage = () => {
                             value={newGroup.name}
                             onChange={e => setNewGroup({ ...newGroup, name: e.target.value })}
                             className={`mt-1 block w-full rounded-md border ${
-                              errors.name ? 'border-red-300' : 'border-gray-300'
-                            } shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
+                              errors.name ? 'border-red-300' : 'border-border'
+                            } shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2`}
                             placeholder='Enter group name'
                           />
                           {errors.name && (
@@ -273,7 +267,7 @@ const GroupsPage = () => {
                         <div>
                           <label
                             htmlFor='description'
-                            className='block text-sm font-medium text-gray-700 text-left'
+                            className='block text-sm font-medium text-fg text-left'
                           >
                             Description
                           </label>
@@ -284,15 +278,15 @@ const GroupsPage = () => {
                             onChange={e =>
                               setNewGroup({ ...newGroup, description: e.target.value })
                             }
-                            className='mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2'
+                            className='mt-1 block w-full rounded-md border border-border shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2'
                             placeholder='Enter a brief description (optional)'
                           />
                         </div>
-                        <div className='pt-2 border-t border-gray-200'>
-                          <p className='text-sm font-medium text-gray-900 text-left'>
+                        <div className='pt-2 border-t border-border'>
+                          <p className='text-sm font-medium text-fg text-left'>
                             Group Administrator
                           </p>
-                          <p className='text-xs text-gray-500 text-left'>
+                          <p className='text-xs text-fg-muted text-left'>
                             An admin account is created for this group. A one-time password is shown
                             once after creation.
                           </p>
@@ -301,7 +295,7 @@ const GroupsPage = () => {
                           <div>
                             <label
                               htmlFor='adminUserFirstName'
-                              className='block text-sm font-medium text-gray-700 text-left'
+                              className='block text-sm font-medium text-fg text-left'
                             >
                               First Name <span className='text-red-500'>*</span>
                             </label>
@@ -313,8 +307,8 @@ const GroupsPage = () => {
                                 setNewGroup({ ...newGroup, adminUserFirstName: e.target.value })
                               }
                               className={`mt-1 block w-full rounded-md border ${
-                                errors.adminUserFirstName ? 'border-red-300' : 'border-gray-300'
-                              } shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
+                                errors.adminUserFirstName ? 'border-red-300' : 'border-border'
+                              } shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2`}
                               placeholder='Jean'
                             />
                             {errors.adminUserFirstName && (
@@ -326,7 +320,7 @@ const GroupsPage = () => {
                           <div>
                             <label
                               htmlFor='adminUserLastName'
-                              className='block text-sm font-medium text-gray-700 text-left'
+                              className='block text-sm font-medium text-fg text-left'
                             >
                               Last Name <span className='text-red-500'>*</span>
                             </label>
@@ -338,8 +332,8 @@ const GroupsPage = () => {
                                 setNewGroup({ ...newGroup, adminUserLastName: e.target.value })
                               }
                               className={`mt-1 block w-full rounded-md border ${
-                                errors.adminUserLastName ? 'border-red-300' : 'border-gray-300'
-                              } shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
+                                errors.adminUserLastName ? 'border-red-300' : 'border-border'
+                              } shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2`}
                               placeholder='Uwimana'
                             />
                             {errors.adminUserLastName && (
@@ -352,7 +346,7 @@ const GroupsPage = () => {
                         <div>
                           <label
                             htmlFor='adminUserEmail'
-                            className='block text-sm font-medium text-gray-700 text-left'
+                            className='block text-sm font-medium text-fg text-left'
                           >
                             Admin Email <span className='text-red-500'>*</span>
                           </label>
@@ -364,8 +358,8 @@ const GroupsPage = () => {
                               setNewGroup({ ...newGroup, adminUserEmail: e.target.value })
                             }
                             className={`mt-1 block w-full rounded-md border ${
-                              errors.adminUserEmail ? 'border-red-300' : 'border-gray-300'
-                            } shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
+                              errors.adminUserEmail ? 'border-red-300' : 'border-border'
+                            } shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2`}
                             placeholder='admin@example.com'
                           />
                           {errors.adminUserEmail && (
@@ -375,7 +369,7 @@ const GroupsPage = () => {
                         <div>
                           <label
                             htmlFor='adminUserPhoneNumber'
-                            className='block text-sm font-medium text-gray-700 text-left'
+                            className='block text-sm font-medium text-fg text-left'
                           >
                             Admin Phone <span className='text-red-500'>*</span>
                           </label>
@@ -387,8 +381,8 @@ const GroupsPage = () => {
                               setNewGroup({ ...newGroup, adminUserPhoneNumber: e.target.value })
                             }
                             className={`mt-1 block w-full rounded-md border ${
-                              errors.adminUserPhoneNumber ? 'border-red-300' : 'border-gray-300'
-                            } shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
+                              errors.adminUserPhoneNumber ? 'border-red-300' : 'border-border'
+                            } shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2`}
                             placeholder='+250 788 000 000'
                           />
                           {errors.adminUserPhoneNumber && (
@@ -402,7 +396,7 @@ const GroupsPage = () => {
                         <button
                           type='submit'
                           disabled={isCreating}
-                          className='w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm disabled:opacity-70 disabled:cursor-not-allowed'
+                          className='w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary text-base font-medium text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:col-start-2 sm:text-sm disabled:opacity-70 disabled:cursor-not-allowed'
                         >
                           {isCreating ? (
                             <>
@@ -416,7 +410,7 @@ const GroupsPage = () => {
                         <button
                           type='button'
                           onClick={() => setShowCreateModal(false)}
-                          className='mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm'
+                          className='mt-3 w-full inline-flex justify-center rounded-md border border-border shadow-sm px-4 py-2 bg-surface text-base font-medium text-fg hover:bg-bg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:mt-0 sm:col-start-1 sm:text-sm'
                         >
                           Cancel
                         </button>

@@ -35,4 +35,14 @@ public class SavingsDTO {
 
     @NotNull(message = "Member is required")
     private Long userId;
+
+    /*
+     * Read-only display fields, populated on the way out and ignored on the way
+     * in - deliberately unvalidated so they stay optional in a request body.
+     * Without them a group-wide savings list can only print user ids, and the
+     * admin screen has no way to say who a row belongs to.
+     */
+    private String memberName;
+
+    private String memberNumber;
 }

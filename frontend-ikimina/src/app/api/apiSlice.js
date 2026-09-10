@@ -147,6 +147,19 @@ export const apiSlice = createApi({
       providesTags: ['Savings'],
     }),
 
+    // Every member's savings for one group. The admin savings screen used
+    // getSavings (one user) and so showed an admin only their own entries.
+    // `from`/`to` are pushed to the server so a summed total covers the whole
+    // range rather than whatever fitted on the first page.
+    getGroupSavings: builder.query({
+      query: ({ groupId, from, to } = {}) => ({
+        url: `/savings/groups/${groupId}`,
+        params: { ...(from ? { from } : {}), ...(to ? { to } : {}) },
+      }),
+      transformResponse: unwrapPage,
+      providesTags: ['Savings'],
+    }),
+
     createSaving: builder.mutation({
       query: savingData => ({
         url: '/savings',
@@ -206,6 +219,12 @@ export const apiSlice = createApi({
       invalidatesTags: ['Reports'],
     }),
 
+    // Real group figures for the dashboard, derived from the ledger.
+    getGroupSummary: builder.query({
+      query: groupId => `/ledger/groups/${groupId}/summary`,
+      providesTags: ['Savings', 'SavingsGroups'],
+    }),
+
     getUserReports: builder.query({
       query: userId => `/reports/user/${userId}`,
       transformResponse: unwrapPage,
@@ -223,6 +242,7 @@ export const {
   useCreateSavingsGroupMutation,
   useDeleteGroupMutation,
   useGetSavingsQuery,
+  useGetGroupSavingsQuery,
   useCreateSavingMutation,
   useGetLoansQuery,
   useRequestLoanMutation,
@@ -231,6 +251,7 @@ export const {
   useGetUserProfileQuery,
   useGenerateReportMutation,
   useGetUserReportsQuery,
+  useGetGroupSummaryQuery,
 } = apiSlice;
 
 export default apiSlice;

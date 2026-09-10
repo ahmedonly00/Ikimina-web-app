@@ -28,7 +28,7 @@ const QueryError = ({ error, onRetry, title = 'Could not load this data' }) => {
             <button
               type='button'
               onClick={onRetry}
-              className='mt-2 rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-800 hover:bg-red-100'
+              className='mt-2 rounded-md border border-red-300 bg-surface px-3 py-1.5 text-sm font-medium text-red-800 hover:bg-red-100'
             >
               Try again
             </button>

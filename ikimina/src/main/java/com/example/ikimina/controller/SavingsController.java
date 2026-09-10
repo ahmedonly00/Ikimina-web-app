@@ -53,6 +53,20 @@ public class SavingsController {
         return ResponseEntity.ok(savingsService.getUserSavingsPaged(userId, pageable));
     }
 
+    /**
+     * Group-wide savings, for administrators. Object-level check, not just a
+     * role check: a group admin may only read the group they administer.
+     */
+    @GetMapping("/groups/{groupId}")
+    @PreAuthorize("@savingsGroupSecurity.canAdministerGroup(authentication, #groupId)")
+    public ResponseEntity<Page<SavingsDTO>> getGroupSavings(
+            @PathVariable Long groupId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @PageableDefault(size = 200, sort = "date", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(savingsService.getGroupSavingsPaged(groupId, from, to, pageable));
+    }
+
     @GetMapping("/user/{userId}/total")
     @PreAuthorize("@userSecurity.hasAccessToUser(authentication, #userId)")
     public ResponseEntity<BigDecimal> getUserTotalSavings(

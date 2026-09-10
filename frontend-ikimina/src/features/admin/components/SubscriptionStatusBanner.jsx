@@ -1,5 +1,6 @@
 import React from 'react';
 import { FaExclamationTriangle, FaCreditCard, FaClock } from 'react-icons/fa';
+import { formatCurrency } from '../../../i18n';
 
 const SubscriptionStatusBanner = ({ subscription }) => {
   if (!subscription) return null;
@@ -28,8 +29,9 @@ const SubscriptionStatusBanner = ({ subscription }) => {
                     grace period.
                   </p>
                   <p className='mt-1'>
-                    Please make a payment of <strong>${subscription.monthlyPrice} RWF</strong> to
-                    avoid service suspension.
+                    Please make a payment of{' '}
+                    <strong>{formatCurrency(subscription.monthlyPrice)} RWF</strong> to avoid
+                    service suspension.
                   </p>
                   <button className='mt-2 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700'>
                     <FaCreditCard className='inline mr-2' />
@@ -57,7 +59,7 @@ const SubscriptionStatusBanner = ({ subscription }) => {
                   </p>
                   <p className='mt-2'>
                     To reactivate your group, please contact support or make a payment of
-                    <strong> ${subscription.monthlyPrice} RWF</strong>.
+                    <strong> {formatCurrency(subscription.monthlyPrice)} RWF</strong>.
                   </p>
                 </div>
               </div>
@@ -78,8 +80,8 @@ const SubscriptionStatusBanner = ({ subscription }) => {
                   <div className='mt-2 text-sm text-blue-700'>
                     <p>Your subscription will expire in {daysLeft} days.</p>
                     <p className='mt-1'>
-                      Next payment: <strong>${subscription.monthlyPrice} RWF</strong> due on{' '}
-                      {new Date(subscription.endDate).toLocaleDateString()}
+                      Next payment: <strong>{formatCurrency(subscription.monthlyPrice)} RWF</strong>{' '}
+                      due on {new Date(subscription.endDate).toLocaleDateString()}
                     </p>
                   </div>
                 </div>

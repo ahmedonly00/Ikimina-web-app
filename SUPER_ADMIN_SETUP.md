@@ -65,7 +65,7 @@ The response returns the generated one-time password:
   "name": "Ikimina Cyimana",
   "description": "Weekly savings group",
   "adminEmail": "admin@example.com",
-  "adminTemporaryPassword": "k3Jq8vRz2mPw5nTx"
+  "adminTemporaryPassword": "<generated-once-never-logged>"
 }
 ```
 

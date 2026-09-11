@@ -411,17 +411,17 @@ const SavingsLedger = () => {
                     </th>
                   </React.Fragment>
                 ))}
-                <th className='px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider bg-blue-50'>
+                <th className='px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider bg-info-subtle'>
                   MONTHLY
                   <br />
                   TOTAL UBWIZIGAME
                 </th>
-                <th className='px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider bg-blue-50'>
+                <th className='px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider bg-info-subtle'>
                   MONTHLY
                   <br />
                   TOTAL INGOBOKA
                 </th>
-                <th className='px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider bg-blue-50'>
+                <th className='px-4 py-3 text-center text-xs font-medium text-fg-muted uppercase tracking-wider bg-info-subtle'>
                   MONTHLY
                   <br />
                   GRAND TOTAL
@@ -439,7 +439,7 @@ const SavingsLedger = () => {
                 <tr>
                   <td
                     colSpan={3 + weeks.length * 2 + 3}
-                    className='px-4 py-8 text-center text-red-600'
+                    className='px-4 py-8 text-center text-danger'
                   >
                     Error loading ledger data
                   </td>
@@ -469,13 +469,13 @@ const SavingsLedger = () => {
                           </React.Fragment>
                         );
                       })}
-                      <td className='px-4 py-4 text-sm font-bold text-fg text-center bg-blue-50'>
+                      <td className='px-4 py-4 text-sm font-bold text-fg text-center bg-info-subtle'>
                         {monthlyUbwizigame || 0}
                       </td>
-                      <td className='px-4 py-4 text-sm font-bold text-fg text-center bg-blue-50'>
+                      <td className='px-4 py-4 text-sm font-bold text-fg text-center bg-info-subtle'>
                         {monthlyIngoboka || 0}
                       </td>
-                      <td className='px-4 py-4 text-sm font-bold text-fg text-center bg-blue-50'>
+                      <td className='px-4 py-4 text-sm font-bold text-fg text-center bg-info-subtle'>
                         {monthlyUbwizigame + monthlyIngoboka || 0}
                       </td>
                     </tr>
@@ -535,13 +535,13 @@ const SavingsLedger = () => {
 
                     return (
                       <>
-                        <td className='px-4 py-4 text-sm text-fg text-center bg-blue-100'>
+                        <td className='px-4 py-4 text-sm text-fg text-center bg-info-subtle'>
                           {totalMonthlyUbwizigame}
                         </td>
-                        <td className='px-4 py-4 text-sm text-fg text-center bg-blue-100'>
+                        <td className='px-4 py-4 text-sm text-fg text-center bg-info-subtle'>
                           {totalMonthlyIngoboka}
                         </td>
-                        <td className='px-4 py-4 text-sm text-fg text-center bg-blue-100'>
+                        <td className='px-4 py-4 text-sm text-fg text-center bg-info-subtle'>
                           {totalMonthlyUbwizigame + totalMonthlyIngoboka}
                         </td>
                       </>

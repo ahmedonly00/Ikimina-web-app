@@ -85,10 +85,17 @@ export const LoginForm = () => {
       newErrors.password = 'Password is required';
     }
 
-    if (!formData.savingsGroupId) {
-      newErrors.savingsGroupId = 'Please select a savings group';
-    }
-
+    /*
+     * The group is deliberately NOT required here. A super admin does not
+     * belong to a group, and the backend accepts a group-less login for that
+     * role - but this form rejected it before the request was ever sent, so a
+     * super admin could not sign in through the UI at all.
+     *
+     * Whether a group is needed depends on the role, which is only known
+     * server-side, so let the server decide: it answers 409 "Savings group is
+     * required" for the roles that do need one, and that message is surfaced
+     * above the form.
+     */
     return newErrors;
   };
 
@@ -228,7 +235,10 @@ export const LoginForm = () => {
             <form onSubmit={handleSubmit} className='space-y-5' noValidate>
               <div>
                 <label htmlFor='savingsGroupId' className='label'>
-                  Savings group
+                  Savings group{' '}
+                  <span className='font-normal text-fg-subtle'>
+                    &mdash; leave blank if you are a super admin
+                  </span>
                 </label>
                 <div className='relative'>
                   <FiUsers

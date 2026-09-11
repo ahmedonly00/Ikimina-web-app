@@ -225,7 +225,11 @@ public class UserService {
         userDTO.setPhoneNumber(user.getPhoneNumber());
         userDTO.setActive(user.isActive());
         userDTO.setRole(user.getRole());
-        
+        // UserDTO declares memberNumber and the entity stores one, but this
+        // mapping never copied it, so every user came back with
+        // memberNumber: null and the members roster had no member column.
+        userDTO.setMemberNumber(user.getMemberNumber());
+
         if (user.getMemberGroups() != null && !user.getMemberGroups().isEmpty()) {
             userDTO.setSavingsGroupId(user.getMemberGroups().iterator().next().getId());
         }

@@ -209,6 +209,33 @@ export const apiSlice = createApi({
       providesTags: ['User'],
     }),
 
+    // The group's roster. Deliberately unpaged server-side: the caller is
+    // looking at a whole membership list, not a feed.
+    getGroupMembers: builder.query({
+      query: groupId => `/users/group/${groupId}`,
+      providesTags: ['Users'],
+    }),
+
+    // Creating a member goes through register, which is the only creation
+    // path the backend exposes.
+    createMember: builder.mutation({
+      query: member => ({
+        url: '/auth/register',
+        method: 'POST',
+        body: member,
+      }),
+      invalidatesTags: ['Users'],
+    }),
+
+    setMemberActive: builder.mutation({
+      query: ({ userId, active }) => ({
+        url: `/users/${userId}/status`,
+        method: 'PUT',
+        params: { active },
+      }),
+      invalidatesTags: ['Users'],
+    }),
+
     // ---- Reports ----
     generateReport: builder.mutation({
       query: ({ userId, period }) => ({
@@ -249,6 +276,9 @@ export const {
   useUpdateLoanStatusMutation,
   useGetFinesQuery,
   useGetUserProfileQuery,
+  useGetGroupMembersQuery,
+  useCreateMemberMutation,
+  useSetMemberActiveMutation,
   useGenerateReportMutation,
   useGetUserReportsQuery,
   useGetGroupSummaryQuery,

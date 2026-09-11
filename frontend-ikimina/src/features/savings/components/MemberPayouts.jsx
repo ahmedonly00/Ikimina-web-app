@@ -135,11 +135,11 @@ const MemberPayouts = ({ cycleId, cycleStatus: _cycleStatus }) => {
   const getStatusColor = status => {
     switch (status) {
       case 'PENDING':
-        return 'text-yellow-600 bg-yellow-100';
+        return 'text-warning bg-warning-subtle';
       case 'PAID':
-        return 'text-green-600 bg-green-100';
+        return 'text-success bg-success-subtle';
       case 'FAILED':
-        return 'text-red-600 bg-red-100';
+        return 'text-danger bg-danger-subtle';
       default:
         return 'text-fg-muted bg-surface-2';
     }
@@ -183,36 +183,36 @@ const MemberPayouts = ({ cycleId, cycleStatus: _cycleStatus }) => {
 
         {/* Summary Cards */}
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
-          <div className='bg-green-50 rounded-lg p-4'>
+          <div className='bg-success-subtle rounded-lg p-4'>
             <div className='flex items-center'>
-              <FaMoneyBillWave className='h-8 w-8 text-green-600 mr-3' />
+              <FaMoneyBillWave className='h-8 w-8 text-success mr-3' />
               <div>
-                <p className='text-sm font-medium text-green-800'>Total to Distribute</p>
-                <p className='text-2xl font-bold text-green-900'>
+                <p className='text-sm font-medium text-success'>Total to Distribute</p>
+                <p className='text-2xl font-bold text-success'>
                   {formatCurrency(payouts.reduce((sum, p) => sum + (p.payoutAmount || 0), 0))}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className='bg-blue-50 rounded-lg p-4'>
+          <div className='bg-info-subtle rounded-lg p-4'>
             <div className='flex items-center'>
-              <FaMoneyBillWave className='h-8 w-8 text-blue-600 mr-3' />
+              <FaMoneyBillWave className='h-8 w-8 text-info mr-3' />
               <div>
-                <p className='text-sm font-medium text-blue-800'>Group Retains (Ingoboka)</p>
-                <p className='text-2xl font-bold text-blue-900'>
+                <p className='text-sm font-medium text-info'>Group Retains (Ingoboka)</p>
+                <p className='text-2xl font-bold text-info'>
                   {formatCurrency(payouts.reduce((sum, p) => sum + (p.totalIngoboka || 0), 0))}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className='bg-yellow-50 rounded-lg p-4'>
+          <div className='bg-warning-subtle rounded-lg p-4'>
             <div className='flex items-center'>
-              <FaUser className='h-8 w-8 text-yellow-600 mr-3' />
+              <FaUser className='h-8 w-8 text-warning mr-3' />
               <div>
-                <p className='text-sm font-medium text-yellow-800'>Pending Payouts</p>
-                <p className='text-2xl font-bold text-yellow-900'>
+                <p className='text-sm font-medium text-warning'>Pending Payouts</p>
+                <p className='text-2xl font-bold text-warning'>
                   {payouts.filter(p => p.status === 'PENDING').length}
                 </p>
               </div>
@@ -230,7 +230,7 @@ const MemberPayouts = ({ cycleId, cycleStatus: _cycleStatus }) => {
                     type='checkbox'
                     checked={selectedMembers.length === payouts.length}
                     onChange={handleSelectAll}
-                    className='rounded border-border text-blue-600 focus:ring-blue-500'
+                    className='rounded border-border text-info focus:ring-blue-500'
                   />
                 </th>
                 <th className='px-4 py-3 text-left text-xs font-medium text-fg-muted uppercase tracking-wider'>
@@ -262,7 +262,7 @@ const MemberPayouts = ({ cycleId, cycleStatus: _cycleStatus }) => {
                       checked={selectedMembers.includes(payout.id)}
                       onChange={() => handleSelectMember(payout.id)}
                       disabled={payout.status === 'PAID'}
-                      className='rounded border-border text-blue-600 focus:ring-blue-500'
+                      className='rounded border-border text-info focus:ring-blue-500'
                     />
                   </td>
                   <td className='px-4 py-4'>
@@ -275,7 +275,7 @@ const MemberPayouts = ({ cycleId, cycleStatus: _cycleStatus }) => {
                   <td className='px-4 py-4 text-sm text-fg'>
                     {formatCurrency(payout.totalIngoboka)}
                   </td>
-                  <td className='px-4 py-4 text-sm font-semibold text-green-600'>
+                  <td className='px-4 py-4 text-sm font-semibold text-success'>
                     {formatCurrency(payout.payoutAmount)}
                   </td>
                   <td className='px-4 py-4'>

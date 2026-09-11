@@ -25,7 +25,7 @@ import {
 import { useCreateBulkSavingsMutation } from './savingsApi';
 import * as XLSX from 'xlsx';
 import { useSelector } from 'react-redux';
-import { selectCurrentUser } from '../auth/authSlice';
+import { selectCurrentUser, selectCurrentGroup } from '../auth/authSlice';
 import { formatCurrency } from '../../i18n';
 
 export const SavingsPage = () => {
@@ -46,7 +46,14 @@ export const SavingsPage = () => {
    */
   const isAdmin =
     currentUser?.role === 'ROLE_GROUP_ADMIN' || currentUser?.role === 'ROLE_SUPER_ADMIN';
-  const groupId = currentUser?.savingsGroupId;
+  /*
+   * The group in the sidebar selector wins, falling back to the user's own
+   * group. A super admin belongs to no group, so without this these screens
+   * said "No group selected" while the sidebar displayed a group name - and a
+   * super admin had no way to administer a group from here at all.
+   */
+  const currentGroup = useSelector(selectCurrentGroup);
+  const groupId = currentGroup?.id ?? currentUser?.savingsGroupId;
 
   /*
    * The week this screen reports on, asked for by date rather than sliced out

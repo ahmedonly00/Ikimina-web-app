@@ -18,8 +18,8 @@ const SavingsDistributionPage = () => {
   if (!currentGroup) {
     return (
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-        <div className='bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg'>
-          <p className='text-yellow-700'>Please select a group to manage savings distribution.</p>
+        <div className='bg-warning-subtle border-l-4 border-yellow-400 p-4 rounded-lg'>
+          <p className='text-warning'>Please select a group to manage savings distribution.</p>
         </div>
       </div>
     );
@@ -36,14 +36,14 @@ const SavingsDistributionPage = () => {
       </div>
 
       {/* Business Rules Reminder */}
-      <div className='bg-blue-50 border-l-4 border-blue-400 p-4 mb-8 rounded-lg'>
+      <div className='bg-info-subtle border-l-4 border-blue-400 p-4 mb-8 rounded-lg'>
         <div className='flex'>
           <div className='flex-shrink-0'>
             <FaChartPie className='h-5 w-5 text-blue-400' />
           </div>
           <div className='ml-3'>
-            <h3 className='text-sm font-medium text-blue-800'>Important Business Rules</h3>
-            <div className='mt-2 text-sm text-blue-700'>
+            <h3 className='text-sm font-medium text-info'>Important Business Rules</h3>
+            <div className='mt-2 text-sm text-info'>
               <ul className='list-disc list-inside space-y-1'>
                 <li>Each savings cycle runs for 6 months</li>
                 <li>
@@ -66,7 +66,7 @@ const SavingsDistributionPage = () => {
             onClick={() => setActiveTab('cycles')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'cycles'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-blue-500 text-info'
                 : 'border-transparent text-fg-muted hover:text-fg hover:border-border'
             }`}
           >
@@ -79,7 +79,7 @@ const SavingsDistributionPage = () => {
             onClick={() => setActiveTab('payouts')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'payouts'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-blue-500 text-info'
                 : 'border-transparent text-fg-muted hover:text-fg hover:border-border'
             }`}
             disabled={!selectedCycle}

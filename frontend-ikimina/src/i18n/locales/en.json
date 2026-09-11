@@ -3,6 +3,8 @@
   "activeLoans": "Active Loans",
   "activeMembers": "Active Members",
   "contributingMembers": "Contributing Members",
+  "deactivate": "Deactivate",
+  "reactivate": "Reactivate",
   "noLoans": "No loan applications yet",
   "noLoansHint": "Loan requests from members will appear here.",
   "add": "Add",

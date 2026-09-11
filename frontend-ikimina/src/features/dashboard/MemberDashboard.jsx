@@ -1,321 +1,235 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import {
   FiBriefcase,
   FiCreditCard,
-  FiCalendar,
   FiTrendingUp,
-  FiBell,
-  FiUser,
+  FiAlertCircle,
+  FiPlusCircle,
+  FiFileText,
 } from 'react-icons/fi';
+import { useSelector } from 'react-redux';
 import { useAppContext } from '../../contexts/AppContext';
-import { useAppSelector } from '../../app/hooks';
-import { selectCurrentUser } from '../auth/authSlice';
+import { selectCurrentUser, selectCurrentGroup } from '../auth/authSlice';
+import { useGetSavingsQuery, useGetLoansQuery, useGetFinesQuery } from '../../app/api/apiSlice';
+import QueryError from '../../components/ui/QueryError';
+import PageShell from '../../components/ui/PageShell';
+
+/**
+ * A member's own view of their position.
+ *
+ * Every figure on this screen used to be invented: a total of RWF 1,250,000,
+ * a "current loan" of RWF 350,000 against a group that had no loans at all, a
+ * monthly contribution due in January 2024, and a list of transactions with
+ * hardcoded 2023/2024 dates. This is the screen belonging to the person whose
+ * money it is, so showing them somebody's placeholder numbers is the worst
+ * place in the app to do it.
+ *
+ * It now reads the member's own savings, loans and fines. Sections with no
+ * data source say so instead of being filled in.
+ */
+const NO_ROWS = [];
+
+const StatCard = ({ icon: Icon, label, value, hint, tone = 'primary' }) => {
+  const tones = {
+    primary: 'bg-primary-subtle text-primary',
+    success: 'bg-success-subtle text-success',
+    info: 'bg-info-subtle text-info',
+    warning: 'bg-warning-subtle text-warning',
+  };
+  return (
+    <div className='card p-5'>
+      <div className='flex items-center gap-3'>
+        <span
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${tones[tone]}`}
+          aria-hidden='true'
+        >
+          <Icon className='h-5 w-5' />
+        </span>
+        <div className='min-w-0'>
+          <p className='truncate text-sm text-fg-muted'>{label}</p>
+          <p className='tabular mt-0.5 text-xl font-semibold text-fg'>{value}</p>
+        </div>
+      </div>
+      {hint && <p className='mt-3 text-xs text-fg-subtle'>{hint}</p>}
+    </div>
+  );
+};
 
 const MemberDashboard = () => {
-  const { t } = useAppContext();
-  const user = useAppSelector(selectCurrentUser);
-  const navigate = useNavigate();
+  const { t, formatCurrency, formatDate } = useAppContext();
+  const user = useSelector(selectCurrentUser);
+  const currentGroup = useSelector(selectCurrentGroup);
+  const userId = user?.id;
 
-  // Mock data for the member
-  const memberStats = {
-    totalSavings: 1250000, // in RWF
-    currentLoan: 500000, // in RWF
-    monthlyContribution: 100000, // in RWF
-    savingsScore: 85, // percentage
-    nextPaymentDue: '2024-01-15',
-    loanBalance: 350000, // remaining loan balance
-    totalContributions: 12, // number of contributions made
-  };
+  const savingsQuery = useGetSavingsQuery(userId, { skip: !userId });
+  const loansQuery = useGetLoansQuery(userId, { skip: !userId });
+  const finesQuery = useGetFinesQuery(userId, { skip: !userId });
 
-  const recentTransactions = [
-    {
-      id: 1,
-      type: 'deposit',
-      amount: 100000,
-      date: '2024-01-01',
-      description: 'Monthly Savings - Ubwizigame',
-    },
-    {
-      id: 2,
-      type: 'deposit',
-      amount: 50000,
-      date: '2024-01-01',
-      description: 'Monthly Savings - Ingaboka',
-    },
-    {
-      id: 3,
-      type: 'withdrawal',
-      amount: 200000,
-      date: '2023-12-15',
-      description: 'Loan Disbursement',
-    },
-    { id: 4, type: 'payment', amount: 50000, date: '2023-12-01', description: 'Loan Repayment' },
-  ];
+  const savings = savingsQuery.data ?? NO_ROWS;
+  const loans = loansQuery.data ?? NO_ROWS;
+  const fines = finesQuery.data ?? NO_ROWS;
 
-  const upcomingActivities = [
-    {
-      id: 1,
-      type: 'payment',
-      title: 'Monthly Savings Contribution',
-      dueDate: '2024-01-15',
-      amount: 150000,
-    },
-    {
-      id: 2,
-      type: 'meeting',
-      title: 'Monthly Group Meeting',
-      dueDate: '2024-01-20',
-      time: '10:00 AM',
-    },
-    { id: 3, type: 'payment', title: 'Loan Payment Due', dueDate: '2024-01-25', amount: 75000 },
-  ];
+  const totals = useMemo(() => {
+    let ubwizigame = 0;
+    let ingoboka = 0;
+    for (const s of savings) {
+      const amount = Number(s.amount) || 0;
+      if (s.type === 'UBWIZIGAME') ubwizigame += amount;
+      else if (s.type === 'INGOBOKA') ingoboka += amount;
+    }
+    return { ubwizigame, ingoboka, all: ubwizigame + ingoboka };
+  }, [savings]);
 
-  const formatCurrency = amount => {
-    return new Intl.NumberFormat('rw-RW', {
-      style: 'currency',
-      currency: 'RWF',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
+  // Anything not yet settled is what a member actually wants to see.
+  const outstandingLoan = useMemo(
+    () =>
+      loans
+        .filter(l => ['APPROVED', 'ACTIVE', 'DISBURSED'].includes(String(l.status).toUpperCase()))
+        .reduce((sum, l) => sum + (Number(l.amount) || 0), 0),
+    [loans]
+  );
 
-  const formatDate = dateString => {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
+  const unpaidFines = useMemo(
+    () =>
+      fines
+        .filter(f => !f.paid && String(f.status).toUpperCase() !== 'PAID')
+        .reduce((sum, f) => sum + (Number(f.amount) || 0), 0),
+    [fines]
+  );
+
+  const recent = useMemo(
+    () => [...savings].sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 6),
+    [savings]
+  );
+
+  const loading = savingsQuery.isLoading;
+  const dash = '—';
 
   return (
-    <div className='space-y-6'>
-      {/* Welcome Header */}
-      <div className='bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-lg p-6 text-white'>
-        <h1 className='text-3xl font-bold mb-2'>
-          {t('welcome')}, {user?.firstName || 'Member'}!
-        </h1>
-        <p className='text-sidebar-fg'>
-          {t('dashboardWelcomeMessage') || "Here's an overview of your savings and loan status"}
-        </p>
+    <PageShell
+      // dashboardWelcome is a whole sentence, so it cannot take a name appended.
+      title={user?.firstName ? `${t('welcome')}, ${user.firstName}` : t('dashboard')}
+      subtitle={currentGroup?.name || undefined}
+    >
+      <QueryError
+        error={savingsQuery.error || loansQuery.error || finesQuery.error}
+        onRetry={() => {
+          savingsQuery.refetch();
+          loansQuery.refetch();
+          finesQuery.refetch();
+        }}
+        title={t('error')}
+      />
+
+      <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4'>
+        <StatCard
+          icon={FiBriefcase}
+          label={t('totalSavings')}
+          value={loading ? dash : formatCurrency(totals.all)}
+          hint='Everything you have contributed'
+        />
+        <StatCard
+          icon={FiTrendingUp}
+          label='Ubwizigame'
+          value={loading ? dash : formatCurrency(totals.ubwizigame)}
+          tone='success'
+          hint='Your share of the fund'
+        />
+        <StatCard
+          icon={FiCreditCard}
+          label='Outstanding loan'
+          value={loansQuery.isLoading ? dash : formatCurrency(outstandingLoan)}
+          tone='info'
+          hint={loans.length === 0 ? 'You have no loans' : `${loans.length} on record`}
+        />
+        <StatCard
+          icon={FiAlertCircle}
+          label='Unpaid fines'
+          value={finesQuery.isLoading ? dash : formatCurrency(unpaidFines)}
+          tone='warning'
+          hint={fines.length === 0 ? 'No fines' : `${fines.length} on record`}
+        />
       </div>
 
-      {/* Stats Grid */}
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-        {/* Total Savings */}
-        <div className='bg-surface dark:bg-surface rounded-lg shadow p-6'>
-          <div className='flex items-center'>
-            <div className='flex-shrink-0 bg-green-100 dark:bg-green-900 rounded-md p-3'>
-              <FiBriefcase className='h-6 w-6 text-green-600 dark:text-green-400' />
-            </div>
-            <div className='ml-4'>
-              <p className='text-sm font-medium text-fg-muted dark:text-fg-subtle'>
-                {t('totalSavings')}
-              </p>
-              <p className='text-2xl font-semibold text-fg dark:text-fg'>
-                {formatCurrency(memberStats.totalSavings)}
-              </p>
-              <p className='text-sm text-green-600 dark:text-green-400'>
-                <FiTrendingUp className='inline h-3 w-3 mr-1' />+{memberStats.savingsScore}%{' '}
-                {t('thisYear')}
-              </p>
-            </div>
-          </div>
-        </div>
+      <div className='mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3'>
+        <section className='card lg:col-span-2'>
+          <header className='border-b border-border px-5 py-4'>
+            <h2>Your contributions</h2>
+            <p className='mt-0.5 text-sm text-fg-muted'>Most recent first</p>
+          </header>
 
-        {/* Current Loan */}
-        <div className='bg-surface dark:bg-surface rounded-lg shadow p-6'>
-          <div className='flex items-center'>
-            <div className='flex-shrink-0 bg-blue-100 dark:bg-blue-900 rounded-md p-3'>
-              <FiCreditCard className='h-6 w-6 text-blue-600 dark:text-blue-400' />
+          {recent.length > 0 ? (
+            <div className='overflow-x-auto'>
+              <table className='min-w-full text-sm'>
+                <thead className='table-head'>
+                  <tr>
+                    <th className='px-5 py-3 text-left'>Date</th>
+                    <th className='px-5 py-3 text-left'>Type</th>
+                    <th className='px-5 py-3 text-right'>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recent.map(s => (
+                    <tr key={s.id} className='table-row'>
+                      <td className='tabular px-5 py-3 text-fg'>{formatDate(s.date)}</td>
+                      <td className='px-5 py-3'>
+                        <span className={s.type === 'UBWIZIGAME' ? 'badge-info' : 'badge-neutral'}>
+                          {s.type === 'UBWIZIGAME' ? 'Ubwizigame' : 'Ingoboka'}
+                        </span>
+                      </td>
+                      <td className='tabular px-5 py-3 text-right font-medium text-fg'>
+                        {formatCurrency(s.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className='ml-4'>
-              <p className='text-sm font-medium text-fg-muted dark:text-fg-subtle'>
-                {t('currentLoan')}
-              </p>
-              <p className='text-2xl font-semibold text-fg dark:text-fg'>
-                {formatCurrency(memberStats.loanBalance)}
-              </p>
-              <p className='text-sm text-fg-muted dark:text-fg-subtle'>
-                {t('of')} {formatCurrency(memberStats.currentLoan)}
+          ) : (
+            <div className='px-5 py-10 text-center'>
+              <p className='text-sm text-fg-muted'>
+                {loading ? 'Loading…' : 'You have no recorded contributions yet.'}
               </p>
             </div>
-          </div>
-        </div>
+          )}
+        </section>
 
-        {/* Monthly Contribution */}
-        <div className='bg-surface dark:bg-surface rounded-lg shadow p-6'>
-          <div className='flex items-center'>
-            <div className='flex-shrink-0 bg-purple-100 dark:bg-purple-900 rounded-md p-3'>
-              <FiCalendar className='h-6 w-6 text-purple-600 dark:text-purple-400' />
+        <div className='space-y-6'>
+          <section className='card'>
+            <header className='border-b border-border px-5 py-4'>
+              <h2>{t('quickActions')}</h2>
+            </header>
+            <div className='grid grid-cols-1 gap-2 p-4'>
+              <Link to='/dashboard/savings' className='btn-secondary justify-start'>
+                <FiPlusCircle className='h-4 w-4' aria-hidden='true' />
+                {t('viewSavings')}
+              </Link>
+              <Link to='/dashboard/loans' className='btn-secondary justify-start'>
+                <FiFileText className='h-4 w-4' aria-hidden='true' />
+                {t('loans')}
+              </Link>
             </div>
-            <div className='ml-4'>
-              <p className='text-sm font-medium text-fg-muted dark:text-fg-subtle'>
-                {t('monthlyContribution')}
-              </p>
-              <p className='text-2xl font-semibold text-fg dark:text-fg'>
-                {formatCurrency(memberStats.monthlyContribution)}
-              </p>
-              <p className='text-sm text-fg-muted dark:text-fg-subtle'>
-                {t('nextDue')}: {formatDate(memberStats.nextPaymentDue)}
-              </p>
-            </div>
-          </div>
-        </div>
+          </section>
 
-        {/* Contributions Count */}
-        <div className='bg-surface dark:bg-surface rounded-lg shadow p-6'>
-          <div className='flex items-center'>
-            <div className='flex-shrink-0 bg-yellow-100 dark:bg-yellow-900 rounded-md p-3'>
-              <FiTrendingUp className='h-6 w-6 text-yellow-600 dark:text-yellow-400' />
-            </div>
-            <div className='ml-4'>
-              <p className='text-sm font-medium text-fg-muted dark:text-fg-subtle'>
-                {t('totalContributions')}
+          {/*
+            Deliberately not an invented schedule. The previous version listed
+            a contribution due on 15 January 2024 and a group meeting on the
+            20th, neither of which came from anywhere.
+          */}
+          <section className='card'>
+            <header className='border-b border-border px-5 py-4'>
+              <h2>{t('upcomingPayments')}</h2>
+            </header>
+            <div className='px-5 py-10 text-center'>
+              <p className='text-sm text-fg-muted'>
+                Contribution scheduling is not implemented yet, so there is nothing to show here.
               </p>
-              <p className='text-2xl font-semibold text-fg dark:text-fg'>
-                {memberStats.totalContributions}
-              </p>
-              <p className='text-sm text-fg-muted dark:text-fg-subtle'>{t('thisYear')}</p>
             </div>
-          </div>
+          </section>
         </div>
       </div>
-
-      {/* Quick Actions */}
-      <div className='bg-surface dark:bg-surface rounded-lg shadow'>
-        <div className='px-6 py-4 border-b border-border dark:border-border'>
-          <h2 className='text-lg font-medium text-fg dark:text-fg'>{t('quickActions')}</h2>
-        </div>
-        <div className='p-6'>
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
-            <button
-              onClick={() => navigate('/dashboard/savings')}
-              className='flex items-center justify-center px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors'
-            >
-              <FiBriefcase className='mr-2 h-5 w-5' />
-              {t('makeDeposit')}
-            </button>
-            <button
-              onClick={() => navigate('/dashboard/loans')}
-              className='flex items-center justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors'
-            >
-              <FiCreditCard className='mr-2 h-5 w-5' />
-              {t('applyLoan')}
-            </button>
-            <Link
-              to='/dashboard/savings'
-              className='flex items-center justify-center px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors'
-            >
-              <FiTrendingUp className='mr-2 h-5 w-5' />
-              {t('viewSavings')}
-            </Link>
-            <button
-              onClick={() => navigate('/dashboard/member')}
-              className='flex items-center justify-center px-4 py-3 bg-surface-3 hover:bg-surface-2 text-white rounded-md transition-colors'
-            >
-              <FiUser className='mr-2 h-5 w-5' />
-              {t('updateProfile')}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-        {/* Recent Transactions */}
-        <div className='bg-surface dark:bg-surface rounded-lg shadow'>
-          <div className='px-6 py-4 border-b border-border dark:border-border'>
-            <h2 className='text-lg font-medium text-fg dark:text-fg'>{t('recentTransactions')}</h2>
-          </div>
-          <div className='divide-y divide-border dark:divide-border'>
-            {recentTransactions.map(transaction => (
-              <div key={transaction.id} className='px-6 py-4'>
-                <div className='flex items-center justify-between'>
-                  <div>
-                    <p className='text-sm font-medium text-fg dark:text-fg'>
-                      {transaction.description}
-                    </p>
-                    <p className='text-sm text-fg-muted dark:text-fg-subtle'>
-                      {formatDate(transaction.date)}
-                    </p>
-                  </div>
-                  <div className='text-right'>
-                    <p
-                      className={`text-sm font-medium ${
-                        transaction.type === 'deposit'
-                          ? 'text-green-600 dark:text-green-400'
-                          : transaction.type === 'withdrawal'
-                            ? 'text-blue-600 dark:text-blue-400'
-                            : 'text-orange-600 dark:text-orange-400'
-                      }`}
-                    >
-                      {transaction.type === 'deposit'
-                        ? '+'
-                        : transaction.type === 'withdrawal'
-                          ? '-'
-                          : '-'}
-                      {formatCurrency(transaction.amount)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className='px-6 py-3 border-t border-border dark:border-border'>
-            <Link
-              to='/dashboard/savings'
-              className='text-sm text-primary dark:text-sidebar-fg-muted hover:text-primary-hover dark:hover:text-sidebar-fg-muted'
-            >
-              {t('viewAllTransactions')} →
-            </Link>
-          </div>
-        </div>
-
-        {/* Upcoming Activities */}
-        <div className='bg-surface dark:bg-surface rounded-lg shadow'>
-          <div className='px-6 py-4 border-b border-border dark:border-border'>
-            <h2 className='text-lg font-medium text-fg dark:text-fg'>{t('upcomingActivities')}</h2>
-          </div>
-          <div className='divide-y divide-border dark:divide-border'>
-            {upcomingActivities.map(activity => (
-              <div key={activity.id} className='px-6 py-4'>
-                <div className='flex items-start'>
-                  <div
-                    className={`flex-shrink-0 rounded-md p-2 ${
-                      activity.type === 'payment'
-                        ? 'bg-red-100 dark:bg-red-900'
-                        : 'bg-primary-subtle dark:bg-sidebar'
-                    }`}
-                  >
-                    {activity.type === 'payment' ? (
-                      <FiCalendar className='h-5 w-5 text-red-600 dark:text-red-400' />
-                    ) : (
-                      <FiBell className='h-5 w-5 text-primary dark:text-sidebar-fg-muted' />
-                    )}
-                  </div>
-                  <div className='ml-4'>
-                    <p className='text-sm font-medium text-fg dark:text-fg'>{activity.title}</p>
-                    <p className='text-sm text-fg-muted dark:text-fg-subtle'>
-                      {t('due')}: {formatDate(activity.dueDate)}
-                      {activity.time && ` at ${activity.time}`}
-                    </p>
-                    {activity.amount && (
-                      <p className='text-sm font-medium text-red-600 dark:text-red-400'>
-                        {formatCurrency(activity.amount)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className='px-6 py-3 border-t border-border dark:border-border'>
-            <button
-              onClick={() => navigate('/dashboard/savings')}
-              className='text-sm text-primary dark:text-sidebar-fg-muted hover:text-primary-hover dark:hover:text-sidebar-fg-muted'
-            >
-              {t('viewAllActivities')} →
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </PageShell>
   );
 };
 

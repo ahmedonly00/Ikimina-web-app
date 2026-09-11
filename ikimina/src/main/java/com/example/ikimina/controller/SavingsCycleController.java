@@ -43,7 +43,13 @@ public class SavingsCycleController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','GROUP_ADMIN')")
     public ResponseEntity<SavingsCycleDTO> getCurrentCycle(@PathVariable Long groupId) {
         SavingsCycleDTO cycle = savingsCycleService.getCurrentCycle(groupId);
-        return cycle != null ? ResponseEntity.ok(cycle) : ResponseEntity.notFound().build();
+        // A group that has not started a cycle is an ordinary state, not a
+        // missing resource. Answering 404 made every client treat "no cycle
+        // yet" as a failure - the savings distribution screen logged a console
+        // error on first visit for any new group. 204 says "nothing to return"
+        // without claiming the group does not exist; the group itself is still
+        // resolved above, so a bad groupId is still a genuine 404.
+        return cycle != null ? ResponseEntity.ok(cycle) : ResponseEntity.noContent().build();
     }
     
     @GetMapping("/{cycleId}/payouts")

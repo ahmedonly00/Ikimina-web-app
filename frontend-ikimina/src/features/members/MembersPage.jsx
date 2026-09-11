@@ -1,212 +1,365 @@
-import React, { useState } from 'react';
-import { FaUsers, FaUserPlus, FaTimes } from 'react-icons/fa';
+import React, { useMemo, useState } from 'react';
+import { FiUserPlus, FiSearch, FiUsers } from 'react-icons/fi';
+import toast from 'react-hot-toast';
+import { useSelector } from 'react-redux';
 import { useAppContext } from '../../contexts/AppContext';
+import { selectCurrentUser, selectCurrentGroup } from '../auth/authSlice';
+import {
+  useGetGroupMembersQuery,
+  useCreateMemberMutation,
+  useSetMemberActiveMutation,
+} from '../../app/api/apiSlice';
+import QueryError from '../../components/ui/QueryError';
+import Modal from '../../components/ui/Modal';
+import Button from '../../components/ui/Button';
+import roleLabel from '../../utils/roleLabel';
+
+/**
+ * The group's member roster.
+ *
+ * This screen used to be a placeholder that said "Members management
+ * functionality will be implemented here" - while carrying a complete Add
+ * Member form whose submit handler did `console.log` and closed the dialog.
+ * Filling it in appeared to succeed and silently discarded the member, which
+ * is worse than having no form at all.
+ *
+ * It now lists GET /api/users/group/{id} and creates through the real
+ * registration endpoint.
+ */
+const EMPTY_FORM = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  phoneNumber: '',
+  password: '',
+};
 
 const MembersPage = () => {
   const { t } = useAppContext();
+  const currentUser = useSelector(selectCurrentUser);
+  /*
+   * The group in the sidebar selector wins, falling back to the user's own
+   * group. A super admin belongs to no group, so without this these screens
+   * said "No group selected" while the sidebar displayed a group name - and a
+   * super admin had no way to administer a group from here at all.
+   */
+  const currentGroup = useSelector(selectCurrentGroup);
+  const groupId = currentGroup?.id ?? currentUser?.savingsGroupId;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    dateOfBirth: '',
-    membershipNumber: '',
-    status: 'ACTIVE',
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [errors, setErrors] = useState({});
+  const [search, setSearch] = useState('');
 
-  const handleInputChange = e => {
+  const {
+    data: members = [],
+    isLoading,
+    error,
+    refetch,
+  } = useGetGroupMembersQuery(groupId, { skip: !groupId });
+  const [createMember, { isLoading: isCreating }] = useCreateMemberMutation();
+  const [setMemberActive] = useSetMemberActiveMutation();
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return members;
+    return members.filter(m =>
+      [m.firstName, m.lastName, m.email, m.memberNumber, m.phoneNumber]
+        .filter(Boolean)
+        .some(v => String(v).toLowerCase().includes(q))
+    );
+  }, [members, search]);
+
+  const change = e => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => (Object.keys(prev).length ? {} : prev));
   };
 
-  const handleSubmit = e => {
-    e.preventDefault();
-    console.log('Adding member:', formData);
-    // TODO: Implement API call to add member
-    setIsModalOpen(false);
-    setFormData({
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      address: '',
-      dateOfBirth: '',
-      membershipNumber: '',
-      status: 'ACTIVE',
-    });
+  const validate = () => {
+    const next = {};
+    if (!form.firstName.trim()) next.firstName = 'Required';
+    if (!form.lastName.trim()) next.lastName = 'Required';
+    if (!form.email.trim()) next.email = 'Required';
+    else if (!/\S+@\S+\.\S+/.test(form.email)) next.email = 'Not a valid email';
+    // The backend stores a bcrypt hash of whatever is sent, so an empty
+    // password would create an account nobody can sign in to.
+    if (!form.password) next.password = 'Required';
+    else if (form.password.length < 8) next.password = 'At least 8 characters';
+    return next;
   };
+
+  const submit = async e => {
+    e.preventDefault();
+    const found = validate();
+    if (Object.keys(found).length) {
+      setErrors(found);
+      return;
+    }
+
+    try {
+      await createMember({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        phoneNumber: form.phoneNumber.trim() || null,
+        password: form.password,
+        savingsGroupId: groupId,
+        role: 'ROLE_USER',
+        active: true,
+      }).unwrap();
+
+      toast.success(`${form.firstName} ${form.lastName} added`);
+      setForm(EMPTY_FORM);
+      setIsModalOpen(false);
+    } catch (err) {
+      // Surface the server's reason rather than a generic failure - it
+      // distinguishes a duplicate email from a validation problem.
+      const message = err?.data?.detail || err?.data?.message || 'Could not add the member';
+      toast.error(message);
+      setErrors({ submit: message });
+    }
+  };
+
+  const toggleActive = async member => {
+    try {
+      await setMemberActive({ userId: member.id, active: !member.active }).unwrap();
+      toast.success(`${member.firstName} ${member.active ? 'deactivated' : 'reactivated'}`);
+    } catch {
+      toast.error('Could not change that member’s status');
+    }
+  };
+
   return (
     <div className='h-full w-full overflow-y-auto bg-bg'>
-      <div className='px-2 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-full xl:max-w-7xl mx-auto'>
-        <div className='flex justify-between items-center mb-6'>
-          <h1 className='text-2xl font-bold text-fg'>Members Management</h1>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className='flex items-center px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover transition-colors'
-          >
-            <FaUserPlus className='mr-2' />
-            {t('addMember')}
-          </button>
-        </div>
-
-        <div className='bg-surface rounded-lg shadow overflow-hidden'>
-          <div className='p-6 text-center text-fg-muted'>
-            <FaUsers className='mx-auto h-12 w-12 text-fg-subtle mb-4' />
-            <p>{t('membersManagementPlaceholder')}</p>
-            <p className='text-sm mt-2'>{t('membersManagementDescription')}</p>
+      <div className='mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8'>
+        <header className='mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+          <div>
+            <h1>{t('members')}</h1>
+            <p className='mt-1 text-sm text-fg-muted'>
+              {isLoading
+                ? '—'
+                : `${members.length} ${members.length === 1 ? 'person' : 'people'} in this group`}
+            </p>
           </div>
-        </div>
+          <Button onClick={() => setIsModalOpen(true)} disabled={!groupId}>
+            <FiUserPlus className='mr-2 h-4 w-4' aria-hidden='true' />
+            {t('addMember')}
+          </Button>
+        </header>
 
-        {/* Add Member Modal */}
-        {isModalOpen && (
-          <div className='fixed inset-0 z-50 overflow-y-auto'>
-            <div className='flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0'>
-              <div className='fixed inset-0 transition-opacity' aria-hidden='true'>
-                <div className='absolute inset-0 bg-fg opacity-75'></div>
-              </div>
+        <QueryError error={error} onRetry={refetch} title='Could not load members' />
 
-              <div className='inline-block align-bottom bg-surface rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full'>
-                <div className='bg-surface px-4 pt-5 pb-4 sm:p-6 sm:pb-4'>
-                  <div className='flex justify-between items-center mb-4'>
-                    <h3 className='text-lg leading-6 font-medium text-fg'>{t('addNewMember')}</h3>
-                    <button
-                      onClick={() => setIsModalOpen(false)}
-                      className='text-fg-subtle hover:text-fg-muted'
-                    >
-                      <FaTimes className='h-6 w-6' />
-                    </button>
-                  </div>
-
-                  <form onSubmit={handleSubmit} className='space-y-4'>
-                    <div className='grid grid-cols-2 gap-4'>
-                      <div>
-                        <label className='block text-sm font-medium text-fg'>
-                          {t('firstName')}
-                        </label>
-                        <input
-                          type='text'
-                          name='firstName'
-                          value={formData.firstName}
-                          onChange={handleInputChange}
-                          required
-                          className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
-                        />
-                      </div>
-                      <div>
-                        <label className='block text-sm font-medium text-fg'>{t('lastName')}</label>
-                        <input
-                          type='text'
-                          name='lastName'
-                          value={formData.lastName}
-                          onChange={handleInputChange}
-                          required
-                          className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className='block text-sm font-medium text-fg'>{t('email')}</label>
-                      <input
-                        type='email'
-                        name='email'
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        required
-                        className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
-                      />
-                    </div>
-
-                    <div>
-                      <label className='block text-sm font-medium text-fg'>{t('phone')}</label>
-                      <input
-                        type='tel'
-                        name='phone'
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
-                      />
-                    </div>
-
-                    <div>
-                      <label className='block text-sm font-medium text-fg'>{t('address')}</label>
-                      <textarea
-                        name='address'
-                        value={formData.address}
-                        onChange={handleInputChange}
-                        rows={3}
-                        className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
-                      />
-                    </div>
-
-                    <div className='grid grid-cols-2 gap-4'>
-                      <div>
-                        <label className='block text-sm font-medium text-fg'>
-                          {t('dateOfBirth')}
-                        </label>
-                        <input
-                          type='date'
-                          name='dateOfBirth'
-                          value={formData.dateOfBirth}
-                          onChange={handleInputChange}
-                          className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
-                        />
-                      </div>
-                      <div>
-                        <label className='block text-sm font-medium text-fg'>
-                          {t('membershipNumber')}
-                        </label>
-                        <input
-                          type='text'
-                          name='membershipNumber'
-                          value={formData.membershipNumber}
-                          onChange={handleInputChange}
-                          className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className='block text-sm font-medium text-fg'>{t('status')}</label>
-                      <select
-                        name='status'
-                        value={formData.status}
-                        onChange={handleInputChange}
-                        className='mt-1 block w-full border-border rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm px-3 py-2 border'
-                      >
-                        <option value='ACTIVE'>{t('active')}</option>
-                        <option value='INACTIVE'>{t('inactive')}</option>
-                        <option value='SUSPENDED'>{t('suspended')}</option>
-                      </select>
-                    </div>
-                  </form>
-                </div>
-
-                <div className='bg-bg px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse'>
-                  <button
-                    type='button'
-                    onClick={handleSubmit}
-                    className='w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary text-base font-medium text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:ml-3 sm:w-auto sm:text-sm'
-                  >
-                    {t('addMember')}
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => setIsModalOpen(false)}
-                    className='mt-3 w-full inline-flex justify-center rounded-md border border-border shadow-sm px-4 py-2 bg-surface text-base font-medium text-fg hover:bg-bg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm'
-                  >
-                    {t('cancel')}
-                  </button>
-                </div>
-              </div>
-            </div>
+        {!groupId && (
+          <div className='card p-5'>
+            <p className='text-sm text-fg-muted'>No group selected.</p>
           </div>
         )}
+
+        {groupId && (
+          <>
+            <div className='relative mb-4 max-w-sm'>
+              <FiSearch
+                className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle'
+                aria-hidden='true'
+              />
+              <input
+                type='search'
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder='Search by name, email or member number'
+                aria-label='Search members'
+                className='input pl-9'
+              />
+            </div>
+
+            <div className='card overflow-hidden'>
+              <div className='overflow-x-auto'>
+                <table className='min-w-full text-sm'>
+                  <thead className='table-head'>
+                    <tr>
+                      <th className='px-4 py-3 text-left'>Member</th>
+                      <th className='px-4 py-3 text-left'>Contact</th>
+                      <th className='px-4 py-3 text-left'>Role</th>
+                      <th className='px-4 py-3 text-left'>Status</th>
+                      <th className='px-4 py-3 text-right'>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map(m => (
+                      <tr key={m.id} className='table-row'>
+                        <td className='px-4 py-3'>
+                          <div className='font-medium text-fg'>
+                            {m.firstName} {m.lastName}
+                          </div>
+                          <div className='tabular text-xs text-fg-muted'>
+                            {m.memberNumber || '—'}
+                          </div>
+                        </td>
+                        <td className='px-4 py-3'>
+                          <div className='text-fg'>{m.email}</div>
+                          <div className='tabular text-xs text-fg-muted'>
+                            {m.phoneNumber || '—'}
+                          </div>
+                        </td>
+                        <td className='px-4 py-3'>
+                          <span className='badge-neutral'>{roleLabel(m.role)}</span>
+                        </td>
+                        <td className='px-4 py-3'>
+                          {m.active ? (
+                            <span className='badge-success'>{t('active')}</span>
+                          ) : (
+                            <span className='badge-danger'>{t('inactive')}</span>
+                          )}
+                        </td>
+                        <td className='px-4 py-3 text-right'>
+                          {/* A group admin must not be able to lock themselves
+                              out of their own group. */}
+                          {m.id === currentUser?.id ? (
+                            <span className='text-xs text-fg-subtle'>You</span>
+                          ) : (
+                            <Button variant='ghost' size='sm' onClick={() => toggleActive(m)}>
+                              {m.active ? t('deactivate') : t('reactivate')}
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+
+                    {!isLoading && filtered.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className='px-4 py-12 text-center'>
+                          <FiUsers
+                            className='mx-auto mb-3 h-8 w-8 text-fg-subtle'
+                            aria-hidden='true'
+                          />
+                          <p className='text-sm font-medium text-fg'>
+                            {members.length === 0 ? 'No members yet' : 'No matches'}
+                          </p>
+                          <p className='mt-1 text-sm text-fg-muted'>
+                            {members.length === 0
+                              ? 'Add the first member of this group.'
+                              : 'Try a different search.'}
+                          </p>
+                        </td>
+                      </tr>
+                    )}
+
+                    {isLoading && (
+                      <tr>
+                        <td colSpan={5} className='px-4 py-12 text-center text-sm text-fg-muted'>
+                          Loading members…
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={t('addNewMember')}>
+          <form onSubmit={submit} className='space-y-4' noValidate>
+            {errors.submit && (
+              <div
+                className='rounded-lg border border-danger/40 bg-danger-subtle px-4 py-3 text-sm text-danger'
+                role='alert'
+              >
+                {errors.submit}
+              </div>
+            )}
+
+            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+              <div>
+                <label htmlFor='firstName' className='label'>
+                  {t('firstName')}
+                </label>
+                <input
+                  id='firstName'
+                  name='firstName'
+                  value={form.firstName}
+                  onChange={change}
+                  className={`input ${errors.firstName ? 'input-error' : ''}`}
+                />
+                {errors.firstName && <p className='field-error'>{errors.firstName}</p>}
+              </div>
+              <div>
+                <label htmlFor='lastName' className='label'>
+                  {t('lastName')}
+                </label>
+                <input
+                  id='lastName'
+                  name='lastName'
+                  value={form.lastName}
+                  onChange={change}
+                  className={`input ${errors.lastName ? 'input-error' : ''}`}
+                />
+                {errors.lastName && <p className='field-error'>{errors.lastName}</p>}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor='email' className='label'>
+                {t('email')}
+              </label>
+              <input
+                id='email'
+                name='email'
+                type='email'
+                value={form.email}
+                onChange={change}
+                className={`input ${errors.email ? 'input-error' : ''}`}
+              />
+              {errors.email && <p className='field-error'>{errors.email}</p>}
+            </div>
+
+            <div>
+              <label htmlFor='phoneNumber' className='label'>
+                {t('phone')}
+              </label>
+              <input
+                id='phoneNumber'
+                name='phoneNumber'
+                type='tel'
+                value={form.phoneNumber}
+                onChange={change}
+                placeholder='+250 7xx xxx xxx'
+                className='input'
+              />
+            </div>
+
+            <div>
+              <label htmlFor='password' className='label'>
+                Temporary password
+              </label>
+              <input
+                id='password'
+                name='password'
+                type='text'
+                value={form.password}
+                onChange={change}
+                className={`input ${errors.password ? 'input-error' : ''}`}
+              />
+              {errors.password ? (
+                <p className='field-error'>{errors.password}</p>
+              ) : (
+                <p className='mt-1 text-xs text-fg-subtle'>
+                  Share this with the member out of band. They should change it after signing in.
+                </p>
+              )}
+            </div>
+
+            <div className='flex justify-end gap-2 pt-2'>
+              <Button type='button' variant='secondary' onClick={() => setIsModalOpen(false)}>
+                {t('cancel')}
+              </Button>
+              <Button type='submit' disabled={isCreating}>
+                {isCreating ? 'Adding…' : t('addMember')}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );

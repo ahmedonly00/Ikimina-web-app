@@ -11,26 +11,75 @@ import {
   FiMenu,
   FiLayers,
   FiBell,
+  FiShare2,
+  FiShield,
 } from 'react-icons/fi';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { roleLabel } from '../../utils/roleLabel';
 import { logout, selectCurrentUser, selectCurrentGroup } from '../auth/authSlice';
 import { GroupSelector } from '../groups/GroupSelector';
 
+const SUPER_ADMIN = 'ROLE_SUPER_ADMIN';
+const GROUP_ADMIN = 'ROLE_GROUP_ADMIN';
+const MEMBER = 'ROLE_USER';
+
+/*
+ * The sidebar mirrors the route guards in App.jsx.
+ *
+ * Every link used to be shown to everyone, so a member saw Members, Reports
+ * and Groups and was either bounced back to the dashboard or shown an API
+ * 403 on arrival. In the other direction the four super-admin screens had no
+ * entry at all, so a super admin could only reach them by typing the URL.
+ *
+ * `roles` here must stay in step with `allowedRoles` on the corresponding
+ * route; the route is the real gate, this only decides what is offered.
+ */
+const NAV = [
+  {
+    name: 'Dashboard',
+    href: '/dashboard',
+    icon: FiHome,
+    roles: [SUPER_ADMIN, GROUP_ADMIN, MEMBER],
+  },
+  {
+    name: 'Savings',
+    href: '/dashboard/savings',
+    icon: FiBriefcase,
+    roles: [SUPER_ADMIN, GROUP_ADMIN, MEMBER],
+  },
+  {
+    name: 'Loans',
+    href: '/dashboard/loans',
+    icon: FiCreditCard,
+    roles: [SUPER_ADMIN, GROUP_ADMIN, MEMBER],
+  },
+  { name: 'Members', href: '/dashboard/members', icon: FiUsers, roles: [SUPER_ADMIN, GROUP_ADMIN] },
+  {
+    name: 'Reports',
+    href: '/dashboard/reports',
+    icon: FiPieChart,
+    roles: [SUPER_ADMIN, GROUP_ADMIN],
+  },
+  {
+    name: 'Payouts',
+    href: '/dashboard/savings-distribution',
+    icon: FiShare2,
+    roles: [SUPER_ADMIN, GROUP_ADMIN],
+  },
+  { name: 'Groups', href: '/dashboard/groups', icon: FiLayers, roles: [SUPER_ADMIN] },
+  { name: 'Administration', href: '/dashboard/admin', icon: FiShield, roles: [SUPER_ADMIN] },
+  {
+    name: 'Settings',
+    href: '/dashboard/settings',
+    icon: FiSettings,
+    roles: [SUPER_ADMIN, GROUP_ADMIN, MEMBER],
+  },
+];
+
 const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
   const dispatch = useAppDispatch();
-
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: FiHome },
-    { name: 'Savings', href: '/dashboard/savings', icon: FiBriefcase },
-    { name: 'Loans', href: '/dashboard/loans', icon: FiCreditCard },
-    { name: 'Members', href: '/dashboard/members', icon: FiUsers },
-    { name: 'Reports', href: '/dashboard/reports', icon: FiPieChart },
-    { name: 'Groups', href: '/dashboard/groups', icon: FiLayers },
-    { name: 'Settings', href: '/dashboard/settings', icon: FiSettings },
-  ];
 
   const handleLogout = () => {
     dispatch(logout());
@@ -38,6 +87,9 @@ const DashboardLayout = () => {
 
   const currentUser = useAppSelector(selectCurrentUser);
   const _currentGroup = useAppSelector(selectCurrentGroup);
+
+  // Only offer what this role can actually open.
+  const navigation = NAV.filter(item => item.roles.includes(currentUser?.role));
 
   return (
     <div className='fixed inset-0 flex bg-bg overflow-hidden m-0 p-0'>

@@ -119,11 +119,34 @@ const App = () => {
                 <Route path='member' element={<MemberDashboard />} />
                 <Route path='savings' element={<SavingsPage />} />
                 <Route path='loans' element={<LoansPage />} />
-                <Route path='members' element={<MembersPage />} />
-                <Route path='reports' element={<ReportsPage />} />
                 <Route path='settings' element={<SettingsPage />} />
 
-                {/* Group-admin and above */}
+                {/*
+                  Group-admin and above.
+
+                  Members and Reports read the whole group - /api/users/group/{id}
+                  and /api/savings/groups/{id}, both of which require
+                  canAdministerGroup. They were reachable by any signed-in user,
+                  so a member landing here got a 403 from the API instead of
+                  being sent somewhere useful. The server was right to refuse;
+                  the route is what was wrong.
+                */}
+                <Route
+                  path='members'
+                  element={
+                    <ProtectedRoute allowedRoles={[SUPER_ADMIN, GROUP_ADMIN]}>
+                      <MembersPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path='reports'
+                  element={
+                    <ProtectedRoute allowedRoles={[SUPER_ADMIN, GROUP_ADMIN]}>
+                      <ReportsPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path='savings-distribution'
                   element={

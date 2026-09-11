@@ -3,6 +3,8 @@
   "activeLoans": "Prêts Actifs",
   "activeMembers": "Membres Actifs",
   "contributingMembers": "Membres Cotisants",
+  "deactivate": "Désactiver",
+  "reactivate": "Réactiver",
   "noLoans": "Aucune demande de prêt",
   "noLoansHint": "Les demandes de prêt des membres apparaîtront ici.",
   "add": "Ajouter",

@@ -52,11 +52,11 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
   const getStatusColor = status => {
     switch (status) {
       case 'ACTIVE':
-        return 'text-green-600 bg-green-100';
+        return 'text-success bg-success-subtle';
       case 'COMPLETED':
-        return 'text-yellow-600 bg-yellow-100';
+        return 'text-warning bg-warning-subtle';
       case 'DISTRIBUTED':
-        return 'text-blue-600 bg-blue-100';
+        return 'text-info bg-info-subtle';
       default:
         return 'text-fg-muted bg-surface-2';
     }
@@ -108,13 +108,13 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
 
       {/* Current Cycle Alert */}
       {currentCycle && (
-        <div className='bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg'>
+        <div className='bg-info-subtle border-l-4 border-blue-400 p-4 rounded-lg'>
           <div className='flex'>
             <div className='flex-shrink-0'>
               <FaClock className='h-5 w-5 text-blue-400' />
             </div>
             <div className='ml-3'>
-              <p className='text-sm text-blue-700'>
+              <p className='text-sm text-info'>
                 <strong>Active Cycle:</strong> {formatDate(currentCycle.startDate)} -{' '}
                 {formatDate(currentCycle.endDate)}
                 <span className='ml-2'>
@@ -141,7 +141,7 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
                 }}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   selectedCycle?.id === cycle.id
-                    ? 'border-blue-500 text-blue-600'
+                    ? 'border-blue-500 text-info'
                     : 'border-transparent text-fg-muted hover:text-fg hover:border-border'
                 }`}
               >
@@ -165,8 +165,8 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6'>
               <div className='bg-bg rounded-lg p-4'>
                 <div className='flex items-center'>
-                  <div className='flex-shrink-0 bg-green-100 rounded-md p-3'>
-                    <FaMoneyBillWave className='h-6 w-6 text-green-600' />
+                  <div className='flex-shrink-0 bg-success-subtle rounded-md p-3'>
+                    <FaMoneyBillWave className='h-6 w-6 text-success' />
                   </div>
                   <div className='ml-4'>
                     <p className='text-sm font-medium text-fg-muted'>Total Ubwizigame</p>
@@ -179,8 +179,8 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
 
               <div className='bg-bg rounded-lg p-4'>
                 <div className='flex items-center'>
-                  <div className='flex-shrink-0 bg-blue-100 rounded-md p-3'>
-                    <FaMoneyBillWave className='h-6 w-6 text-blue-600' />
+                  <div className='flex-shrink-0 bg-info-subtle rounded-md p-3'>
+                    <FaMoneyBillWave className='h-6 w-6 text-info' />
                   </div>
                   <div className='ml-4'>
                     <p className='text-sm font-medium text-fg-muted'>Total Ingoboka</p>
@@ -193,8 +193,8 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
 
               <div className='bg-bg rounded-lg p-4'>
                 <div className='flex items-center'>
-                  <div className='flex-shrink-0 bg-purple-100 rounded-md p-3'>
-                    <FaMoneyBillWave className='h-6 w-6 text-purple-600' />
+                  <div className='flex-shrink-0 bg-primary-subtle rounded-md p-3'>
+                    <FaMoneyBillWave className='h-6 w-6 text-primary' />
                   </div>
                   <div className='ml-4'>
                     <p className='text-sm font-medium text-fg-muted'>To Distribute</p>
@@ -211,8 +211,8 @@ const SavingsCycleManagement = ({ groupId, groupName, onCycleSelect }) => {
 
               <div className='bg-bg rounded-lg p-4'>
                 <div className='flex items-center'>
-                  <div className='flex-shrink-0 bg-yellow-100 rounded-md p-3'>
-                    <FaUsers className='h-6 w-6 text-yellow-600' />
+                  <div className='flex-shrink-0 bg-warning-subtle rounded-md p-3'>
+                    <FaUsers className='h-6 w-6 text-warning' />
                   </div>
                   <div className='ml-4'>
                     <p className='text-sm font-medium text-fg-muted'>Members</p>

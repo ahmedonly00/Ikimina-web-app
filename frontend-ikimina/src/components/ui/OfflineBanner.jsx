@@ -14,13 +14,13 @@ const OfflineBanner = ({ isOnline, pendingCount, isReplaying, onRetry }) => {
   if (!isOnline) {
     return (
       <div
-        className='mb-4 rounded-md border-l-4 border-amber-400 bg-amber-50 p-3'
+        className='mb-4 rounded-md border-l-4 border-amber-400 bg-warning-subtle p-3'
         role='status'
         aria-live='polite'
       >
         <div className='flex items-center'>
-          <FaWifi className='mr-2 flex-shrink-0 text-amber-600' aria-hidden='true' />
-          <p className='text-sm text-amber-900'>
+          <FaWifi className='mr-2 flex-shrink-0 text-warning' aria-hidden='true' />
+          <p className='text-sm text-warning'>
             No connection. Entries are saved on this device and will be sent to the group
             automatically once you are back online
             {pendingCount > 0 ? ` (${pendingCount} waiting)` : ''}.
@@ -32,21 +32,18 @@ const OfflineBanner = ({ isOnline, pendingCount, isReplaying, onRetry }) => {
 
   return (
     <div
-      className='mb-4 rounded-md border-l-4 border-blue-400 bg-blue-50 p-3'
+      className='mb-4 rounded-md border-l-4 border-blue-400 bg-info-subtle p-3'
       role='status'
       aria-live='polite'
     >
       <div className='flex items-center justify-between gap-3'>
         <div className='flex items-center'>
           {isReplaying ? (
-            <FaSpinner
-              className='mr-2 flex-shrink-0 animate-spin text-blue-600'
-              aria-hidden='true'
-            />
+            <FaSpinner className='mr-2 flex-shrink-0 animate-spin text-info' aria-hidden='true' />
           ) : (
-            <FaCloudUploadAlt className='mr-2 flex-shrink-0 text-blue-600' aria-hidden='true' />
+            <FaCloudUploadAlt className='mr-2 flex-shrink-0 text-info' aria-hidden='true' />
           )}
-          <p className='text-sm text-blue-900'>
+          <p className='text-sm text-info'>
             {isReplaying
               ? `Sending ${pendingCount} saved entr${pendingCount === 1 ? 'y' : 'ies'}...`
               : `${pendingCount} entr${pendingCount === 1 ? 'y is' : 'ies are'} saved on this device and not yet recorded by the group.`}
@@ -56,7 +53,7 @@ const OfflineBanner = ({ isOnline, pendingCount, isReplaying, onRetry }) => {
           <button
             type='button'
             onClick={onRetry}
-            className='flex-shrink-0 rounded-md border border-blue-300 bg-surface px-3 py-1.5 text-sm font-medium text-blue-800 hover:bg-blue-100'
+            className='flex-shrink-0 rounded-md border border-info/40 bg-surface px-3 py-1.5 text-sm font-medium text-info hover:bg-info-subtle'
           >
             Send now
           </button>

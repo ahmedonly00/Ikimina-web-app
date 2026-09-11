@@ -10,7 +10,7 @@ COPY . .
 RUN npm run build
 
 # ---- runtime stage --------------------------------------------------------
-FROM nginx:1.27-alpine AS runtime
+FROM nginx:1.31-alpine AS runtime
 
 # nginx's default config runs the master as root; use the unprivileged variant
 # by pointing pid/temp paths at writable locations and dropping to nginx user.

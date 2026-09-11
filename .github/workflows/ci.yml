@@ -134,7 +134,9 @@ jobs:
           fetch-depth: 0
 
       - name: Scan dependencies for known vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+        # The tags on this action are v-prefixed; a bare "0.28.0" does not
+        # exist, so the job failed to resolve the action and never scanned.
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scanners: vuln,secret

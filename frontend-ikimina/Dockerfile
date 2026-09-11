@@ -1,5 +1,5 @@
 # ---- build stage ----------------------------------------------------------
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /build
 
 # npm ci needs the lockfile and honours it exactly, so builds are reproducible.

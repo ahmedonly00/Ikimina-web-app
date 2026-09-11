@@ -1,7 +1,7 @@
 # ---- build stage ----------------------------------------------------------
 # Pinned to a digest-stable tag rather than :latest so a rebuild produces the
 # same artifact.
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3-eclipse-temurin-26 AS build
 WORKDIR /build
 
 # Dependencies are resolved in their own layer, so a source-only change does

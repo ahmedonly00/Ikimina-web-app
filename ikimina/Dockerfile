@@ -16,7 +16,7 @@ RUN mvn -B -q clean package -DskipTests
 # ---- runtime stage --------------------------------------------------------
 # JRE only: the compiler and Maven are build-time concerns and every extra
 # binary in the final image is attack surface.
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:25-jre-alpine AS runtime
 
 # Never run as root. A container escape should not land on uid 0.
 RUN addgroup -S ikimina && adduser -S -G ikimina ikimina

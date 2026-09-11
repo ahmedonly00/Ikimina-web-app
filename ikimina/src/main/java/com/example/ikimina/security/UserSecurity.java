@@ -1,54 +1,73 @@
 package com.example.ikimina.security;
 
-import com.example.ikimina.model.User;
-import com.example.ikimina.service.UserService;
+import com.example.ikimina.repository.SavingsGroupRepository;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
+
 import java.util.Objects;
 
 /**
- * Security component for user-related access control.
+ * Object-level authorization for user-scoped endpoints.
+ *
+ * Referenced from @PreAuthorize as {@code @userSecurity.hasAccessToUser(...)}.
+ * Without this, any authenticated member could read another member's financial
+ * records by changing the id in the URL.
+ *
+ * Uses repository queries rather than walking lazy collections, because method
+ * security runs outside a transaction (spring.jpa.open-in-view=false).
  */
 @Component("userSecurity")
 public class UserSecurity {
-    
-    private final UserService userService;
-    
-    public UserSecurity(UserService userService) {
-        this.userService = userService;
+
+    private final SavingsGroupRepository savingsGroupRepository;
+
+    public UserSecurity(SavingsGroupRepository savingsGroupRepository) {
+        this.savingsGroupRepository = savingsGroupRepository;
     }
-    
-    /**
-     * Check if the current user has access to another user's data.
-     * 
-     * @param authentication The authentication object containing the current user's details
-     * @param userId The ID of the user being accessed
-     * @return true if access is allowed, false otherwise
-     */
+
     public boolean hasAccessToUser(Authentication authentication, Long userId) {
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated() || userId == null) {
             return false;
         }
-        
-        String currentUsername = authentication.getName();
-        User currentUser = userService.findByEmail(currentUsername)
-            .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + currentUsername));
-            
-        // Users can access their own data
-        if (Objects.equals(currentUser.getId(), userId)) {
+        if (!(authentication.getPrincipal() instanceof CustomUserDetails principal)) {
+            return false;
+        }
+
+        // A user may always read their own records.
+        if (Objects.equals(principal.getUserId(), userId)) {
             return true;
         }
-            
-        // Super admins have access to all users
-        if (currentUser.isSuperAdmin()) {
+
+        if (isSuperAdmin(principal)) {
             return true;
         }
-        
-        // Group admins have access to users in their groups
-        return currentUser.getMemberGroups().stream()
-            .filter(group -> group.getAdmin() != null && group.getAdmin().getId().equals(currentUser.getId()))
-            .flatMap(group -> group.getMembers().stream())
-            .anyMatch(member -> member.getId().equals(userId));
+
+        // A group admin may read records of members in the groups they administer.
+        if (isGroupAdmin(principal) && principal.getUserId() != null) {
+            return savingsGroupRepository.isAdminOfGroupContainingUser(principal.getUserId(), userId);
+        }
+
+        return false;
+    }
+
+    /** True when every id in the list is accessible to the caller. */
+    public boolean hasAccessToAllUsers(Authentication authentication, java.util.List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return false;
+        }
+        return userIds.stream().allMatch(id -> hasAccessToUser(authentication, id));
+    }
+
+    private boolean isSuperAdmin(CustomUserDetails principal) {
+        return hasAuthority(principal, "ROLE_SUPER_ADMIN");
+    }
+
+    private boolean isGroupAdmin(CustomUserDetails principal) {
+        return hasAuthority(principal, "ROLE_GROUP_ADMIN");
+    }
+
+    private boolean hasAuthority(CustomUserDetails principal, String authority) {
+        return principal.getAuthorities().stream()
+                .anyMatch(a -> authority.equals(a.getAuthority()));
     }
 }

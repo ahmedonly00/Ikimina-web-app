@@ -54,15 +54,17 @@ INSERT INTO roles (name, description) VALUES
     ('ROLE_USER', 'Regular user with basic access')
 ON CONFLICT (name) DO NOTHING;
 
--- Create a default super admin user (password: admin123 - should be changed after first login)
--- Make sure to update the password with an encoded version in production
-INSERT INTO users (username, email, password, first_name, last_name, role)
-SELECT 'superadmin', 'admin@ikimina.com', 'REDACTED-BCRYPT-HASH', 'System', 'Admin', 'SUPER_ADMIN'
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'superadmin');
-
--- Assign super admin role to the super admin user
-INSERT INTO user_roles (user_id, role_id)
-SELECT u.id, r.id 
-FROM users u, roles r 
-WHERE u.username = 'superadmin' AND r.name = 'ROLE_SUPER_ADMIN'
-ON CONFLICT DO NOTHING;
+-- The seed super-admin INSERT that used to live here has been removed. It:
+--   * embedded a hardcoded bcrypt hash in source control;
+--   * wrote role = 'SUPER_ADMIN', which violates the users_role_check
+--     constraint added in V3 (the values are ROLE_-prefixed);
+--   * omitted member_number and phone_number, which are NOT NULL, so it could
+--     never run against the baseline schema in V1.
+--
+-- DataInitializer creates the super admin on first boot from
+-- IKIMINA_SUPERADMIN_EMAIL / IKIMINA_SUPERADMIN_PASSWORD instead, so no
+-- credential needs to live in a migration at all.
+--
+-- NOTE: editing an applied migration changes its Flyway checksum. A database
+-- that already ran the old V2 needs `flyway repair` once before the next
+-- migrate, or Flyway will refuse to start with a checksum mismatch.

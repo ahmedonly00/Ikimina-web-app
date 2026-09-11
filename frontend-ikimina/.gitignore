@@ -91,3 +91,6 @@ yarn-error.log*
 
 # Vercel
 .vercel
+
+# Tooling output
+eslint-report.json

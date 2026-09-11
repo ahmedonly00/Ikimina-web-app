@@ -1,0 +1,6 @@
+# Build output: linting the minified bundle is slow and meaningless.
+dist/
+coverage/
+node_modules/
+# Generated during the migration away from TypeScript; not part of the source.
+convert-to-js.js

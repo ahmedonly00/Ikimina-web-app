@@ -1,5 +1,7 @@
 package com.example.ikimina.dto;
 
+import java.math.BigDecimal;
+
 import java.time.LocalDate;
 import java.util.Map;
 
@@ -13,7 +15,7 @@ public class MemberSavingsLedgerDTO {
     
     @Data
     public static class DailySavingsDTO {
-        private Double ubwizigame;
-        private Double ingoboka;
+        private BigDecimal ubwizigame;
+        private BigDecimal ingoboka;
     }
 }

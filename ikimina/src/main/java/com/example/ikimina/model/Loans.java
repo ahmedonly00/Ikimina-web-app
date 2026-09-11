@@ -1,5 +1,7 @@
 package com.example.ikimina.model;
 
+import java.math.BigDecimal;
+
 import java.time.LocalDate;
 
 import com.example.ikimina.enums.LoanStatus;
@@ -28,11 +30,11 @@ public class Loans {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Double amount;
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal amount;
 
-    @Column(nullable = false)
-    private Double interestRate;
+    @Column(nullable = false, precision = 9, scale = 4)
+    private BigDecimal interestRate;
 
     @Column(nullable = false)
     private LocalDate requestDate;

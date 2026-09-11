@@ -1,4 +1,7 @@
 package com.example.ikimina.service;
+import java.math.BigDecimal;
+import com.example.ikimina.money.Money;
+import com.example.ikimina.exception.ResourceNotFoundException;
 
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
@@ -6,6 +9,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.example.ikimina.dto.ReportDTO;
@@ -15,7 +20,10 @@ import com.example.ikimina.enums.Period;
 import com.example.ikimina.repository.ReportRepository;
 import com.example.ikimina.repository.UserRepository;
 
+import org.springframework.transaction.annotation.Transactional;
+
 @Service
+@Transactional(readOnly = true)
 public class ReportService {
     
     @Autowired
@@ -30,9 +38,10 @@ public class ReportService {
     @Autowired
     private FineService fineService;
     
+    @Transactional
     public ReportDTO generateReport(Long userId, Period period) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
         LocalDate now = LocalDate.now();
         LocalDate startDate;
@@ -46,15 +55,16 @@ public class ReportService {
             endDate = now.with(TemporalAdjusters.lastDayOfMonth());
         }
         
-        Double totalSavings = savingsService.getUserTotalSavingsBetweenDates(userId, startDate, endDate);
-        Double totalFines = fineService.getUserTotalFinesBetweenDates(userId, startDate, endDate);
+        BigDecimal totalSavings = savingsService.getUserTotalSavingsBetweenDates(userId, startDate, endDate);
+        BigDecimal totalFines = fineService.getUserTotalFinesBetweenDates(userId, startDate, endDate);
         
         Reports report = new Reports();
         report.setPeriod(period);
         report.setFromDate(startDate);
         report.setToDate(endDate);
-        report.setTotalSavings(totalSavings != null ? totalSavings : 0.0);
-        report.setTotalFines(totalFines != null ? totalFines : 0.0);
+        // Aggregates already COALESCE to zero; Money.of normalises the scale.
+        report.setTotalSavings(Money.of(totalSavings));
+        report.setTotalFines(Money.of(totalFines));
         report.setGeneratedOn(now);
         report.setUser(user);
         
@@ -62,9 +72,16 @@ public class ReportService {
         return convertToDTO(savedReport);
     }
     
+    /** Paged history. Member histories grow without bound over a group's life. */
+    public Page<ReportDTO> getUserReportsPaged(Long userId, Pageable pageable) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return reportRepository.findByUser(user, pageable).map(this::convertToDTO);
+    }
+
     public List<ReportDTO> getUserReports(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
         return reportRepository.findByUser(user).stream()
                 .map(this::convertToDTO)
@@ -73,7 +90,7 @@ public class ReportService {
     
     public List<ReportDTO> getUserReportsByPeriod(Long userId, Period period) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
         return reportRepository.findByUserAndPeriod(user, period).stream()
                 .map(this::convertToDTO)

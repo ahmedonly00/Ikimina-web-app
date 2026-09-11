@@ -1,18 +1,26 @@
 package com.example.ikimina.controller;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,47 +31,70 @@ import com.example.ikimina.service.SavingsService;
 
 @RestController
 @RequestMapping("/api/savings")
-@CrossOrigin(origins = "*")     
 public class SavingsController {
-    
+
     @Autowired
     private SavingsService savingsService;
-    
+
+    // Recording a contribution against another member is a group-admin action.
     @PostMapping
-    public ResponseEntity<SavingsDTO> createSavings(@RequestBody SavingsDTO savingsDTO) {
-        return ResponseEntity.ok(savingsService.createSavings(savingsDTO));
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','GROUP_ADMIN') or @userSecurity.hasAccessToUser(authentication, #savingsDTO.userId)")
+    public ResponseEntity<SavingsDTO> createSavings(
+            @Valid @RequestBody SavingsDTO savingsDTO,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        return ResponseEntity.ok(savingsService.createSavings(savingsDTO, idempotencyKey));
     }
-    
+
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<SavingsDTO>> getUserSavings(@PathVariable Long userId) {
-        return ResponseEntity.ok(savingsService.getUserSavings(userId));
+    @PreAuthorize("@userSecurity.hasAccessToUser(authentication, #userId)")
+    public ResponseEntity<Page<SavingsDTO>> getUserSavings(
+            @PathVariable Long userId,
+            @PageableDefault(size = 25, sort = "date", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(savingsService.getUserSavingsPaged(userId, pageable));
     }
-    
+
+    /**
+     * Group-wide savings, for administrators. Object-level check, not just a
+     * role check: a group admin may only read the group they administer.
+     */
+    @GetMapping("/groups/{groupId}")
+    @PreAuthorize("@savingsGroupSecurity.canAdministerGroup(authentication, #groupId)")
+    public ResponseEntity<Page<SavingsDTO>> getGroupSavings(
+            @PathVariable Long groupId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @PageableDefault(size = 200, sort = "date", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(savingsService.getGroupSavingsPaged(groupId, from, to, pageable));
+    }
+
     @GetMapping("/user/{userId}/total")
-    public ResponseEntity<Double> getUserTotalSavings(
+    @PreAuthorize("@userSecurity.hasAccessToUser(authentication, #userId)")
+    public ResponseEntity<BigDecimal> getUserTotalSavings(
             @PathVariable Long userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return ResponseEntity.ok(savingsService.getUserTotalSavingsBetweenDates(userId, startDate, endDate));
     }
-    
+
     @GetMapping("/daily-total")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Double> getDailyTotalSavings(
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','GROUP_ADMIN')")
+    public ResponseEntity<BigDecimal> getDailyTotalSavings(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ResponseEntity.ok(savingsService.getTotalSavingsForDate(date));
     }
-    
+
     @PostMapping("/bulk")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<SavingsDTO>> createBulkSavings(@RequestBody BulkSavingsEntryDTO bulkEntry) {
-        return ResponseEntity.ok(savingsService.createBulkSavings(bulkEntry));
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','GROUP_ADMIN')")
+    public ResponseEntity<List<SavingsDTO>> createBulkSavings(
+            @Valid @RequestBody BulkSavingsEntryDTO bulkEntry,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        return ResponseEntity.ok(savingsService.createBulkSavings(bulkEntry, idempotencyKey));
     }
-    
+
     @GetMapping("/ledger")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','GROUP_ADMIN') and @userSecurity.hasAccessToAllUsers(authentication, #userIds)")
     public ResponseEntity<List<MemberSavingsLedgerDTO>> getSavingsLedger(
-            @RequestParam List<Long> userIds,
+            @RequestParam @NotEmpty List<Long> userIds,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return ResponseEntity.ok(savingsService.getMemberSavingsLedger(userIds, startDate, endDate));

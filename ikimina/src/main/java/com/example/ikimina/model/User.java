@@ -2,6 +2,8 @@ package com.example.ikimina.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -16,9 +18,13 @@ import java.util.Set;
 @Entity
 @Table(name = "users")
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
+    @EqualsAndHashCode.Include
+    @ToString.Include
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -35,11 +41,22 @@ public class User {
     @Column(name = "member_number", nullable = false, unique = true)
     private String memberNumber;
 
+    @ToString.Include
+
+
     @Column(nullable = false, unique = true)
     private String email;
 
     @Column(nullable = false, unique = true)
     private String phoneNumber;
+
+    /**
+     * Last nine digits of {@link #phoneNumber}, kept so a mobile-money
+     * notification can be matched to a member on an index rather than a regex
+     * over every row. Maintained by setPhoneNumber, never set directly.
+     */
+    @Column(name = "phone_normalised", length = 16)
+    private String phoneNormalised;
 
     @Column(nullable = false, length = 120)
     @JsonIgnore
@@ -61,6 +78,14 @@ public class User {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    /**
+     * Set when the member exercises their right to erasure. Personal fields are
+     * anonymised from that point; financial history stays, so the group's books
+     * still balance. See DataSubjectRightsService.
+     */
+    @Column(name = "erased_at")
+    private LocalDateTime erasedAt;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -100,6 +125,21 @@ public class User {
         }
     }
     
+    /**
+     * Keeps the normalised form in step with the number. Providers report
+     * +250788123456, 250788123456 or 0788123456 for the same subscriber, so the
+     * comparable part is the trailing nine digits.
+     */
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+        if (phoneNumber == null) {
+            this.phoneNormalised = null;
+            return;
+        }
+        String digits = phoneNumber.replaceAll("\\\\D", "");
+        this.phoneNormalised = digits.length() > 9 ? digits.substring(digits.length() - 9) : digits;
+    }
+
     // Override setters to automatically update fullName
     public void setFirstName(String firstName) {
         this.firstName = firstName;

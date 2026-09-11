@@ -1,29 +1,42 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { Provider } from 'react-redux';
-import { store } from './app/store';
 import { MainLayout } from './layouts/MainLayout';
 import { LoginForm } from './features/auth/LoginForm';
 import { RegisterForm } from './features/auth/RegisterForm';
-import DashboardLayout from './features/dashboard/DashboardLayout';
-import DashboardHome from './features/dashboard/DashboardHome';
-import MemberDashboard from './features/dashboard/MemberDashboard';
-import LoansPage from './features/loans/LoansPage';
-import MembersPage from './features/members/MembersPage';
-import ReportsPage from './features/reports/ReportsPage';
-import SettingsPage from './features/settings/SettingsPage';
-import GroupsPage from './features/groups/GroupsPage';
 import { useAppSelector } from './app/hooks';
-import { selectIsAuthenticated, selectCurrentUser } from './features/auth/authSlice';
-import SavingsPage from './features/savings/SavingsPage';
-import SavingsDistributionPage from './features/savings/components/SavingsDistributionPage';
-import SuperAdminDashboard from './features/admin/components/SuperAdminDashboard';
-import GroupManagement from './features/admin/components/GroupManagement';
-import SubscriptionManagement from './features/admin/components/SubscriptionManagement';
+import { selectIsAuthenticated, selectUserRole } from './features/auth/authSlice';
 import { GroupProvider } from './contexts/GroupContext';
 import { AppProvider } from './contexts/AppContext';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+
+// Route components are code-split: a member signing in on a slow connection
+// downloads the login screen, not the admin dashboards and the spreadsheet
+// library too.
+const DashboardLayout = lazy(() => import('./features/dashboard/DashboardLayout'));
+const DashboardHome = lazy(() => import('./features/dashboard/DashboardHome'));
+const MemberDashboard = lazy(() => import('./features/dashboard/MemberDashboard'));
+const LoansPage = lazy(() => import('./features/loans/LoansPage'));
+const MembersPage = lazy(() => import('./features/members/MembersPage'));
+const ReportsPage = lazy(() => import('./features/reports/ReportsPage'));
+const SettingsPage = lazy(() => import('./features/settings/SettingsPage'));
+const GroupsPage = lazy(() => import('./features/groups/GroupsPage'));
+const SavingsPage = lazy(() => import('./features/savings/SavingsPage'));
+const SavingsDistributionPage = lazy(
+  () => import('./features/savings/components/SavingsDistributionPage')
+);
+const SuperAdminDashboard = lazy(() => import('./features/admin/components/SuperAdminDashboard'));
+const GroupManagement = lazy(() => import('./features/admin/components/GroupManagement'));
+const SubscriptionManagement = lazy(
+  () => import('./features/admin/components/SubscriptionManagement')
+);
+
+const RouteFallback = () => (
+  <div className='flex items-center justify-center h-64' role='status' aria-live='polite'>
+    <div className='h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent' />
+    <span className='sr-only'>Loading</span>
+  </div>
+);
+const SUPER_ADMIN = 'ROLE_SUPER_ADMIN';
+const GROUP_ADMIN = 'ROLE_GROUP_ADMIN';
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -36,102 +49,131 @@ const ScrollToTop = () => {
   return null;
 };
 
-// Protected Route component
-const ProtectedRoute = ({ children, requiredRole }) => {
+// Route guard. `allowedRoles` accepts a list so a route can be shared by
+// several roles; omit it to require authentication only.
+// This is a UX guard, not a security boundary - the backend re-checks on
+// every request.
+const ProtectedRoute = ({ children, allowedRoles }) => {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const user = useAppSelector(selectCurrentUser);
+  const role = useAppSelector(selectUserRole);
   const location = useLocation();
-  
+
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to='/login' state={{ from: location }} replace />;
   }
-  
-  if (requiredRole && user?.role !== requiredRole) {
-    return <Navigate to="/dashboard" replace />;
+
+  if (allowedRoles && !allowedRoles.includes(role)) {
+    return <Navigate to='/dashboard' replace />;
   }
-  
+
   return <>{children}</>;
 };
 
-// Public Route component
 const PublicRoute = ({ children }) => {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  
+
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to='/dashboard' replace />;
   }
-  
+
   return <>{children}</>;
 };
 
-// Main App component
 const App = () => {
   return (
-    <Provider store={store}>
-      <AppProvider>
-        <GroupProvider>
-          <ScrollToTop />
-          <ToastContainer 
-            position="top-right"
-            autoClose={5000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-          />
+    <AppProvider>
+      <GroupProvider>
+        <ScrollToTop />
+        <Suspense fallback={<RouteFallback />}>
           <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-          
-          {/* Public Routes */}
-          <Route path="/login" element={
-            <PublicRoute>
-              <LoginForm />
-            </PublicRoute>
-          } />
-          <Route path="/register" element={
-            <PublicRoute>
-              <RegisterForm />
-            </PublicRoute>
-          } />
-          
-          {/* Protected Routes - Wrapped in MainLayout */}
-          <Route element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }>
-            <Route path="dashboard" element={<DashboardLayout />}>
-              <Route index element={<DashboardHome />} />
-              <Route path="member" element={<MemberDashboard />} />
-              <Route path="savings" element={<SavingsPage />} />
-              <Route path="savings-distribution" element={<SavingsDistributionPage />} />
-              <Route path="admin" element={<SuperAdminDashboard />} />
-              <Route path="admin/groups" element={<GroupManagement />} />
-              <Route path="admin/subscriptions" element={<SubscriptionManagement />} />
-              <Route path="loans" element={<LoansPage />} />
-              <Route path="members" element={<MembersPage />} />
-              <Route path="reports" element={<ReportsPage />} />
-              <Route path="settings" element={<SettingsPage />} />
+            <Route path='/' element={<Navigate to='/login' replace />} />
+
+            {/* Public routes */}
+            <Route
+              path='/login'
+              element={
+                <PublicRoute>
+                  <LoginForm />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path='/register'
+              element={
+                <PublicRoute>
+                  <RegisterForm />
+                </PublicRoute>
+              }
+            />
+
+            {/* Authenticated routes */}
+            <Route
+              element={
+                <ProtectedRoute>
+                  <MainLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path='dashboard' element={<DashboardLayout />}>
+                <Route index element={<DashboardHome />} />
+                <Route path='member' element={<MemberDashboard />} />
+                <Route path='savings' element={<SavingsPage />} />
+                <Route path='loans' element={<LoansPage />} />
+                <Route path='members' element={<MembersPage />} />
+                <Route path='reports' element={<ReportsPage />} />
+                <Route path='settings' element={<SettingsPage />} />
+
+                {/* Group-admin and above */}
+                <Route
+                  path='savings-distribution'
+                  element={
+                    <ProtectedRoute allowedRoles={[SUPER_ADMIN, GROUP_ADMIN]}>
+                      <SavingsDistributionPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Super-admin only */}
+                <Route
+                  path='admin'
+                  element={
+                    <ProtectedRoute allowedRoles={[SUPER_ADMIN]}>
+                      <SuperAdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path='admin/groups'
+                  element={
+                    <ProtectedRoute allowedRoles={[SUPER_ADMIN]}>
+                      <GroupManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path='admin/subscriptions'
+                  element={
+                    <ProtectedRoute allowedRoles={[SUPER_ADMIN]}>
+                      <SubscriptionManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path='groups'
+                  element={
+                    <ProtectedRoute allowedRoles={[SUPER_ADMIN]}>
+                      <GroupsPage />
+                    </ProtectedRoute>
+                  }
+                />
+              </Route>
             </Route>
-          </Route>
-          
-          {/* Super Admin Only Routes */}
-          <Route element={
-            <ProtectedRoute requiredRole="ROLE_SUPER_ADMIN">
-              <MainLayout />
-            </ProtectedRoute>
-          }>
-            <Route path="dashboard/groups" element={<GroupsPage />} />
-          </Route>
-          
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        </GroupProvider>
-      </AppProvider>
-    </Provider>
+
+            <Route path='*' element={<Navigate to='/' replace />} />
+          </Routes>
+        </Suspense>
+      </GroupProvider>
+    </AppProvider>
   );
 };
 

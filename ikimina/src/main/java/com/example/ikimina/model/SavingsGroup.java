@@ -2,6 +2,8 @@ package com.example.ikimina.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -15,12 +17,19 @@ import java.util.Set;
 @Entity
 @Table(name = "savings_groups")
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class SavingsGroup {
+    @EqualsAndHashCode.Include
+    @ToString.Include
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ToString.Include
+
 
     @Column(nullable = false, unique = true)
     private String name;

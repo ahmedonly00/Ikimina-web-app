@@ -1,5 +1,7 @@
 package com.example.ikimina.dto;
 
+import java.math.BigDecimal;
+
 import java.time.LocalDate;
 
 import lombok.Data;
@@ -11,7 +13,7 @@ public class GroupSubscriptionSummaryDTO {
     private String groupAdminName;
     private String status;
     private String planName;
-    private Double monthlyPrice;
+    private BigDecimal monthlyPrice;
     private LocalDate endDate;
     private LocalDate gracePeriodEnd;
     private Integer memberCount;

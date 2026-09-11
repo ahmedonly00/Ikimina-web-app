@@ -1,5 +1,7 @@
 package com.example.ikimina.model;
 
+import java.math.BigDecimal;
+
 import java.time.LocalDateTime;
 
 import jakarta.persistence.*;
@@ -24,8 +26,8 @@ public class PaymentTransaction {
     @Column(name = "transaction_id", nullable = false, unique = true)
     private String transactionId;
     
-    @Column(name = "amount", nullable = false)
-    private Double amount;
+    @Column(name = "amount", nullable = false, precision = 19, scale = 2)
+    private BigDecimal amount;
     
     @Column(name = "currency", nullable = false)
     private String currency;

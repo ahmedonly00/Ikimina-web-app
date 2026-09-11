@@ -1,0 +1,25 @@
+# Build output
+ikimina/target/
+ikimina/build/
+ikimina/bin/
+frontend-ikimina/dist/
+frontend-ikimina/node_modules/
+
+# Secrets - never commit
+.env
+*.env
+!.env.example
+ikimina/src/main/resources/application-local.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log

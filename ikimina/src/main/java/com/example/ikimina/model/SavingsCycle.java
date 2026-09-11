@@ -1,5 +1,7 @@
 package com.example.ikimina.model;
 
+import java.math.BigDecimal;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -10,6 +12,14 @@ import lombok.Data;
 @Data
 @Table(name = "savings_cycles")
 public class SavingsCycle {
+    /**
+     * Optimistic lock. Two admins marking payouts paid concurrently would
+     * otherwise both read the same cycle total and one update would be lost.
+     */
+    @Version
+    @Column(name = "version", nullable = false)
+    private long version;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,14 +38,14 @@ public class SavingsCycle {
     @Column(name = "status", nullable = false)
     private CycleStatus status;
     
-    @Column(name = "total_ubwizigame_collected")
-    private Double totalUbwizigameCollected = 0.0;
+    @Column(name = "total_ubwizigame_collected", precision = 19, scale = 2)
+    private BigDecimal totalUbwizigameCollected = BigDecimal.ZERO;
     
-    @Column(name = "total_ingoboka_collected")
-    private Double totalIngobokaCollected = 0.0;
+    @Column(name = "total_ingoboka_collected", precision = 19, scale = 2)
+    private BigDecimal totalIngobokaCollected = BigDecimal.ZERO;
     
-    @Column(name = "total_ubwizigame_distributed")
-    private Double totalUbwizigameDistributed = 0.0;
+    @Column(name = "total_ubwizigame_distributed", precision = 19, scale = 2)
+    private BigDecimal totalUbwizigameDistributed = BigDecimal.ZERO;
     
     @OneToMany(mappedBy = "savingsCycle", cascade = CascadeType.ALL)
     private List<MemberPayout> memberPayouts;

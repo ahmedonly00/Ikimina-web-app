@@ -1,4 +1,6 @@
 package com.example.ikimina.service;
+import com.example.ikimina.exception.ResourceNotFoundException;
+import com.example.ikimina.exception.BusinessRuleException;
 
 import com.example.ikimina.enums.Role;
 import com.example.ikimina.model.SavingsGroup;
@@ -15,6 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @Service
+@Transactional(readOnly = true)
 public class SavingsGroupService {
 
     @Autowired
@@ -55,7 +58,7 @@ public class SavingsGroupService {
     public void deleteGroup(Long groupId) {
         // First, find the group
         SavingsGroup group = savingsGroupRepository.findById(groupId)
-            .orElseThrow(() -> new RuntimeException("Group not found with id: " + groupId));
+            .orElseThrow(() -> new ResourceNotFoundException("Group not found with id: " + groupId));
             
         // Get a copy of the members to avoid concurrent modification
         Set<User> members = new HashSet<>(group.getMembers());

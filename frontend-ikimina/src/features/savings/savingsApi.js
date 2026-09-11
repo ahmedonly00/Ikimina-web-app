@@ -1,49 +1,20 @@
-import { apiSlice } from '../../app/api/apiSlice';
+import { apiSlice, unwrapPage } from '../../app/api/apiSlice';
 
+// Savings endpoints that are not part of the base apiSlice. Endpoint names must
+// stay unique across every injectEndpoints call - RTK Query keeps the first
+// registration and silently ignores later duplicates.
 export const savingsApi = apiSlice.injectEndpoints({
-  endpoints: (builder) => ({
-    getSavings: builder.query({
-      query: () => '/savings',
-      providesTags: ['Savings'],
-    }),
-    getSavingById: builder.query({
-      query: (id) => `/savings/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Savings', id }],
-    }),
-    createSaving: builder.mutation({
-      query: (saving) => ({
-        url: '/savings',
-        method: 'POST',
-        body: saving,
-      }),
-      invalidatesTags: ['Savings'],
-    }),
-    updateSaving: builder.mutation({
-      query: ({ id, ...updates }) => ({
-        url: `/savings/${id}`,
-        method: 'PATCH',
-        body: updates,
-      }),
-      invalidatesTags: (result, error, { id }) => [
-        { type: 'Savings', id },
-        'Savings',
-      ],
-    }),
-    deleteSaving: builder.mutation({
-      query: (id) => ({
-        url: `/savings/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['Savings'],
-    }),
+  endpoints: builder => ({
     createBulkSavings: builder.mutation({
-      query: (bulkData) => ({
+      query: bulkData => ({
         url: '/savings/bulk',
         method: 'POST',
         body: bulkData,
       }),
       invalidatesTags: ['Savings'],
     }),
+
+    // Backend: GET /api/savings/ledger?userIds=..&startDate=..&endDate=..
     getSavingsLedger: builder.query({
       query: ({ userIds, startDate, endDate }) => ({
         url: '/savings/ledger',
@@ -51,20 +22,14 @@ export const savingsApi = apiSlice.injectEndpoints({
       }),
       providesTags: ['Savings'],
     }),
+
     getUsers: builder.query({
       query: () => '/users/active',
+      transformResponse: unwrapPage,
       providesTags: ['Users'],
     }),
   }),
 });
 
-export const {
-  useGetSavingsQuery,
-  useGetSavingByIdQuery,
-  useCreateSavingMutation,
-  useUpdateSavingMutation,
-  useDeleteSavingMutation,
-  useCreateBulkSavingsMutation,
-  useGetSavingsLedgerQuery,
-  useGetUsersQuery,
-} = savingsApi;
+export const { useCreateBulkSavingsMutation, useGetSavingsLedgerQuery, useGetUsersQuery } =
+  savingsApi;

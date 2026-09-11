@@ -1,4 +1,8 @@
 package com.example.ikimina.service;
+import java.math.BigDecimal;
+import com.example.ikimina.money.Money;
+import com.example.ikimina.exception.BusinessRuleException;
+import com.example.ikimina.exception.ResourceNotFoundException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -71,14 +75,14 @@ public class SubscriptionService {
     
     public SubscriptionDTO createSubscription(Long groupId, Long planId, Long createdBy) {
         SavingsGroup group = groupRepository.findById(groupId)
-            .orElseThrow(() -> new RuntimeException("Group not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
         
         SubscriptionPlan plan = planRepository.findById(planId)
-            .orElseThrow(() -> new RuntimeException("Plan not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Plan not found"));
         
         // Check if subscription already exists
         if (subscriptionRepository.findByGroup(group).isPresent()) {
-            throw new RuntimeException("Group already has a subscription");
+            throw new BusinessRuleException("Group already has a subscription");
         }
         
         GroupSubscription subscription = new GroupSubscription();
@@ -97,16 +101,16 @@ public class SubscriptionService {
         return convertToDTO(subscription);
     }
     
-    public SubscriptionDTO recordPayment(Long subscriptionId, Double amount, PaymentMethod method, String reference, Long processedBy) {
+    public SubscriptionDTO recordPayment(Long subscriptionId, BigDecimal amount, PaymentMethod method, String reference, Long processedBy) {
         GroupSubscription subscription = subscriptionRepository.findById(subscriptionId)
-            .orElseThrow(() -> new RuntimeException("Subscription not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Subscription not found"));
         
         // Create payment transaction
         PaymentTransaction payment = new PaymentTransaction();
         payment.setGroup(subscription.getGroup());
         payment.setSubscription(subscription);
         payment.setTransactionId(generateTransactionId());
-        payment.setAmount(amount);
+        payment.setAmount(Money.of(amount));
         payment.setCurrency(subscription.getPlan().getCurrency());
         payment.setPaymentMethod(method);
         payment.setStatus(PaymentStatus.COMPLETED);
@@ -167,7 +171,7 @@ public class SubscriptionService {
     
     public SubscriptionDTO manuallyActivateSubscription(Long subscriptionId, String reason, Long activatedBy) {
         GroupSubscription subscription = subscriptionRepository.findById(subscriptionId)
-            .orElseThrow(() -> new RuntimeException("Subscription not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Subscription not found"));
         
         String oldStatus = subscription.getStatus().name();
         subscription.setStatus(SubscriptionStatus.ACTIVE);
@@ -201,15 +205,15 @@ public class SubscriptionService {
     
     public SubscriptionDTO getSubscriptionByGroup(Long groupId) {
         GroupSubscription subscription = subscriptionRepository.findByGroup(
-            groupRepository.findById(groupId).orElseThrow(() -> new RuntimeException("Group not found"))
-        ).orElseThrow(() -> new RuntimeException("Subscription not found"));
+            groupRepository.findById(groupId).orElseThrow(() -> new ResourceNotFoundException("Group not found"))
+        ).orElseThrow(() -> new ResourceNotFoundException("Subscription not found"));
         
         return convertToDTO(subscription);
     }
     
     public List<PaymentTransactionDTO> getPaymentHistory(Long groupId) {
         SavingsGroup group = groupRepository.findById(groupId)
-            .orElseThrow(() -> new RuntimeException("Group not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
         
         return paymentRepository.findByGroup(group).stream()
             .map(this::convertToPaymentDTO)

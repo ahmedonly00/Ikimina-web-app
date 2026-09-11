@@ -58,11 +58,13 @@ Ikimina is a web application built with Spring Boot that helps groups manage the
    CREATE DATABASE ikimina;
    ```
 
-3. Update database configuration in `src/main/resources/application.properties`:
-   ```properties
-   spring.datasource.url=jdbc:postgresql://localhost:5432/ikimina
-   spring.datasource.username=your_username
-   spring.datasource.password=your_password
+3. Supply configuration through the environment. Nothing secret belongs in
+   `application.properties` - it is committed. See `.env.example` for the full
+   list; these two are required and the application refuses to start without
+   them:
+   ```bash
+   export IKIMINA_DB_PASSWORD=...
+   export IKIMINA_JWT_SECRET=$(openssl rand -hex 32)
    ```
 
 4. Build the project:
@@ -107,13 +109,33 @@ The application will be available at `http://localhost:8080`
 
 ## Security
 
-The application uses Spring Security for authentication and authorization. Two roles are available:
-- ADMIN: Full access to all features
-- USER: Limited access to personal information and basic operations
+The application uses Spring Security with JWT bearer tokens. Three roles exist:
 
-Default admin credentials:
-- Username: admin
-- Password: REDACTED
+- `ROLE_SUPER_ADMIN` - manages groups, subscriptions and the audit trail
+- `ROLE_GROUP_ADMIN` - manages one group: members, savings, loans, fines
+- `ROLE_USER` - a member; sees only their own records
+
+Endpoints carrying a `{userId}` or `{groupId}` are checked at the object level,
+not just by role, so a member cannot read another member's records by changing
+the id in the URL.
+
+### Credentials
+
+There are no default credentials, and none are stored in this repository.
+
+On first boot the super admin is created from the environment:
+
+- `IKIMINA_SUPERADMIN_EMAIL` (default `superadmin@ikimina.com`)
+- `IKIMINA_SUPERADMIN_PASSWORD` - if unset, a random password is generated and
+  printed **once** to the log at `WARN`. Capture it and change it immediately.
+
+Group admin accounts are provisioned when a super admin creates a group; the
+one-time password is returned in that API response and is never logged.
+
+> Earlier revisions of this file documented a default `admin` / `admin` login,
+> backed by `spring.security.user.*` in `application.properties`. Both have been
+> removed and that login no longer works. It remains in this repository's git
+> history, which is public, so treat it as disclosed.
 
 ## Contributing
 

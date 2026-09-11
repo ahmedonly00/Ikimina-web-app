@@ -1,5 +1,7 @@
 package com.example.ikimina.model;
 
+import java.math.BigDecimal;
+
 import java.time.LocalDate;
 
 import com.example.ikimina.enums.Period;
@@ -36,11 +38,11 @@ public class Reports {
     @Column(nullable = false)
     private LocalDate toDate;
 
-    @Column(nullable = false)
-    private Double totalSavings;
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal totalSavings;
 
-    @Column(nullable = false)
-    private Double totalFines;
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal totalFines;
 
     @Column(nullable = false)
     private LocalDate generatedOn;

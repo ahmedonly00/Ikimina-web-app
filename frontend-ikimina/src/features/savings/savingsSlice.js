@@ -19,17 +19,17 @@ const savingsSlice = createSlice({
     setSelectedSaving: (state, action) => {
       state.selectedSaving = action.payload;
     },
-    openAddModal: (state) => {
+    openAddModal: state => {
       state.isAddModalOpen = true;
     },
-    closeAddModal: (state) => {
+    closeAddModal: state => {
       state.isAddModalOpen = false;
     },
     openEditModal: (state, action) => {
       state.selectedSaving = action.payload;
       state.isEditModalOpen = true;
     },
-    closeEditModal: (state) => {
+    closeEditModal: state => {
       state.selectedSaving = null;
       state.isEditModalOpen = false;
     },
@@ -37,7 +37,7 @@ const savingsSlice = createSlice({
       state.selectedSaving = action.payload;
       state.isDeleteModalOpen = true;
     },
-    closeDeleteModal: (state) => {
+    closeDeleteModal: state => {
       state.selectedSaving = null;
       state.isDeleteModalOpen = false;
     },
@@ -61,50 +61,44 @@ const savingsSlice = createSlice({
 });
 
 // Selectors
-const selectSavingsState = (state) => state.savings;
+const selectSavingsState = state => state.savings;
 
 export const selectSelectedSaving = createSelector(
   [selectSavingsState],
-  (savings) => savings.selectedSaving
+  savings => savings.selectedSaving
 );
 
 export const selectIsAddModalOpen = createSelector(
   [selectSavingsState],
-  (savings) => savings.isAddModalOpen
+  savings => savings.isAddModalOpen
 );
 
 export const selectIsEditModalOpen = createSelector(
   [selectSavingsState],
-  (savings) => savings.isEditModalOpen
+  savings => savings.isEditModalOpen
 );
 
 export const selectIsDeleteModalOpen = createSelector(
   [selectSavingsState],
-  (savings) => savings.isDeleteModalOpen
+  savings => savings.isDeleteModalOpen
 );
 
 export const selectCurrentPage = createSelector(
   [selectSavingsState],
-  (savings) => savings.currentPage
+  savings => savings.currentPage
 );
 
 export const selectItemsPerPage = createSelector(
   [selectSavingsState],
-  (savings) => savings.itemsPerPage
+  savings => savings.itemsPerPage
 );
 
-export const selectSearchTerm = createSelector(
-  [selectSavingsState],
-  (savings) => savings.searchTerm
-);
+export const selectSearchTerm = createSelector([selectSavingsState], savings => savings.searchTerm);
 
-export const selectSort = createSelector(
-  [selectSavingsState],
-  (savings) => ({
-    sortBy: savings.sortBy,
-    sortOrder: savings.sortOrder,
-  })
-);
+export const selectSort = createSelector([selectSavingsState], savings => ({
+  sortBy: savings.sortBy,
+  sortOrder: savings.sortOrder,
+}));
 
 // Export actions
 export const {

@@ -15,7 +15,7 @@ export const useGroupData = (fetchFunction, dependencies = []) => {
 
   const fetchData = async () => {
     if (!currentGroup?.id) return;
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -33,6 +33,9 @@ export const useGroupData = (fetchFunction, dependencies = []) => {
     if (currentGroup?.id && !isChangingGroup) {
       fetchData();
     }
+    // fetchData is redefined every render, so it is intentionally omitted; the
+    // spread of caller-supplied dependencies also cannot be checked statically.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentGroup?.id, isChangingGroup, ...dependencies]);
 
   return {
@@ -40,7 +43,7 @@ export const useGroupData = (fetchFunction, dependencies = []) => {
     loading,
     error,
     refetch: fetchData,
-    currentGroup
+    currentGroup,
   };
 };
 

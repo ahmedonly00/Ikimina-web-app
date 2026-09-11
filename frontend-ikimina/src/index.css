@@ -2,282 +2,215 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom base styles */
+/*
+ * Theme tokens.
+ *
+ * Every colour the app uses is defined once here for light and once for dark,
+ * as raw RGB channels so Tailwind opacity modifiers still work. Components
+ * reference semantic names (surface, fg, border) via tailwind.config.js, so
+ * switching theme is a single class on <html> and nothing is left behind.
+ *
+ * Dark values are not simple inversions: surfaces step up in lightness as they
+ * come forward (bg < surface < surface-2), text steps down in contrast, and the
+ * accent is lightened so it stays legible on a dark ground. Inverting a light
+ * palette produces the muddy, low-contrast result this replaces.
+ */
 @layer base {
-  *, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-  
-  html, body {
-    @apply bg-gray-50 text-gray-900 m-0 p-0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overflow: hidden;
-    width: 100vw;
-    height: 100vh;
+  :root {
+    color-scheme: light;
+
+    --c-bg: 248 250 252; /* slate-50  */
+    --c-surface: 255 255 255;
+    --c-surface-2: 241 245 249; /* slate-100 */
+    --c-surface-3: 226 232 240; /* slate-200 */
+    --c-border: 226 232 240;
+    --c-border-strong: 203 213 225;
+
+    --c-fg: 15 23 42; /* slate-900 */
+    --c-fg-muted: 71 85 105; /* slate-600 */
+    --c-fg-subtle: 148 163 184; /* slate-400 */
+    --c-fg-oncolor: 255 255 255;
+
+    --c-primary: 79 70 229; /* indigo-600 */
+    --c-primary-hover: 67 56 202;
+    --c-primary-subtle: 238 242 255;
+
+    --c-success: 22 163 74;
+    --c-success-subtle: 240 253 244;
+    --c-warning: 217 119 6;
+    --c-warning-subtle: 255 251 235;
+    --c-danger: 220 38 38;
+    --c-danger-subtle: 254 242 242;
+    --c-info: 2 132 199;
+    --c-info-subtle: 240 249 255;
+
+    --c-sidebar: 49 46 129; /* indigo-900 */
+    --c-sidebar-hover: 55 48 163;
+    --c-sidebar-active: 67 56 202;
+    --c-sidebar-fg: 255 255 255;
+    --c-sidebar-fg-muted: 199 210 254;
   }
 
-  /* Dark mode styles */
   .dark {
     color-scheme: dark;
-  }
-  
-  .dark html,
-  .dark body {
-    @apply bg-gray-900 text-gray-100;
+
+    --c-bg: 9 9 11; /* near-black, not pure: pure black makes
+                                     shadows and borders invisible */
+    --c-surface: 24 24 27;
+    --c-surface-2: 39 39 42;
+    --c-surface-3: 63 63 70;
+    --c-border: 39 39 42;
+    --c-border-strong: 63 63 70;
+
+    --c-fg: 244 244 245;
+    --c-fg-muted: 161 161 170;
+    --c-fg-subtle: 113 113 122;
+    --c-fg-oncolor: 255 255 255;
+
+    --c-primary: 129 140 248; /* indigo-400: 600 fails contrast on dark */
+    --c-primary-hover: 165 180 252;
+    --c-primary-subtle: 30 27 75;
+
+    --c-success: 74 222 128;
+    --c-success-subtle: 5 46 22;
+    --c-warning: 251 191 36;
+    --c-warning-subtle: 69 26 3;
+    --c-danger: 248 113 113;
+    --c-danger-subtle: 69 10 10;
+    --c-info: 56 189 248;
+    --c-info-subtle: 8 47 73;
+
+    --c-sidebar: 24 24 27; /* the sidebar recedes in dark rather than
+                                     staying a bright indigo slab */
+    --c-sidebar-hover: 39 39 42;
+    --c-sidebar-active: 55 48 163;
+    --c-sidebar-fg: 244 244 245;
+    --c-sidebar-fg-muted: 161 161 170;
   }
 
-  .dark h1 {
-    @apply text-gray-100;
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
   }
 
-  .dark h2 {
-    @apply text-gray-200;
-  }
-
-  .dark h3 {
-    @apply text-gray-300;
-  }
-
-  .dark .bg-white {
-    @apply bg-gray-800;
-  }
-
-  .dark .bg-gray-50 {
-    @apply bg-gray-900;
-  }
-
-  .dark .bg-gray-100 {
-    @apply bg-gray-800;
-  }
-
-  .dark .bg-gray-200 {
-    @apply bg-gray-700;
-  }
-
-  .dark .text-gray-500 {
-    @apply text-gray-400;
-  }
-
-  .dark .text-gray-600 {
-    @apply text-gray-300;
-  }
-
-  .dark .text-gray-700 {
-    @apply text-gray-200;
-  }
-
-  .dark .text-gray-800 {
-    @apply text-gray-100;
-  }
-
-  .dark .text-gray-900 {
-    @apply text-gray-100;
-  }
-
-  .dark .border-gray-200 {
-    @apply border-gray-700;
-  }
-
-  .dark .border-gray-300 {
-    @apply border-gray-600;
-  }
-
-  .dark .border-gray-400 {
-    @apply border-gray-600;
-  }
-
-  .dark .hover\:bg-gray-50:hover {
-    @apply hover:bg-gray-700;
-  }
-
-  .dark .hover\:bg-gray-100:hover {
-    @apply hover:bg-gray-700;
-  }
-
-  .dark .hover\:bg-white:hover {
-    @apply hover:bg-gray-700;
-  }
-
-  .dark .shadow-lg {
-    @apply shadow-gray-900;
-  }
-
-  .dark .shadow {
-    @apply shadow-gray-900;
-  }
-
-  .dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
-    @apply divide-gray-700;
-  }
-
-  .dark input,
-  .dark textarea,
-  .dark select {
-    @apply bg-gray-800 border-gray-600 text-gray-100;
-  }
-
-  .dark input:focus,
-  .dark textarea:focus,
-  .dark select:focus {
-    @apply bg-gray-800 border-indigo-500 text-gray-100;
-  }
-
-  .dark .bg-indigo-100 {
-    @apply bg-indigo-900;
-  }
-
-  .dark .text-indigo-700 {
-    @apply text-indigo-300;
-  }
-
-  .dark ::-webkit-scrollbar-track {
-    @apply bg-gray-800;
-  }
-
-  .dark ::-webkit-scrollbar-thumb {
-    @apply bg-gray-600;
-  }
-
-  .dark ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-500;
-  }
-
-  #root {
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
+  html,
+  body {
     margin: 0;
     padding: 0;
+    height: 100%;
   }
 
   body {
-    overflow-x: hidden;
+    @apply bg-bg text-fg antialiased;
+    font-family: theme('fontFamily.sans');
+    /* The shell scrolls its own panes; locking the body prevents a double
+       scrollbar on the dashboard. */
+    overflow: hidden;
   }
 
+  /* Money and dates line up in columns when the figures are tabular. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Size and weight only - no colour. `body` sets text-fg and colour inherits,
+     so headings land on the right colour by default while still following a
+     container that sets its own (a coloured hero panel, a dark banner). Baking
+     text-fg in here put dark headings on the indigo login panel, because a base
+     element rule beats an inherited utility on the parent. */
   h1 {
-    @apply text-3xl font-bold text-gray-900;
+    @apply text-2xl font-semibold tracking-tight;
   }
-
   h2 {
-    @apply text-2xl font-semibold text-gray-800;
+    @apply text-lg font-semibold tracking-tight;
   }
-
   h3 {
-    @apply text-xl font-medium text-gray-700;
+    @apply text-base font-semibold;
   }
 
-  a {
-    @apply text-indigo-600 hover:text-indigo-800 transition-colors duration-200;
+  /* A single visible focus treatment, so keyboard users can see where they are
+     without every component reinventing it. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-bg;
   }
 
-  button, [type='button'], [type='reset'], [type='submit'] {
-    @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
-  }
-
-  input[type='text'],
-  input[type='email'],
-  input[type='password'],
-  input[type='number'],
-  input[type='tel'],
-  input[type='url'],
-  input[type='date'],
-  input[type='datetime-local'],
-  input[type='month'],
-  input[type='week'],
-  input[type='time'],
-  input[type='search'],
-  input[type='search']::-webkit-search-cancel-button,
-  input[type='search']::-webkit-search-decoration,
-  textarea,
-  select {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm;
-  }
-
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    @apply w-2 h-2;
-  }
-
-  ::-webkit-scrollbar-track {
-    @apply bg-gray-100;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-gray-400 rounded-full;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-500;
+  ::selection {
+    @apply bg-primary/25;
   }
 }
 
-/* Custom components */
 @layer components {
-  .btn {
-    @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
-  }
-
-  .btn-secondary {
-    @apply bg-white border-gray-300 text-gray-700 hover:bg-gray-50;
-  }
-
-  .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 focus:ring-red-500;
-  }
-
+  /* Surfaces */
   .card {
-    @apply bg-white shadow overflow-hidden rounded-lg;
+    @apply rounded-card border border-border bg-surface shadow-card;
+  }
+  .card-interactive {
+    @apply card transition hover:shadow-card-hover hover:border-border-strong;
   }
 
-  .card-header {
-    @apply px-4 py-5 border-b border-gray-200 sm:px-6;
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2
+           text-sm font-medium transition
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-primary text-fg-oncolor hover:bg-primary-hover;
+  }
+  .btn-secondary {
+    @apply btn border border-border bg-surface text-fg hover:bg-surface-2;
+  }
+  .btn-ghost {
+    @apply btn text-fg-muted hover:bg-surface-2 hover:text-fg;
+  }
+  .btn-danger {
+    @apply btn bg-danger text-fg-oncolor hover:opacity-90;
   }
 
-  .card-body {
-    @apply px-4 py-5 sm:p-6;
+  /* Forms */
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-fg;
+  }
+  .input {
+    @apply block w-full rounded-lg border border-border bg-surface px-3 py-2
+           text-sm text-fg placeholder:text-fg-subtle
+           focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30
+           disabled:bg-surface-2 disabled:text-fg-muted;
+  }
+  .input-error {
+    @apply border-danger focus:border-danger focus:ring-danger/30;
+  }
+  .field-error {
+    @apply mt-1 text-sm text-danger;
   }
 
-  .card-footer {
-    @apply px-4 py-4 bg-gray-50 sm:px-6;
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5
+           text-xs font-medium;
+  }
+  .badge-success {
+    @apply badge bg-success-subtle text-success;
+  }
+  .badge-warning {
+    @apply badge bg-warning-subtle text-warning;
+  }
+  .badge-danger {
+    @apply badge bg-danger-subtle text-danger;
+  }
+  .badge-info {
+    @apply badge bg-info-subtle text-info;
+  }
+  .badge-neutral {
+    @apply badge bg-surface-2 text-fg-muted;
   }
 
-  .form-group {
-    @apply mb-4;
+  /* Tables */
+  .table-head {
+    @apply bg-surface-2 text-xs font-medium uppercase tracking-wider text-fg-muted;
   }
-
-  .form-label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
-  }
-
-  .form-help {
-    @apply mt-1 text-sm text-gray-500;
-  }
-
-  .form-error {
-    @apply mt-2 text-sm text-red-600;
-  }
-
-  .alert {
-    @apply p-4 rounded-md;
-  }
-
-  .alert-success {
-    @apply bg-green-50 text-green-800;
-  }
-
-  .alert-error {
-    @apply bg-red-50 text-red-800;
-  }
-
-  .alert-warning {
-    @apply bg-yellow-50 text-yellow-800;
-  }
-
-  .alert-info {
-    @apply bg-blue-50 text-blue-800;
+  .table-row {
+    @apply border-t border-border transition hover:bg-surface-2/60;
   }
 }

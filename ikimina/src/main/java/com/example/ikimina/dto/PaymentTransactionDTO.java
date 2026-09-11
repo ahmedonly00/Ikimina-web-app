@@ -1,5 +1,7 @@
 package com.example.ikimina.dto;
 
+import java.math.BigDecimal;
+
 import java.time.LocalDateTime;
 
 import lombok.Data;
@@ -11,7 +13,7 @@ public class PaymentTransactionDTO {
     private String groupName;
     private Long subscriptionId;
     private String transactionId;
-    private Double amount;
+    private BigDecimal amount;
     private String currency;
     private String paymentMethod;
     private String status;

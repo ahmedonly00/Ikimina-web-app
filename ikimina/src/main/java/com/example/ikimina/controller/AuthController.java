@@ -2,131 +2,96 @@ package com.example.ikimina.controller;
 
 import com.example.ikimina.dto.LoginRequest;
 import com.example.ikimina.dto.UserDTO;
+import com.example.ikimina.exception.BusinessRuleException;
 import com.example.ikimina.model.User;
 import com.example.ikimina.security.CustomUserDetails;
 import com.example.ikimina.security.JwtTokenProvider;
 import com.example.ikimina.service.CustomUserDetailsService;
 import com.example.ikimina.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
 public class AuthController {
-    
+
     @Autowired
     private UserService userService;
-    
+
     @Autowired
     private AuthenticationManager authenticationManager;
-    
+
     @Autowired
     private JwtTokenProvider tokenProvider;
-    
+
     @Autowired
     private CustomUserDetailsService userDetailsService;
-    
+
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody UserDTO userDTO) {
-        try {
-            // Check if user already exists in this savings group
-            if (userDTO.getSavingsGroupId() != null && 
-                userService.existsByEmailAndSavingsGroupId(userDTO.getEmail(), userDTO.getSavingsGroupId())) {
-                return ResponseEntity.badRequest().body("User with this email already exists in the specified savings group");
-            }
-            
-            UserDTO createdUser = userService.createUser(userDTO);
-            return ResponseEntity.ok(createdUser);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+    public ResponseEntity<UserDTO> registerUser(@Valid @RequestBody UserDTO userDTO) {
+        if (userDTO.getSavingsGroupId() != null
+                && userService.existsByEmailAndSavingsGroupId(userDTO.getEmail(), userDTO.getSavingsGroupId())) {
+            throw new BusinessRuleException("A user with this email already exists in the selected savings group");
         }
+        return ResponseEntity.ok(userService.createUser(userDTO));
     }
-    
+
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        try {
+    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest loginRequest) {
+        // Verify the password first. The provider hides "user not found" so this
+        // cannot be used to enumerate registered emails.
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+                loginRequest.getEmail(), loginRequest.getPassword()));
+
+        User user = userService.findByEmail(loginRequest.getEmail())
+                .orElseThrow(() -> new BadCredentialsException("Invalid email, password, or savings group"));
+
+        // A super admin is global and belongs to no savings group, so it must not
+        // be required to present one. Group-scoped accounts must, and the
+        // principal is then resolved against that group so the token carries it.
+        CustomUserDetails userDetails;
+        if (user.isSuperAdmin()) {
+            userDetails = CustomUserDetails.create(user, loginRequest.getSavingsGroupId());
+        } else {
             if (loginRequest.getSavingsGroupId() == null) {
-                return ResponseEntity.badRequest().body("Savings group ID is required");
+                throw new BusinessRuleException("Savings group is required");
             }
-            
-            // Load user by email and savings group
-            UserDetails userDetails = userDetailsService.loadUserByEmailAndSavingsGroup(
-                loginRequest.getEmail(), 
-                loginRequest.getSavingsGroupId()
-            );
-            
-            // Authenticate
-            Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                    loginRequest.getEmail(), 
-                    loginRequest.getPassword()
-                )
-            );
-            
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            
-            // Generate JWT token
-            String jwt = tokenProvider.generateToken(authentication);
-            
-            // Prepare response
-            Map<String, Object> response = new HashMap<>();
-            response.put("token", jwt);
-            response.put("type", "Bearer");
-            
-            // Add user details to the response
-            User user = userService.findByEmail(loginRequest.getEmail()).orElse(null);
-            Map<String, Object> userInfo = new HashMap<>();
-            userInfo.put("email", userDetails.getUsername());
-            userInfo.put("firstName", user != null ? user.getFirstName() : "");
-            userInfo.put("lastName", user != null ? user.getLastName() : "");
-            userInfo.put("role", user != null ? user.getRole().name() : "ROLE_USER");
-            if (userDetails instanceof CustomUserDetails) {
-                userInfo.put("savingsGroupId", ((CustomUserDetails) userDetails).getSavingsGroupId());
-                userInfo.put("id", user != null ? user.getId() : null);
-                userInfo.put("memberNumber", user != null ? user.getMemberNumber() : "");
+            try {
+                userDetails = (CustomUserDetails) userDetailsService.loadUserByEmailAndSavingsGroup(
+                        loginRequest.getEmail(), loginRequest.getSavingsGroupId());
+            } catch (UsernameNotFoundException ex) {
+                throw new BadCredentialsException("Invalid email, password, or savings group");
             }
-            response.put("user", userInfo);
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Invalid email, password, or savings group");
         }
-    }
-    
-    @PostMapping("/create-group")
-    public ResponseEntity<?> createGroupWithAdmin(@RequestBody UserDTO userDTO) {
-        try {
-            // This will be handled by the SavingsGroupController
-            return ResponseEntity.badRequest().body("Use /api/savings-groups endpoint to create a new group");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+
+        String jwt = tokenProvider.generateToken(userDetails);
+
+        Map<String, Object> userInfo = new LinkedHashMap<>();
+        userInfo.put("id", userDetails.getUserId());
+        userInfo.put("email", userDetails.getUsername());
+        userInfo.put("savingsGroupId", userDetails.getSavingsGroupId());
+        userInfo.put("role", user.getRole().name());
+        userInfo.put("firstName", user.getFirstName());
+        userInfo.put("lastName", user.getLastName());
+        userInfo.put("memberNumber", user.getMemberNumber());
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("token", jwt);
+        response.put("type", "Bearer");
+        response.put("user", userInfo);
+
+        return ResponseEntity.ok(response);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -5,11 +5,15 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.ikimina.dto.GroupSubscriptionSummaryDTO;
+import com.example.ikimina.security.SecurityUtils;
 import com.example.ikimina.model.AuditLog;
 import com.example.ikimina.model.SavingsGroup;
 import com.example.ikimina.model.SubscriptionPlan;
@@ -19,8 +23,7 @@ import com.example.ikimina.service.SubscriptionService;
 
 @RestController
 @RequestMapping("/api/super-admin")
-@CrossOrigin(origins = "*")
-@PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
+@PreAuthorize("hasRole('SUPER_ADMIN')")
 public class SuperAdminController {
     
     @Autowired
@@ -31,8 +34,9 @@ public class SuperAdminController {
     
     // Group Management
     @GetMapping("/groups")
-    public ResponseEntity<List<SavingsGroup>> getAllGroups() {
-        return ResponseEntity.ok(superAdminService.getAllGroups());
+    public ResponseEntity<Page<SavingsGroup>> getAllGroups(
+            @PageableDefault(size = 25, sort = "name") Pageable pageable) {
+        return ResponseEntity.ok(superAdminService.getAllGroups(pageable));
     }
     
     @PostMapping("/groups/{groupId}/activate")
@@ -61,8 +65,9 @@ public class SuperAdminController {
     
     // User Management
     @GetMapping("/users")
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(superAdminService.getAllUsers());
+    public ResponseEntity<Page<User>> getAllUsers(
+            @PageableDefault(size = 25, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(superAdminService.getAllUsers(pageable));
     }
     
     @PostMapping("/users/{userId}/promote-admin")
@@ -138,10 +143,11 @@ public class SuperAdminController {
     
     // Audit Logs
     @GetMapping("/audit")
-    public ResponseEntity<List<AuditLog>> getAuditLogs(
+    public ResponseEntity<Page<AuditLog>> getAuditLogs(
             @RequestParam(required = false) String entityType,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since) {
-        return ResponseEntity.ok(superAdminService.getAuditLogs(entityType, since));
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since,
+            @PageableDefault(size = 50) Pageable pageable) {
+        return ResponseEntity.ok(superAdminService.getAuditLogs(entityType, since, pageable));
     }
     
     // Financial Reports
@@ -161,8 +167,6 @@ public class SuperAdminController {
     }
     
     private Long getCurrentUserId() {
-        // This should be implemented based on your authentication context
-        // For now, returning a placeholder
-        return 1L;
+        return SecurityUtils.currentUserId();
     }
 }

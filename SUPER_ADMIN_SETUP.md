@@ -101,6 +101,42 @@ Only these are reachable without a token:
 - `GET  /api/savings-groups/public` — id and name only, for the login group picker
 - Swagger UI and `/v3/api-docs/**`
 
+## Joining a group
+
+Registration is public, but **a registrant cannot choose the group they end up
+in**. It previously accepted a `savingsGroupId` and honoured it, so anyone who
+guessed a group id joined that group's member roster.
+
+There are three ways in, and no others:
+
+| Route | Who authorises it |
+| --- | --- |
+| An administrator adds the member | `POST /api/savings-groups/{groupId}/members`, checked with `canAdministerGroup` |
+| The person presents the group's invite code | The code resolves to exactly one group |
+| The person asks, an administrator approves | `POST /api/savings-groups/{groupId}/join-requests/{requestId}/approve` |
+
+`POST /api/auth/register` takes **either** `joinCode` **or** `requestGroupId`,
+never both and never neither. There is no `savingsGroupId` field, and `role` is
+ignored — registration always creates a plain member.
+
+A join request grants nothing on its own. The account is created belonging to
+no group and cannot sign in; the attempt answers *"Your request to join a group
+has not been approved yet"* rather than a bare credentials failure. Approving
+is what creates the membership, and re-issues the member number in the group's
+own series.
+
+Invite codes are 10 characters from an alphabet with no `O`/`0` or `I`/`1`,
+because they get read aloud and typed by hand. An administrator can replace one
+that has spread too far (`POST .../join-code`), which immediately invalidates
+the previous value, or turn it off entirely (`DELETE`). A group with no code set
+cannot be joined by sending a blank one — the group is resolved *from* the code,
+so there is nothing for an empty code to match.
+
+Routes addressed by request id check **both** that the caller administers the
+group in the path **and** that the request belongs to that group. Without the
+second half, an administrator of their own group could approve another group's
+request by pairing their own `groupId` with someone else's `requestId`.
+
 `GET /api/savings-groups` (full detail) is super-admin only.
 
 ## Login

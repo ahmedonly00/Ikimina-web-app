@@ -42,6 +42,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Long findPrimaryGroupId(@Param("userId") Long userId);
 
     boolean existsByUsername(String username);
+
+    boolean existsByMemberNumber(String memberNumber);
     
     List<User> findByActive(boolean active);
 

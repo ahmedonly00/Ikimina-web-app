@@ -8,6 +8,12 @@ import {
   useGetGroupMembersQuery,
   useCreateMemberMutation,
   useSetMemberActiveMutation,
+  useGetJoinCodeQuery,
+  useRotateJoinCodeMutation,
+  useClearJoinCodeMutation,
+  useGetJoinRequestsQuery,
+  useApproveJoinRequestMutation,
+  useRejectJoinRequestMutation,
 } from '../../app/api/apiSlice';
 import QueryError from '../../components/ui/QueryError';
 import Modal from '../../components/ui/Modal';
@@ -26,6 +32,9 @@ import roleLabel from '../../utils/roleLabel';
  * It now lists GET /api/users/group/{id} and creates through the real
  * registration endpoint.
  */
+// Stable identity so the pending list does not change reference each render.
+const NO_REQUESTS = [];
+
 const EMPTY_FORM = {
   firstName: '',
   lastName: '',
@@ -35,7 +44,7 @@ const EMPTY_FORM = {
 };
 
 const MembersPage = () => {
-  const { t } = useAppContext();
+  const { t, formatDate } = useAppContext();
   const currentUser = useSelector(selectCurrentUser);
   /*
    * The group in the sidebar selector wins, falling back to the user's own
@@ -59,6 +68,47 @@ const MembersPage = () => {
   } = useGetGroupMembersQuery(groupId, { skip: !groupId });
   const [createMember, { isLoading: isCreating }] = useCreateMemberMutation();
   const [setMemberActive] = useSetMemberActiveMutation();
+
+  const joinCodeQuery = useGetJoinCodeQuery(groupId, { skip: !groupId });
+  const joinCode = joinCodeQuery.data?.joinCode || '';
+  const [rotateJoinCode] = useRotateJoinCodeMutation();
+  const [clearJoinCode] = useClearJoinCodeMutation();
+
+  const { data: pending = NO_REQUESTS } = useGetJoinRequestsQuery(groupId, { skip: !groupId });
+  const [approveJoinRequest] = useApproveJoinRequestMutation();
+  const [rejectJoinRequest] = useRejectJoinRequestMutation();
+
+  const handleRotate = async () => {
+    try {
+      const { joinCode: code } = await rotateJoinCode(groupId).unwrap();
+      toast.success(`Invite code is now ${code}`);
+    } catch {
+      toast.error('Could not generate an invite code');
+    }
+  };
+
+  const handleClearCode = async () => {
+    try {
+      await clearJoinCode(groupId).unwrap();
+      toast.success('Invite code turned off');
+    } catch {
+      toast.error('Could not turn off the invite code');
+    }
+  };
+
+  const decide = async (request, action) => {
+    const fn = action === 'approve' ? approveJoinRequest : rejectJoinRequest;
+    try {
+      await fn({ groupId, requestId: request.id }).unwrap();
+      toast.success(
+        action === 'approve'
+          ? `${request.applicantName} joined the group`
+          : `${request.applicantName}'s request was rejected`
+      );
+    } catch (err) {
+      toast.error(err?.data?.detail || 'Could not record that decision');
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -84,6 +134,9 @@ const MembersPage = () => {
     else if (!/\S+@\S+\.\S+/.test(form.email)) next.email = 'Not a valid email';
     // The backend stores a bcrypt hash of whatever is sent, so an empty
     // password would create an account nobody can sign in to.
+    // users.phone_number is NOT NULL, so an empty one fails at the insert
+    // rather than here, where it can actually be corrected.
+    if (!form.phoneNumber.trim()) next.phoneNumber = 'Required';
     if (!form.password) next.password = 'Required';
     else if (form.password.length < 8) next.password = 'At least 8 characters';
     return next;
@@ -98,15 +151,19 @@ const MembersPage = () => {
     }
 
     try {
+      /*
+       * The group travels in the URL, not the body. Adding a member is an
+       * administrative act on a specific group, and the server authorises the
+       * caller against that group - so there is no field here that could
+       * redirect the new account somewhere else.
+       */
       await createMember({
+        groupId,
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         email: form.email.trim(),
-        phoneNumber: form.phoneNumber.trim() || null,
+        phoneNumber: form.phoneNumber.trim(),
         password: form.password,
-        savingsGroupId: groupId,
-        role: 'ROLE_USER',
-        active: true,
       }).unwrap();
 
       toast.success(`${form.firstName} ${form.lastName} added`);
@@ -158,6 +215,75 @@ const MembersPage = () => {
 
         {groupId && (
           <>
+            {/* People waiting on a decision. Shown above the roster because it
+                is the only part of this screen that needs acting on. */}
+            {pending.length > 0 && (
+              <section className='card mb-6 border-l-4 border-warning'>
+                <header className='border-b border-border px-5 py-4'>
+                  <h2>
+                    {pending.length} {pending.length === 1 ? 'person is' : 'people are'} asking to
+                    join
+                  </h2>
+                  <p className='mt-0.5 text-sm text-fg-muted'>
+                    They cannot sign in until you approve.
+                  </p>
+                </header>
+                <ul className='divide-y divide-border'>
+                  {pending.map(r => (
+                    <li
+                      key={r.id}
+                      className='flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between'
+                    >
+                      <div>
+                        <p className='font-medium text-fg'>{r.applicantName}</p>
+                        <p className='text-sm text-fg-muted'>
+                          {r.applicantEmail}
+                          {r.applicantPhone ? ` · ${r.applicantPhone}` : ''}
+                        </p>
+                        <p className='mt-0.5 text-xs text-fg-subtle'>
+                          Asked {formatDate(r.requestedAt)}
+                        </p>
+                      </div>
+                      <div className='flex gap-2'>
+                        <Button variant='secondary' size='sm' onClick={() => decide(r, 'reject')}>
+                          Reject
+                        </Button>
+                        <Button size='sm' onClick={() => decide(r, 'approve')}>
+                          Approve
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {/* Invite code: the other way in that does not need a decision. */}
+            <section className='card mb-6 p-5'>
+              <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+                <div>
+                  <h2>Invite code</h2>
+                  <p className='mt-0.5 text-sm text-fg-muted'>
+                    Anyone with this code can join the group directly. Share it only with people you
+                    mean to admit, and replace it if it spreads.
+                  </p>
+                </div>
+                <div className='flex items-center gap-2'>
+                  <code className='tabular rounded-lg border border-border bg-surface-2 px-3 py-2 text-base tracking-widest text-fg'>
+                    {joinCodeQuery.isFetching ? '…' : joinCode || 'none'}
+                  </code>
+                  <Button variant='secondary' size='sm' onClick={handleRotate}>
+                    {joinCode ? 'Replace' : 'Generate'}
+                  </Button>
+                  {joinCode && (
+                    <Button variant='ghost' size='sm' onClick={handleClearCode}>
+                      Turn off
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </section>
+
             <div className='relative mb-4 max-w-sm'>
               <FiSearch
                 className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle'
@@ -325,8 +451,9 @@ const MembersPage = () => {
                 value={form.phoneNumber}
                 onChange={change}
                 placeholder='+250 7xx xxx xxx'
-                className='input'
+                className={`input ${errors.phoneNumber ? 'input-error' : ''}`}
               />
+              {errors.phoneNumber && <p className='field-error'>{errors.phoneNumber}</p>}
             </div>
 
             <div>

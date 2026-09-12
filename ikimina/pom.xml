@@ -86,6 +86,20 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!--
+          Spring Boot 4 moved each integration's auto-configuration out of
+          spring-boot-autoconfigure into its own module. Without this one there
+          is no FlywayAutoConfiguration on the classpath, so
+          spring.flyway.enabled=true is silently inert and the application
+          never applies its own migrations at startup - which is what happened
+          between the 3.2 -> 4.1 upgrade and now. The schema only kept working
+          because CI applies migrations through the Maven plugin and Hibernate
+          had already created the tables locally.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-flyway</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>

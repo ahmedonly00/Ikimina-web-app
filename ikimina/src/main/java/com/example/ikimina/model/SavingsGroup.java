@@ -65,6 +65,17 @@ public class SavingsGroup {
     @Column(name = "suspended_at")
     private LocalDateTime suspendedAt;
 
+    /**
+     * Secret that lets a person join this group by presenting it.
+     *
+     * Null until an administrator generates one. The group is resolved FROM
+     * the code rather than the code being compared against a group the caller
+     * named, so a blank or absent code cannot be made to match a group that
+     * happens to have no code set.
+     */
+    @Column(name = "join_code", length = 32, unique = true)
+    private String joinCode;
+
     //Helper methods to manage the relationship
     public void addMember(User user) {
         this.members.add(user);

@@ -1,475 +1,320 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useRegisterMutation, useGetPublicGroupsQuery } from '../../app/api/apiSlice';
-import { setCredentials } from './authSlice';
-import { useAppDispatch } from '../../app/hooks';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
-  FaUser,
-  FaEnvelope,
-  FaLock,
-  FaArrowLeft,
-  FaUserShield,
-  FaChartPie,
-  FaHandshake,
-  FaPhone,
-  FaUsers,
-} from 'react-icons/fa';
-import { motion } from 'framer-motion';
-import registerAnimation from '../../assets/register-animation.svg';
+  FiArrowLeft,
+  FiKey,
+  FiUsers,
+  FiCheckCircle,
+  FiClock,
+  FiEye,
+  FiEyeOff,
+} from 'react-icons/fi';
+import { useRegisterMutation, useGetPublicGroupsQuery } from '../../app/api/apiSlice';
 
-export const RegisterForm = () => {
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phoneNumber: '',
-    role: 'MEMBER', // Fixed role for all signups
-    password: '',
-    confirmPassword: '',
-    savingsGroupId: '',
-  });
+/**
+ * Public registration.
+ *
+ * This form used to post a whole user object including `role` and
+ * `savingsGroupId`, and the server honoured the group - so picking one from
+ * the dropdown put you into that group's member roster whether or not anyone
+ * there had ever heard of you.
+ *
+ * A registrant can no longer choose the group they land in. Either they hold
+ * the group's invite code, or they ask and an administrator decides. The
+ * server enforces this; the two routes below just reflect it.
+ */
+const EMPTY = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  phoneNumber: '',
+  password: '',
+  confirmPassword: '',
+  joinCode: '',
+  requestGroupId: '',
+};
 
-  // Fetch all savings groups
-  const { data: groups = [], isLoading: isLoadingGroups } = useGetPublicGroupsQuery();
-
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [register, { isLoading }] = useRegisterMutation({
-    // This will automatically refetch data after a successful registration
-    // and update the cache with the new user data
-    refetchOnMountOrArgChange: true,
-  });
-  const dispatch = useAppDispatch();
+const RegisterForm = () => {
   const navigate = useNavigate();
+  const [mode, setMode] = useState('code'); // 'code' | 'request'
+  const [form, setForm] = useState(EMPTY);
+  const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [done, setDone] = useState(null);
 
-  // Clear errors when form data changes
-  // See LoginForm: functional setter keeps errors out of the dependencies.
-  useEffect(() => {
-    setErrors(prev => (Object.keys(prev).length > 0 ? {} : prev));
-  }, [formData]);
+  const { data: groups = [], isLoading: isLoadingGroups } = useGetPublicGroupsQuery();
+  const [register, { isLoading }] = useRegisterMutation();
 
-  const handleChange = e => {
+  const change = e => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => (Object.keys(prev).length ? {} : prev));
   };
 
-  const validateForm = () => {
-    const newErrors = {};
+  const validate = () => {
+    const next = {};
+    if (!form.firstName.trim()) next.firstName = 'Required';
+    if (!form.lastName.trim()) next.lastName = 'Required';
+    if (!form.email.trim()) next.email = 'Required';
+    else if (!/\S+@\S+\.\S+/.test(form.email)) next.email = 'Not a valid email';
+    // users.phone_number is NOT NULL, and for a savings group it is the
+    // contact that matters.
+    if (!form.phoneNumber.trim()) next.phoneNumber = 'Required';
+    if (!form.password) next.password = 'Required';
+    else if (form.password.length < 8) next.password = 'At least 8 characters';
+    if (form.password !== form.confirmPassword) next.confirmPassword = 'Passwords do not match';
 
-    if (!formData.savingsGroupId) {
-      newErrors.savingsGroupId = 'Please select a savings group';
-    }
-
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-    }
-
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-    }
-
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
-
-    if (!formData.phoneNumber.trim()) {
-      newErrors.phoneNumber = 'Phone number is required';
-    } else if (!/^[0-9+\s-]{10,}$/.test(formData.phoneNumber)) {
-      newErrors.phoneNumber = 'Please enter a valid phone number';
-    }
-
-    if (!formData.role) {
-      newErrors.role = 'Role is required';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    return newErrors;
+    if (mode === 'code' && !form.joinCode.trim()) next.joinCode = 'Enter the code you were given';
+    if (mode === 'request' && !form.requestGroupId) next.requestGroupId = 'Choose a group';
+    return next;
   };
 
-  const handleSubmit = async e => {
+  const submit = async e => {
     e.preventDefault();
-
-    const formErrors = validateForm();
-    if (Object.keys(formErrors).length > 0) {
-      setErrors(formErrors);
+    const found = validate();
+    if (Object.keys(found).length) {
+      setErrors(found);
       return;
     }
 
+    // Exactly one of the two routes is sent; the server rejects both or neither.
+    const payload = {
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      email: form.email.trim(),
+      phoneNumber: form.phoneNumber.trim(),
+      password: form.password,
+      ...(mode === 'code'
+        ? { joinCode: form.joinCode.trim().toUpperCase() }
+        : { requestGroupId: Number(form.requestGroupId) }),
+    };
+
     try {
-      setIsSubmitting(true);
-
-      // Include savings group in registration data
-      const registrationData = {
-        ...formData,
-        savingsGroupId: formData.savingsGroupId,
-      };
-
-      const userData = await register(registrationData).unwrap();
-
-      // Include group info in credentials
-      dispatch(
-        setCredentials({
-          ...userData,
-          savingsGroupId: formData.savingsGroupId,
-          savingsGroupName: groups.find(g => g.id === formData.savingsGroupId)?.name,
-        })
-      );
-
-      toast.success('Registration successful!');
-      navigate('/dashboard');
+      const result = await register(payload).unwrap();
+      setDone(result);
+      if (result.outcome === 'JOINED') {
+        toast.success(result.message);
+      }
     } catch (err) {
-      const errorMessage = err?.data?.message || 'Registration failed. Please try again.';
-      toast.error(errorMessage);
-      setErrors({ submit: errorMessage });
-    } finally {
-      setIsSubmitting(false);
+      const message = err?.data?.detail || err?.data?.message || 'Registration failed';
+      toast.error(message);
+      setErrors({ submit: message });
     }
   };
 
+  if (done) {
+    const joined = done.outcome === 'JOINED';
+    return (
+      <div className='flex min-h-screen items-center justify-center bg-bg px-4'>
+        <div className='card w-full max-w-md p-8 text-center'>
+          <span
+            className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full ${
+              joined ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'
+            }`}
+            aria-hidden='true'
+          >
+            {joined ? <FiCheckCircle className='h-6 w-6' /> : <FiClock className='h-6 w-6' />}
+          </span>
+          <h1 className='text-xl font-semibold text-fg'>
+            {joined ? 'You are in' : 'Request sent'}
+          </h1>
+          <p className='mt-2 text-sm text-fg-muted'>{done.message}</p>
+          {joined ? (
+            <button onClick={() => navigate('/login')} className='btn-primary mt-6 w-full'>
+              Go to sign in
+            </button>
+          ) : (
+            <Link to='/login' className='btn-secondary mt-6 w-full'>
+              Back to sign in
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const field = (name, label, type = 'text', placeholder) => (
+    <div>
+      <label htmlFor={name} className='label'>
+        {label}
+      </label>
+      <input
+        id={name}
+        name={name}
+        type={type}
+        value={form[name]}
+        onChange={change}
+        placeholder={placeholder}
+        className={`input ${errors[name] ? 'input-error' : ''}`}
+      />
+      {errors[name] && <p className='field-error'>{errors[name]}</p>}
+    </div>
+  );
+
   return (
-    <div className='min-h-screen bg-surface flex'>
-      {/* Left side with animation */}
-      <div className='hidden lg:flex flex-col justify-center items-center w-1/2 bg-gradient-to-br from-indigo-600 to-blue-600 p-12 text-white'>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className='max-w-md'
+    <div className='flex min-h-screen items-center justify-center bg-bg px-4 py-10'>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className='w-full max-w-lg'
+      >
+        <Link
+          to='/login'
+          className='mb-6 inline-flex items-center gap-2 text-sm text-fg-muted transition hover:text-fg'
         >
-          <h2 className='text-4xl font-bold mb-6'>Join Ikimina as a Member</h2>
-          <p className='text-xl mb-8 text-sidebar-fg'>
-            Start your journey towards better financial management and community support.
+          <FiArrowLeft className='h-4 w-4' aria-hidden='true' /> Back to sign in
+        </Link>
+
+        <div className='card p-6 sm:p-8'>
+          <h1 className='text-2xl font-semibold tracking-tight text-fg'>Join a savings group</h1>
+          <p className='mt-1.5 text-sm text-fg-muted'>
+            A group decides who belongs to it, so you will need an invite code or an
+            administrator&apos;s approval.
           </p>
 
-          <div className='space-y-6'>
-            <div className='flex items-start'>
-              <div className='bg-primary p-3 rounded-full mr-4'>
-                <FaUserShield className='h-6 w-6' />
-              </div>
-              <div>
-                <h3 className='font-semibold text-lg'>Secure & Private</h3>
-                <p className='text-sidebar-fg'>Your data is encrypted and protected.</p>
-              </div>
-            </div>
-
-            <div className='flex items-start'>
-              <div className='bg-primary p-3 rounded-full mr-4'>
-                <FaChartPie className='h-6 w-6' />
-              </div>
-              <div>
-                <h3 className='font-semibold text-lg'>Track Everything</h3>
-                <p className='text-sidebar-fg'>Monitor your financial growth in real-time.</p>
-              </div>
-            </div>
-
-            <div className='flex items-start'>
-              <div className='bg-primary p-3 rounded-full mr-4'>
-                <FaHandshake className='h-6 w-6' />
-              </div>
-              <div>
-                <h3 className='font-semibold text-lg'>Community Support</h3>
-                <p className='text-sidebar-fg'>Join a community that grows together.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className='mt-12'>
-            <img
-              src={registerAnimation}
-              alt='Financial community illustration'
-              className='w-full h-auto'
-            />
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Right side with registration form */}
-      <div className='w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 overflow-y-auto'>
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className='w-full max-w-md'
-        >
-          <div className='bg-surface rounded-xl shadow-2xl p-8'>
-            <div className='mb-8 text-center'>
-              <Link
-                to='/'
-                className='inline-flex items-center text-primary hover:text-primary mb-4'
+          {/* The two routes in */}
+          <div className='mt-6 grid grid-cols-2 gap-2' role='tablist'>
+            {[
+              { id: 'code', icon: FiKey, label: 'I have a code' },
+              { id: 'request', icon: FiUsers, label: 'Ask to join' },
+            ].map(({ id, icon: Icon, label }) => (
+              <button
+                key={id}
+                type='button'
+                role='tab'
+                aria-selected={mode === id}
+                onClick={() => {
+                  setMode(id);
+                  setErrors({});
+                }}
+                className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition ${
+                  mode === id
+                    ? 'border-primary bg-primary-subtle text-primary'
+                    : 'border-border bg-surface text-fg-muted hover:bg-surface-2 hover:text-fg'
+                }`}
               >
-                <FaArrowLeft className='mr-2' /> Back to Home
-              </Link>
-              <h1 className='text-3xl font-bold text-fg mb-2'>Create Member Account</h1>
-              <p className='text-fg-muted'>
-                Join your Ikimina savings group and manage your finances with ease
-              </p>
+                <Icon className='h-4 w-4' aria-hidden='true' />
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {errors.submit && (
+            <div
+              className='mt-5 rounded-lg border border-danger/40 bg-danger-subtle px-4 py-3 text-sm text-danger'
+              role='alert'
+            >
+              {errors.submit}
+            </div>
+          )}
+
+          <form onSubmit={submit} className='mt-5 space-y-4' noValidate>
+            {mode === 'code' ? (
+              <div>
+                <label htmlFor='joinCode' className='label'>
+                  Invite code
+                </label>
+                <input
+                  id='joinCode'
+                  name='joinCode'
+                  value={form.joinCode}
+                  onChange={change}
+                  placeholder='e.g. B356Q4TQUN'
+                  autoCapitalize='characters'
+                  className={`input tracking-widest ${errors.joinCode ? 'input-error' : ''}`}
+                />
+                {errors.joinCode ? (
+                  <p className='field-error'>{errors.joinCode}</p>
+                ) : (
+                  <p className='mt-1 text-xs text-fg-subtle'>
+                    Ask your group&apos;s administrator for this. You join straight away.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <label htmlFor='requestGroupId' className='label'>
+                  Group you want to join
+                </label>
+                <select
+                  id='requestGroupId'
+                  name='requestGroupId'
+                  value={form.requestGroupId}
+                  onChange={change}
+                  disabled={isLoadingGroups}
+                  className={`input ${errors.requestGroupId ? 'input-error' : ''}`}
+                >
+                  <option value=''>{isLoadingGroups ? 'Loading groups…' : 'Select a group'}</option>
+                  {groups.map(g => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.requestGroupId ? (
+                  <p className='field-error'>{errors.requestGroupId}</p>
+                ) : (
+                  <p className='mt-1 text-xs text-fg-subtle'>
+                    An administrator has to approve you before you can sign in.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+              {field('firstName', 'First name')}
+              {field('lastName', 'Last name')}
             </div>
 
-            <form onSubmit={handleSubmit} className='space-y-6'>
-              <div className='space-y-4'>
-                {/* Savings Group Selection */}
-                <div>
-                  <label
-                    htmlFor='savingsGroupId'
-                    className='block text-sm font-medium text-fg mb-1'
-                  >
-                    Savings Group
-                  </label>
-                  <div className='relative'>
-                    <div className='absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none'>
-                      <FaUsers className='h-5 w-5 text-fg-subtle' />
-                    </div>
-                    <select
-                      id='savingsGroupId'
-                      name='savingsGroupId'
-                      value={formData.savingsGroupId}
-                      onChange={handleChange}
-                      className={`block w-full pl-14 pr-10 py-2.5 border ${errors.savingsGroupId ? 'border-red-500' : 'border-border'} rounded-lg shadow-sm bg-surface focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none`}
-                      disabled={isLoadingGroups}
-                    >
-                      <option value=''>Select a savings group</option>
-                      {groups.map(group => (
-                        <option key={group.id} value={group.id}>
-                          {group.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {errors.savingsGroupId && (
-                    <p className='mt-1 text-sm text-red-600'>{errors.savingsGroupId}</p>
-                  )}
-                </div>
+            {field('email', 'Email address', 'email', 'you@example.com')}
+            {field('phoneNumber', 'Phone number', 'tel', '+250 7xx xxx xxx')}
 
-                {/* First Name and Last Name */}
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <div>
-                    <label htmlFor='firstName' className='block text-sm font-medium text-fg mb-1'>
-                      First Name
-                    </label>
-                    <div className='relative'>
-                      <div className='absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none'>
-                        <FaUser className='h-5 w-5 text-fg-subtle' />
-                      </div>
-                      <input
-                        id='firstName'
-                        name='firstName'
-                        type='text'
-                        value={formData.firstName}
-                        onChange={handleChange}
-                        className={`block w-full pl-14 pr-4 py-2.5 border ${
-                          errors.firstName ? 'border-red-500' : 'border-border'
-                        } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                        placeholder='John'
-                      />
-                    </div>
-                    {errors.firstName && (
-                      <p className='mt-1 text-sm text-red-600'>{errors.firstName}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label htmlFor='lastName' className='block text-sm font-medium text-fg mb-1'>
-                      Last Name
-                    </label>
-                    <div className='relative'>
-                      <div className='absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none'>
-                        <FaUser className='h-5 w-5 text-fg-subtle' />
-                      </div>
-                      <input
-                        id='lastName'
-                        name='lastName'
-                        type='text'
-                        value={formData.lastName}
-                        onChange={handleChange}
-                        className={`block w-full pl-14 pr-4 py-2.5 border ${
-                          errors.lastName ? 'border-red-500' : 'border-border'
-                        } rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                        placeholder='Doe'
-                      />
-                    </div>
-                    {errors.lastName && (
-                      <p className='mt-1 text-sm text-red-600'>{errors.lastName}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div>
-                  <label htmlFor='email' className='block text-sm font-medium text-fg mb-1'>
-                    Email Address
-                  </label>
-                  <div className='relative'>
-                    <div className='absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none'>
-                      <FaEnvelope className='h-5 w-5 text-fg-subtle' />
-                    </div>
-                    <input
-                      id='email'
-                      name='email'
-                      type='email'
-                      autoComplete='email'
-                      className={`pl-14 pr-4 py-3 block w-full rounded-lg border ${
-                        errors.email ? 'border-red-300' : 'border-border'
-                      } shadow-sm focus:ring-2 focus:ring-primary focus:border-primary`}
-                      placeholder='you@example.com'
-                      value={formData.email}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  {errors.email && <p className='mt-1 text-sm text-red-600'>{errors.email}</p>}
-                </div>
-
-                {/* Phone Number - Now full width */}
-                <div>
-                  <label htmlFor='phoneNumber' className='block text-sm font-medium text-fg mb-1'>
-                    Phone Number
-                  </label>
-                  <div className='relative'>
-                    <div className='absolute inset-y-0 left-0 pl-5 flex items-center'>
-                      <FaPhone className='h-5 w-5 text-sidebar-fg-muted' />
-                    </div>
-                    <input
-                      id='phoneNumber'
-                      name='phoneNumber'
-                      type='tel'
-                      value={formData.phoneNumber}
-                      onChange={handleChange}
-                      className={`pl-14 pr-4 py-3 block w-full rounded-lg border ${
-                        errors.phoneNumber ? 'border-red-300' : 'border-border'
-                      } shadow-sm focus:ring-2 focus:ring-primary focus:border-primary`}
-                      placeholder='+250 700 000 000'
-                    />
-                  </div>
-                  {errors.phoneNumber && (
-                    <p className='mt-1 text-sm text-red-600'>{errors.phoneNumber}</p>
-                  )}
-                </div>
-
-                {/* Password and Confirm Password */}
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <div>
-                    <label htmlFor='password' className='block text-sm font-medium text-fg mb-1'>
-                      Password
-                    </label>
-                    <div className='relative'>
-                      <div className='absolute inset-y-0 left-0 pl-5 flex items-center'>
-                        <FaLock className='h-5 w-5 text-sidebar-fg-muted' />
-                      </div>
-                      <input
-                        id='password'
-                        name='password'
-                        type='password'
-                        autoComplete='new-password'
-                        className={`pl-14 pr-4 py-3 block w-full rounded-lg border ${
-                          errors.password ? 'border-red-300' : 'border-border'
-                        } shadow-sm focus:ring-2 focus:ring-primary focus:border-primary`}
-                        placeholder='••••••••'
-                        value={formData.password}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    {errors.password && (
-                      <p className='mt-1 text-sm text-red-600'>{errors.password}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor='confirmPassword'
-                      className='block text-sm font-medium text-fg mb-1'
-                    >
-                      Confirm Password
-                    </label>
-                    <div className='relative'>
-                      <div className='absolute inset-y-0 left-0 pl-5 flex items-center'>
-                        <FaLock className='h-5 w-5 text-sidebar-fg-muted' />
-                      </div>
-                      <input
-                        id='confirmPassword'
-                        name='confirmPassword'
-                        type='password'
-                        autoComplete='new-password'
-                        className={`pl-14 pr-4 py-3 block w-full rounded-lg border ${
-                          errors.confirmPassword ? 'border-red-300' : 'border-border'
-                        } shadow-sm focus:ring-2 focus:ring-primary focus:border-primary`}
-                        placeholder='••••••••'
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    {errors.confirmPassword && (
-                      <p className='mt-1 text-sm text-red-600'>{errors.confirmPassword}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className='pt-2'>
+            <div>
+              <label htmlFor='password' className='label'>
+                Password
+              </label>
+              <div className='relative'>
+                <input
+                  id='password'
+                  name='password'
+                  type={showPassword ? 'text' : 'password'}
+                  value={form.password}
+                  onChange={change}
+                  className={`input pr-10 ${errors.password ? 'input-error' : ''}`}
+                />
                 <button
-                  type='submit'
-                  disabled={isLoading || isSubmitting}
-                  className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200 ${
-                    isLoading || isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
-                  }`}
+                  type='button'
+                  onClick={() => setShowPassword(v => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className='absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-fg-subtle transition hover:text-fg'
                 >
-                  {isLoading || isSubmitting ? (
-                    <>
-                      <svg
-                        className='animate-spin -ml-1 mr-3 h-5 w-5 text-white'
-                        xmlns='http://www.w3.org/2000/svg'
-                        fill='none'
-                        viewBox='0 0 24 24'
-                      >
-                        <circle
-                          className='opacity-25'
-                          cx='12'
-                          cy='12'
-                          r='10'
-                          stroke='currentColor'
-                          strokeWidth='4'
-                        ></circle>
-                        <path
-                          className='opacity-75'
-                          fill='currentColor'
-                          d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-                        ></path>
-                      </svg>
-                      Creating Account...
-                    </>
-                  ) : (
-                    'Create Account'
-                  )}
+                  {showPassword ? <FiEyeOff className='h-4 w-4' /> : <FiEye className='h-4 w-4' />}
                 </button>
               </div>
+              {errors.password && <p className='field-error'>{errors.password}</p>}
+            </div>
 
-              <div className='text-center'>
-                <p className='text-sm text-fg-muted'>
-                  Already have an account?{' '}
-                  <Link to='/login' className='font-medium text-primary hover:text-primary-hover'>
-                    Sign in
-                  </Link>
-                </p>
-              </div>
-            </form>
-          </div>
-        </motion.div>
-      </div>
+            {field('confirmPassword', 'Confirm password', showPassword ? 'text' : 'password')}
+
+            <button type='submit' disabled={isLoading} className='btn-primary w-full py-2.5'>
+              {isLoading ? 'Submitting…' : mode === 'code' ? 'Join group' : 'Send request'}
+            </button>
+
+            <p className='text-center text-sm text-fg-muted'>
+              Already have an account?{' '}
+              <Link to='/login' className='font-medium text-primary hover:underline'>
+                Sign in
+              </Link>
+            </p>
+          </form>
+        </div>
+      </motion.div>
     </div>
   );
 };
 
+export { RegisterForm };
 export default RegisterForm;

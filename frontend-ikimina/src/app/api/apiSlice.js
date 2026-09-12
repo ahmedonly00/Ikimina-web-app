@@ -66,6 +66,8 @@ export const apiSlice = createApi({
     'Payments',
     'Plans',
     'AuditLogs',
+    'JoinCode',
+    'JoinRequests',
   ],
   endpoints: builder => ({
     // ---- Authentication ----
@@ -216,15 +218,57 @@ export const apiSlice = createApi({
       providesTags: ['Users'],
     }),
 
-    // Creating a member goes through register, which is the only creation
-    // path the backend exposes.
+    /*
+     * Adding a member is an administrative act, so it goes to the group's own
+     * route rather than public registration. The group comes from the path and
+     * is authorised against the caller, so nothing in the body can redirect the
+     * new account into a different group.
+     */
     createMember: builder.mutation({
-      query: member => ({
-        url: '/auth/register',
+      query: ({ groupId, ...member }) => ({
+        url: `/savings-groups/${groupId}/members`,
         method: 'POST',
         body: member,
       }),
       invalidatesTags: ['Users'],
+    }),
+
+    // ---- Joining a group ----
+    getJoinCode: builder.query({
+      query: groupId => `/savings-groups/${groupId}/join-code`,
+      providesTags: ['JoinCode'],
+    }),
+
+    rotateJoinCode: builder.mutation({
+      query: groupId => ({ url: `/savings-groups/${groupId}/join-code`, method: 'POST' }),
+      invalidatesTags: ['JoinCode'],
+    }),
+
+    clearJoinCode: builder.mutation({
+      query: groupId => ({ url: `/savings-groups/${groupId}/join-code`, method: 'DELETE' }),
+      invalidatesTags: ['JoinCode'],
+    }),
+
+    getJoinRequests: builder.query({
+      query: groupId => `/savings-groups/${groupId}/join-requests`,
+      providesTags: ['JoinRequests'],
+    }),
+
+    approveJoinRequest: builder.mutation({
+      query: ({ groupId, requestId }) => ({
+        url: `/savings-groups/${groupId}/join-requests/${requestId}/approve`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['JoinRequests', 'Users'],
+    }),
+
+    rejectJoinRequest: builder.mutation({
+      query: ({ groupId, requestId, note }) => ({
+        url: `/savings-groups/${groupId}/join-requests/${requestId}/reject`,
+        method: 'POST',
+        body: { note: note || null },
+      }),
+      invalidatesTags: ['JoinRequests'],
     }),
 
     setMemberActive: builder.mutation({
@@ -279,6 +323,12 @@ export const {
   useGetGroupMembersQuery,
   useCreateMemberMutation,
   useSetMemberActiveMutation,
+  useGetJoinCodeQuery,
+  useRotateJoinCodeMutation,
+  useClearJoinCodeMutation,
+  useGetJoinRequestsQuery,
+  useApproveJoinRequestMutation,
+  useRejectJoinRequestMutation,
   useGenerateReportMutation,
   useGetUserReportsQuery,
   useGetGroupSummaryQuery,

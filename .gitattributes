@@ -1,0 +1,5 @@
+# Scoped to the new backend so the legacy tree is not renormalised.
+# Shell scripts and the Maven wrapper must keep LF or they break on Linux CI and in containers.
+backend/** text=auto eol=lf
+backend/**/*.cmd text eol=crlf
+*.jar binary

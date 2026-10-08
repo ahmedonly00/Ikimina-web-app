@@ -6,7 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-# Cancel superseded runs on the same branch rather than paying for both.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -15,13 +14,122 @@ permissions:
   contents: read
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # New backend (backend/) - spec 21.3
+  # ---------------------------------------------------------------------------
   backend:
-    name: Backend (build, test, migrations)
+    name: Backend (build, unit + integration tests, ArchUnit, migration safety)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      # verify = enforcer (no Lombok, no H2) + unit tests (incl. ArchitectureTest and
+      # MigrationSafetyTest) + Testcontainers integration tests on PostgreSQL 16.
+      # Docker is available on ubuntu-latest, which Testcontainers needs.
+      - name: Build and test
+        working-directory: backend
+        run: ./mvnw -B verify
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            backend/target/surefire-reports/
+            backend/target/failsafe-reports/
+            backend/target/site/jacoco/
+          if-no-files-found: ignore
+
+      # The API contract, exported by ApplicationBootIT. From Phase 1 a diff against
+      # the base branch's copy flags breaking changes.
+      - name: Upload OpenAPI document
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi
+          path: backend/target/openapi/openapi.json
+          if-no-files-found: error
+
+  migrations-append-only:
+    name: Migrations are append-only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Existing migrations unchanged
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.base_ref }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            base="origin/$PR_BASE"
+          elif [ -n "$PUSH_BEFORE" ] && [ "$PUSH_BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            base="$PUSH_BEFORE"
+          else
+            echo "No base revision to compare against (first push); nothing to check."
+            exit 0
+          fi
+          sh backend/scripts/check-migrations-append-only.sh "$base"
+
+  secret-scan:
+    name: Secret scan (full history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Run from the official image rather than gitleaks-action, which needs a licence
+      # key for organisation-owned repositories. Reviewed exceptions: .gitleaksignore.
+      - name: gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.30.1 \
+            git /repo --redact --no-banner --gitleaks-ignore-path /repo/.gitleaksignore
+
+  dependency-scan:
+    name: Dependency scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan dependencies for known vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scanners: vuln,secret
+          severity: CRITICAL,HIGH
+          # Report-only while the legacy tree is still here; flip to '1' once its backlog is cleared.
+          exit-code: '0'
+          format: sarif
+          output: trivy-results.sarif
+
+      - name: Upload scan results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+  # ---------------------------------------------------------------------------
+  # Legacy application (ikimina/, frontend-ikimina/) - frozen, see
+  # docs/adr/0001-legacy-code.md. Kept green until it is retired.
+  # ---------------------------------------------------------------------------
+  legacy-backend:
+    name: Legacy backend (build, test, migrations)
     runs-on: ubuntu-latest
     services:
-      # The migrations are PostgreSQL-specific (plpgsql triggers, DO blocks,
-      # information_schema probes), so they are verified against real
-      # PostgreSQL rather than an in-memory substitute.
       postgres:
         image: postgres:18-alpine
         env:
@@ -35,7 +143,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
-
     steps:
       - uses: actions/checkout@v4
 
@@ -43,7 +150,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '21'
-          distribution: 'temurin'
+          distribution: temurin
           cache: maven
 
       - name: Build and test
@@ -52,10 +159,6 @@ jobs:
 
       - name: Apply migrations to a real PostgreSQL
         working-directory: ikimina
-        env:
-          IKIMINA_DB_NAME: ikimina_ci
-          IKIMINA_DB_PASSWORD: ci-postgres-password
-          IKIMINA_JWT_SECRET: ci-only-signing-key-32-bytes-minimum-length-value
         run: |
           ./mvnw -B -q flyway:migrate \
             -Dflyway.url=jdbc:postgresql://localhost:5432/ikimina_ci \
@@ -75,8 +178,6 @@ jobs:
             -Dflyway.baselineOnMigrate=true
 
       - name: Verify entities match the migrated schema
-        # ddl-auto=validate fails the boot if any mapping disagrees with the
-        # schema Flyway produced. This is the check that keeps the two in step.
         working-directory: ikimina
         env:
           IKIMINA_DB_NAME: ikimina_ci
@@ -92,12 +193,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: jacoco-report
+          name: legacy-jacoco-report
           path: ikimina/target/site/jacoco/
           if-no-files-found: ignore
 
-  frontend:
-    name: Frontend (lint, build)
+  legacy-frontend:
+    name: Legacy frontend (lint, build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -121,42 +222,10 @@ jobs:
         working-directory: frontend-ikimina
         run: npm run build
 
-  dependency-scan:
-    name: Dependency and secret scan
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # gitleaks needs history to scan past commits, not just the tip.
-          fetch-depth: 0
-
-      - name: Scan dependencies for known vulnerabilities
-        # The tags on this action are v-prefixed; a bare "0.28.0" does not
-        # exist, so the job failed to resolve the action and never scanned.
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: fs
-          scanners: vuln,secret
-          severity: CRITICAL,HIGH
-          # Report rather than block at first, so the backlog is visible before
-          # it starts failing every PR. Flip to '1' once the queue is clear.
-          exit-code: '0'
-          format: sarif
-          output: trivy-results.sarif
-
-      - name: Upload scan results
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-results.sarif
-
   docker:
     name: Docker images build
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: [backend, legacy-backend, legacy-frontend]
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -164,15 +233,23 @@ jobs:
       - name: Build backend image
         uses: docker/build-push-action@v6
         with:
+          context: ./backend
+          push: false
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Build legacy backend image
+        uses: docker/build-push-action@v6
+        with:
           context: ./ikimina
           push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=legacy-backend
+          cache-to: type=gha,mode=max,scope=legacy-backend
 
-      - name: Build frontend image
+      - name: Build legacy frontend image
         uses: docker/build-push-action@v6
         with:
           context: ./frontend-ikimina
           push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=legacy-frontend
+          cache-to: type=gha,mode=max,scope=legacy-frontend

@@ -1,0 +1,12 @@
+# Local development. Activate with SPRING_PROFILES_ACTIVE=dev. Never for shared environments.
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+logging:
+  level:
+    rw.ikimina: DEBUG
+    org.springframework.security: DEBUG

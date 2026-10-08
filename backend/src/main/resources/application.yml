@@ -1,0 +1,90 @@
+# Ikimina backend configuration.
+#
+# Everything environment-specific or secret comes from environment variables
+# (Hard Rule H6); see backend/.env.example. Nothing secret belongs in this file.
+#
+# Two database roles (spec 5.3):
+#   ikimina_owner - owns the schema and runs Flyway migrations
+#   ikimina_app   - what the running application connects as; owns nothing and
+#                   is not a superuser, so row-level security applies to it.
+
+spring:
+  application:
+    name: ikimina
+
+  datasource:
+    url: jdbc:postgresql://${IKIMINA_DB_HOST:localhost}:${IKIMINA_DB_PORT:5432}/${IKIMINA_DB_NAME:ikimina}?currentSchema=ikimina
+    username: ${IKIMINA_DB_APP_USERNAME:ikimina_app}
+    password: ${IKIMINA_DB_APP_PASSWORD}
+    hikari:
+      maximum-pool-size: ${IKIMINA_DB_POOL_SIZE:10}
+      connection-timeout: 10000
+
+  flyway:
+    enabled: true
+    user: ${IKIMINA_DB_OWNER_USERNAME:ikimina_owner}
+    password: ${IKIMINA_DB_OWNER_PASSWORD}
+    schemas: ikimina
+    default-schema: ikimina
+    create-schemas: false
+    locations: classpath:db/migration
+    validate-migration-naming: true
+    clean-disabled: true
+    baseline-on-migrate: false
+    placeholders:
+      # Migrations grant table privileges to the runtime role explicitly, per table.
+      appRole: ${IKIMINA_DB_APP_USERNAME:ikimina_app}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: ikimina
+        jdbc:
+          time_zone: UTC
+
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+
+  jackson:
+    deserialization:
+      # Spec 16.4: reject unknown JSON fields (also blocks mass-assignment).
+      fail-on-unknown-properties: true
+
+server:
+  port: ${IKIMINA_SERVER_PORT:8082}
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+    include-exception: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: false
+
+springdoc:
+  api-docs:
+    enabled: ${IKIMINA_API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${IKIMINA_API_DOCS_ENABLED:false}
+
+logging:
+  level:
+    root: INFO
+    rw.ikimina: ${IKIMINA_LOG_LEVEL_APP:INFO}

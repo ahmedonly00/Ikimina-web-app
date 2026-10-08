@@ -1,0 +1,2 @@
+-- expect: DISABLE TRIGGER
+ALTER TABLE ledger_lines DISABLE TRIGGER ALL;

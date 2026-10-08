@@ -48,3 +48,22 @@ updates:
     directory: /frontend-ikimina
     schedule:
       interval: monthly
+  # New backend (backend/).
+  - package-ecosystem: maven
+    directory: /backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      spring:
+        patterns:
+          - "org.springframework*"
+      test:
+        patterns:
+          - "org.junit*"
+          - "org.testcontainers*"
+          - "com.tngtech.archunit*"
+  - package-ecosystem: docker
+    directory: /backend
+    schedule:
+      interval: monthly

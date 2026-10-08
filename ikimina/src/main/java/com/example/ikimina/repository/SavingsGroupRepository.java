@@ -17,6 +17,16 @@ public interface SavingsGroupRepository extends JpaRepository<SavingsGroup, Long
 
     List<SavingsGroup> findByIsActiveTrue();
 
+    /**
+     * Resolve a group from an invite code.
+     *
+     * The code is the only input: nothing the caller says about which group
+     * they want is consulted. Groups with no code set are excluded explicitly
+     * so a blank or null submitted code can never match one.
+     */
+    @Query("SELECT g FROM SavingsGroup g WHERE g.joinCode IS NOT NULL AND g.joinCode = :code")
+    Optional<SavingsGroup> findByJoinCode(@Param("code") String code);
+
     /** True when {@code adminId} administers a group that {@code memberId} belongs to. */
     @Query("SELECT COUNT(g) > 0 FROM SavingsGroup g JOIN g.members m "
             + "WHERE g.admin.id = :adminId AND m.id = :memberId")

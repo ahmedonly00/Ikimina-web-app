@@ -1,0 +1,2 @@
+-- expect: TRUNCATE
+TRUNCATE ONLY ledger_lines RESTART IDENTITY;

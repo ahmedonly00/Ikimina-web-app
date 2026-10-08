@@ -1,0 +1,14 @@
+# gitleaks findings reviewed and accepted. One fingerprint per line: <commit>:<file>:<rule>:<line>.
+# Add an entry only after checking the value is not a real credential, and record why.
+# A real secret is never "ignored" here: rotate it, then remove it from the code.
+
+# Empty placeholder "IKIMINA_JWT_SECRET=" in an example env file; no value.
+6a6a67862351b6a2bb0b637272dbb59b742e80bc:ikimina/.env.example:generic-api-key:16
+
+# Truncated example JWT ("eyJhbGci...") in API documentation; not a usable token.
+45f92b2423d0162baf74c2b427ea491e8ff9fa5b:FRONTEND_BACKEND_INTEGRATION.md:generic-api-key:99
+
+# Example "adminTemporaryPassword" in a sample API response (admin@example.com, sample phone).
+# Illustrative, but PENDING OWNER CONFIRMATION that it was never a real account's password
+# (see Phase 0 report). If it was, rotate that account's password.
+6a6a67862351b6a2bb0b637272dbb59b742e80bc:SUPER_ADMIN_SETUP.md:generic-api-key:68

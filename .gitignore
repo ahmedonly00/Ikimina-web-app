@@ -1,5 +1,6 @@
 # Build output
 ikimina/target/
+backend/target/
 ikimina/build/
 ikimina/bin/
 frontend-ikimina/dist/

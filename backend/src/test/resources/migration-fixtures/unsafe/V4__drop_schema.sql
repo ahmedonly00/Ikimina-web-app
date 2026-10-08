@@ -1,0 +1,2 @@
+-- expect: DROP SCHEMA
+DROP SCHEMA ikimina CASCADE;

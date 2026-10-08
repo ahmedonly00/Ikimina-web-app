@@ -1,12 +1,15 @@
 package com.example.ikimina.controller;
 
 import com.example.ikimina.dto.LoginRequest;
+import com.example.ikimina.dto.RegistrationRequest;
 import com.example.ikimina.dto.UserDTO;
 import com.example.ikimina.exception.BusinessRuleException;
+import com.example.ikimina.model.SavingsGroup;
 import com.example.ikimina.model.User;
 import com.example.ikimina.security.CustomUserDetails;
 import com.example.ikimina.security.JwtTokenProvider;
 import com.example.ikimina.service.CustomUserDetailsService;
+import com.example.ikimina.service.GroupMembershipService;
 import com.example.ikimina.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,13 +42,54 @@ public class AuthController {
     @Autowired
     private CustomUserDetailsService userDetailsService;
 
+    @Autowired
+    private GroupMembershipService groupMembershipService;
+
+    /**
+     * Public registration.
+     *
+     * This endpoint used to take a {@code savingsGroupId} and put the new
+     * account straight into that group, so anyone who guessed a group id
+     * joined a group whose money they had nothing to do with.
+     *
+     * A registrant can no longer name the group they end up in. Either they
+     * present an invite code - which resolves to exactly one group and is the
+     * only thing consulted - or they ask to join and an administrator decides.
+     * A request on its own grants nothing: the account is created belonging to
+     * no group, and cannot sign in until somebody approves it.
+     */
     @PostMapping("/register")
-    public ResponseEntity<UserDTO> registerUser(@Valid @RequestBody UserDTO userDTO) {
-        if (userDTO.getSavingsGroupId() != null
-                && userService.existsByEmailAndSavingsGroupId(userDTO.getEmail(), userDTO.getSavingsGroupId())) {
-            throw new BusinessRuleException("A user with this email already exists in the selected savings group");
+    public ResponseEntity<Map<String, Object>> registerUser(
+            @Valid @RequestBody RegistrationRequest request) {
+
+        boolean hasCode = request.getJoinCode() != null && !request.getJoinCode().isBlank();
+        boolean hasRequest = request.getRequestGroupId() != null;
+
+        if (hasCode == hasRequest) {
+            throw new BusinessRuleException(
+                    "Provide either an invite code or the group you are asking to join");
         }
-        return ResponseEntity.ok(userService.createUser(userDTO));
+
+        Map<String, Object> body = new LinkedHashMap<>();
+
+        if (hasCode) {
+            SavingsGroup group = groupMembershipService.groupForJoinCode(request.getJoinCode());
+            User user = userService.registerMember(request, group.getId());
+            body.put("outcome", "JOINED");
+            body.put("userId", user.getId());
+            body.put("savingsGroupId", group.getId());
+            body.put("savingsGroupName", group.getName());
+            body.put("message", "You have joined " + group.getName() + ". You can sign in now.");
+        } else {
+            User user = userService.registerMember(request, (Long) null);
+            groupMembershipService.requestToJoin(user.getId(), request.getRequestGroupId());
+            body.put("outcome", "PENDING_APPROVAL");
+            body.put("userId", user.getId());
+            body.put("message",
+                    "Your request has been sent. You can sign in once an administrator approves it.");
+        }
+
+        return ResponseEntity.ok(body);
     }
 
     @PostMapping("/login")
@@ -65,6 +109,20 @@ public class AuthController {
         if (user.isSuperAdmin()) {
             userDetails = CustomUserDetails.create(user, loginRequest.getSavingsGroupId());
         } else {
+            /*
+             * Someone whose join request has not been approved has a valid
+             * password but belongs to no group. Without this they would be told
+             * "Savings group is required" and then find every group rejects
+             * them, with nothing explaining why.
+             *
+             * Asked as a query rather than by reading user.getMemberGroups():
+             * open-in-view is off, so the collection cannot initialise on a
+             * detached entity and touching it throws.
+             */
+            if (userService.findPrimaryGroupId(user.getId()) == null) {
+                throw new BusinessRuleException(
+                        "Your request to join a group has not been approved yet");
+            }
             if (loginRequest.getSavingsGroupId() == null) {
                 throw new BusinessRuleException("Savings group is required");
             }

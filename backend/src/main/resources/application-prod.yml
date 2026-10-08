@@ -1,0 +1,25 @@
+# Production tightening. Activate with SPRING_PROFILES_ACTIVE=prod.
+# Each setting here is deliberate; relax one only with the reason recorded in the change.
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+server:
+  # Behind a reverse proxy: record the client's scheme and address, not the proxy's.
+  forward-headers-strategy: framework
+  shutdown: graceful
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  datasource:
+    hikari:
+      leak-detection-threshold: 30000
+
+logging:
+  level:
+    root: WARN
+    rw.ikimina: INFO

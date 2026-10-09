@@ -67,3 +67,15 @@ updates:
     directory: /backend
     schedule:
       interval: monthly
+
+  # New frontend (frontend/).
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      react:
+        patterns: ["react", "react-dom", "@types/react*", "react-router"]
+      tooling:
+        patterns: ["vite", "@vitejs/*", "vitest", "eslint*", "@eslint/*", "typescript*", "@tailwindcss/*", "tailwindcss"]

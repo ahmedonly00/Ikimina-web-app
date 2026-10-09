@@ -1,0 +1,223 @@
+{
+  "app": {
+    "name": "Ikimina",
+    "tagline": "Your savings group, clear and fair"
+  },
+  "nav": {
+    "myGroups": "My groups",
+    "profile": "My profile",
+    "signOut": "Sign out",
+    "language": "Language",
+    "skipToContent": "Skip to content"
+  },
+  "lang": {
+    "en": "English",
+    "rw": "Kinyarwanda"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "loading": "Loading…",
+    "retry": "Try again",
+    "close": "Close",
+    "optional": "optional",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "validation": {
+    "required": "This is required.",
+    "phone": "Enter a Rwandan mobile number, for example 0788 123 456.",
+    "passwordLength": "Use at least 8 characters.",
+    "otp": "Enter the 6 digits from the SMS.",
+    "amount": "Enter an amount in RWF, for example 5000.",
+    "days": "Enter a number of days from 0 to 365.",
+    "terms": "Please accept the terms to continue."
+  },
+  "errors": {
+    "network": "No connection. Check your internet and try again.",
+    "generic": "Something went wrong. Please try again.",
+    "reference": "Reference: {{requestId}}"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in",
+      "phone": "Phone number",
+      "password": "Password",
+      "submit": "Sign in",
+      "forgot": "Forgot your password?",
+      "noAccount": "New to Ikimina?",
+      "register": "Create an account"
+    },
+    "register": {
+      "title": "Create your account",
+      "fullName": "Full name",
+      "phone": "Phone number",
+      "password": "Password",
+      "passwordHint": "At least 8 characters. Avoid common passwords and your phone number.",
+      "language": "Language",
+      "acceptTerms": "I accept the terms and the privacy policy",
+      "termsDraft": "The terms and privacy policy are still being prepared.",
+      "submit": "Send me a code",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "verify": {
+      "title": "Enter your code",
+      "sentTo": "If {{phone}} can be used, we have sent it a 6-digit code by SMS.",
+      "code": "Code",
+      "submit": "Verify",
+      "startOver": "Use a different number"
+    },
+    "forgot": {
+      "title": "Reset your password",
+      "intro": "Enter your phone number. If it has an account, we will send it a code.",
+      "submit": "Send code"
+    },
+    "reset": {
+      "title": "Choose a new password",
+      "code": "Code from the SMS",
+      "newPassword": "New password",
+      "submit": "Save new password",
+      "done": "Your password was changed. Sign in with the new one."
+    },
+    "reauth": {
+      "title": "Confirm your password",
+      "intro": "For your security, enter your password again to continue.",
+      "password": "Password",
+      "submit": "Confirm"
+    }
+  },
+  "roles": {
+    "PRESIDENT": "President",
+    "TREASURER": "Treasurer",
+    "SECRETARY": "Secretary",
+    "AUDITOR": "Auditor",
+    "MEMBER": "Member"
+  },
+  "memberStatus": {
+    "INVITED": "Invited",
+    "ACTIVE": "Active",
+    "SUSPENDED": "Suspended",
+    "LEFT": "Left",
+    "REMOVED": "Removed"
+  },
+  "groups": {
+    "mine": {
+      "title": "My groups",
+      "empty": "You are not in a group yet. Start one, or ask a group officer to invite your phone number.",
+      "create": "Start a new group",
+      "memberNumber": "Member no. {{number}}"
+    },
+    "create": {
+      "title": "Start a group",
+      "hint": "You will be the group's President. You can invite members next.",
+      "name": "Group name",
+      "district": "District",
+      "sector": "Sector",
+      "submit": "Create group"
+    },
+    "nav": {
+      "overview": "Overview",
+      "members": "Members",
+      "invite": "Invite",
+      "rules": "Rules",
+      "offices": "Offices"
+    },
+    "home": {
+      "yourRole": "Your role",
+      "activeMembers": "Active members",
+      "memberNumber": "Your member number",
+      "location": "Location",
+      "nextSteps": "Getting started",
+      "stepInvite": "Invite members",
+      "stepRules": "Review the group rules",
+      "stepOffices": "Make sure the Treasurer and Secretary are set"
+    }
+  },
+  "members": {
+    "title": "Members",
+    "count": "{{count}} people",
+    "number": "No.",
+    "name": "Name",
+    "phone": "Phone",
+    "role": "Role",
+    "status": "Status",
+    "manage": "Manage",
+    "changeRole": "Change role",
+    "officeNote": "Offices change hands only by transfer, so a group always keeps its officers.",
+    "suspend": "Suspend",
+    "reactivate": "Reactivate",
+    "remove": "Remove from group",
+    "removeReason": "Reason for removal",
+    "removeConfirm": "Remove member",
+    "updated": "Member updated.",
+    "previous": "Previous",
+    "next": "Next",
+    "you": "you"
+  },
+  "invite": {
+    "title": "Invite someone",
+    "intro": "We send an SMS with a link. Only the invited phone number can use it, and it expires after 7 days.",
+    "phone": "Phone number",
+    "role": "Join as",
+    "submit": "Send invitation",
+    "sent": "Invitation sent to {{phone}}.",
+    "pendingTitle": "Waiting for an answer",
+    "none": "No open invitations.",
+    "expires": "Expires {{date}}",
+    "revoke": "Cancel invitation"
+  },
+  "accept": {
+    "title": "Join a group",
+    "intro": "You were invited to join a savings group. Sign in with the phone number that received the SMS, then join.",
+    "submit": "Join the group",
+    "incomplete": "This link is incomplete. Ask the group for a new invitation."
+  },
+  "settings": {
+    "title": "Group rules",
+    "readOnly": "Only the President, Treasurer and Secretary can change the rules.",
+    "defaultLocale": "Group language for messages",
+    "interestRecognition": "Loan interest counts as income",
+    "WHEN_PAID": "when it is paid",
+    "WHEN_DUE": "when it falls due",
+    "withdrawalsAllowed": "Members may withdraw savings",
+    "withdrawalNoticeDays": "Notice before a withdrawal or exit (days)",
+    "exitFee": "Fee when a member leaves (RWF)",
+    "moneyRules": "Money rules",
+    "moneyRulesNote": "Changes to money rules need a second officer to confirm them.",
+    "save": "Save rules",
+    "saved": "Rules saved.",
+    "proposed": "Your change is waiting for another officer to confirm it.",
+    "pendingTitle": "A change is waiting for confirmation",
+    "pendingBy": "Proposed {{date}}",
+    "confirm": "Confirm change",
+    "reject": "Reject",
+    "rejectReason": "Why are you rejecting it?",
+    "current": "Now",
+    "proposedValue": "Proposed"
+  },
+  "offices": {
+    "title": "Transfer of office",
+    "intro": "Hand your office to another member. Nothing changes until they accept.",
+    "role": "Office",
+    "to": "New holder",
+    "submit": "Offer the office",
+    "offered": "Offer sent. It takes effect when they accept.",
+    "pendingTitle": "Pending transfers",
+    "none": "No pending transfers.",
+    "line": "{{role}}: member {{from}} → member {{to}}",
+    "accept": "Accept",
+    "decline": "Decline",
+    "cancel": "Withdraw offer",
+    "notHolder": "Only an office holder can offer their office."
+  },
+  "profile": {
+    "title": "My profile",
+    "fullName": "Full name",
+    "phone": "Phone number",
+    "language": "Language",
+    "save": "Save",
+    "saved": "Profile saved."
+  }
+}

@@ -43,6 +43,19 @@ test('register, verify, start a group, sign out and back in', async ({ page }) =
   await page.getByRole('link', { name: 'Rules' }).click();
   await expect(page.getByLabel('Fee when a member leaves (RWF)')).toHaveValue('0');
 
+  // Phase 2: the President sets up a savings fund; their own savings start at zero.
+  await page.getByRole('link', { name: 'Funds' }).click();
+  await page.getByRole('button', { name: 'New fund' }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Monthly savings');
+  await page.getByLabel('Starts on').fill(new Date().toISOString().slice(0, 10));
+  await page.getByLabel('Contribution amount (RWF)').fill('5000');
+  await page.getByRole('button', { name: 'Create fund' }).click();
+  await expect(page.getByRole('heading', { name: 'Monthly savings' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Savings', exact: true }).click();
+  await expect(page.getByText('Total savings')).toBeVisible();
+  await expect(page.getByText('Monthly savings')).toBeVisible();
+
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 

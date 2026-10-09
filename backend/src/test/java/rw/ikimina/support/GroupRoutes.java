@@ -10,7 +10,7 @@ import org.springframework.http.HttpMethod;
  * when the application has a group route that is missing here, so a new endpoint cannot
  * skip the tenant-isolation and role-matrix tests (spec 5.6).
  *
- * <p>Placeholders: {groupId}, {memberId}, {invitationId}, {transferId}, {changeId}.
+ * <p>Placeholders: {groupId}, {memberId}, {invitationId}, {transferId}, {changeId}, {bucketId}, {journalId}, {requestId}.
  *
  * @param permission the matrix permission(s) the spec implies for the route; empty when access
  *                   is decided by membership plus an object rule (own record, office holder, invitee)
@@ -46,7 +46,34 @@ public record GroupRoutes(HttpMethod method, String template, List<String> permi
             route(HttpMethod.GET, "/api/v1/groups/{groupId}/offices/transfers", List.of(), null),
             route(HttpMethod.POST, "/api/v1/groups/{groupId}/offices/transfers/{transferId}/accept", List.of(), null),
             route(HttpMethod.POST, "/api/v1/groups/{groupId}/offices/transfers/{transferId}/decline", List.of(), null),
-            route(HttpMethod.POST, "/api/v1/groups/{groupId}/offices/transfers/{transferId}/cancel", List.of(), null));
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/offices/transfers/{transferId}/cancel", List.of(), null),
+
+            // Phase 2: savings
+            route(HttpMethod.GET, "/api/v1/groups/{groupId}/buckets", List.of(), null),
+            route(HttpMethod.GET, "/api/v1/groups/{groupId}/buckets/{bucketId}", List.of(), null),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/buckets", List.of("SETTINGS_EDIT"),
+                    Map.of("name", "Route probe", "type", "SAVINGS", "cycleType", "ROLLING", "startDate", "2026-01-01",
+                            "terms", Map.of("mandatory", false, "minimumContribution", "0", "contributionFrequency", "ADHOC",
+                                    "withdrawable", false))),
+            route(HttpMethod.PATCH, "/api/v1/groups/{groupId}/buckets/{bucketId}", List.of("SETTINGS_EDIT"),
+                    Map.of("version", 999_999, "description", "probe")),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/buckets/{bucketId}/changes/{changeId}/confirm", List.of("SETTINGS_EDIT"), null),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/buckets/{bucketId}/changes/{changeId}/reject", List.of("SETTINGS_EDIT"),
+                    Map.of("reason", "not agreed")),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/contributions", List.of("CONTRIBUTION_RECORD"),
+                    Map.of("memberId", "{memberId}", "bucketId", "{bucketId}", "amount", "1000", "method", "CASH")),
+            route(HttpMethod.GET, "/api/v1/groups/{groupId}/members/{memberId}/balances", List.of(), null),
+            route(HttpMethod.GET, "/api/v1/groups/{groupId}/members/{memberId}/transactions", List.of(), null),
+            route(HttpMethod.GET, "/api/v1/groups/{groupId}/members/{memberId}/statement", List.of(), null),
+            route(HttpMethod.GET, "/api/v1/groups/{groupId}/obligations", List.of(), null),
+
+            // Phase 2: two-step reversals
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/journals/{journalId}/reverse", List.of("CONTRIBUTION_RECORD"),
+                    Map.of("reason", "entered twice")),
+            route(HttpMethod.GET, "/api/v1/groups/{groupId}/reversals", List.of("CONTRIBUTION_RECORD", "LOAN_APPROVE"), null),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/reversals/{requestId}/approve", List.of("LOAN_APPROVE"), null),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/reversals/{requestId}/reject", List.of("LOAN_APPROVE"),
+                    Map.of("reason", "not a mistake")));
 
     private static GroupRoutes route(HttpMethod method, String template, List<String> permission, Object body) {
         return new GroupRoutes(method, template, permission, body);

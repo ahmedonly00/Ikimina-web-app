@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { get, patch } from '../../api/client';
-import { canManageMembers, isOffice, type GroupRole, type MemberView, type Page } from '../../api/types';
+import { canManageMembers, canSeeEveryonesSavings, isOffice, type GroupRole, type MemberView, type Page } from '../../api/types';
 import { useSession } from '../../auth/session';
 import { Alert, Badge, Button, ErrorMessage, Loading, SelectField, TextField } from '../../components/ui';
 import { displayPhone } from '../../lib/phone';
@@ -48,6 +49,11 @@ export function MembersPage() {
               {member.status !== 'ACTIVE' && <Badge tone="accent">{t(`memberStatus.${member.status}`)}</Badge>}
             </div>
             <p className="text-sm text-muted">{displayPhone(member.phone)}</p>
+            {canSeeEveryonesSavings(group.myRole) && member.status !== 'INVITED' && (
+              <Link to={`${member.memberId}/savings`} className="inline-flex min-h-11 items-center font-semibold text-brand underline">
+                {t('savings.viewSavings')}
+              </Link>
+            )}
             {canManageMembers(group.myRole) && member.memberId !== group.myMemberId && member.status !== 'REMOVED' && (
               <>
                 <Button

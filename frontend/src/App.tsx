@@ -22,6 +22,12 @@ const MembersPage = lazy(() => import('./features/groups/MembersPage').then((m) 
 const InvitePage = lazy(() => import('./features/groups/InvitePage').then((m) => ({ default: m.InvitePage })));
 const RulesPage = lazy(() => import('./features/groups/RulesPage').then((m) => ({ default: m.RulesPage })));
 const OfficesPage = lazy(() => import('./features/groups/OfficesPage').then((m) => ({ default: m.OfficesPage })));
+const MySavingsPage = lazy(() => import('./features/savings/SavingsPages').then((m) => ({ default: m.MySavingsPage })));
+const MemberSavingsPage = lazy(() => import('./features/savings/SavingsPages').then((m) => ({ default: m.MemberSavingsPage })));
+const StatementPage = lazy(() => import('./features/savings/SavingsPages').then((m) => ({ default: m.StatementPage })));
+const FundsPage = lazy(() => import('./features/savings/FundsPage').then((m) => ({ default: m.FundsPage })));
+const RecordPaymentPage = lazy(() => import('./features/savings/RecordPaymentPage').then((m) => ({ default: m.RecordPaymentPage })));
+const ReversalsPage = lazy(() => import('./features/savings/ReversalsPage').then((m) => ({ default: m.ReversalsPage })));
 const AcceptInvitationPage = lazy(() => import('./features/groups/AcceptInvitationPage').then((m) => ({ default: m.AcceptInvitationPage })));
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })));
 
@@ -81,6 +87,12 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <GroupOverview /> },
           { path: 'members', element: <MembersPage /> },
+          { path: 'members/:memberId/savings', element: <MemberSavingsPage /> },
+          { path: 'savings', element: <MySavingsPage /> },
+          { path: 'savings/statement/:memberId', element: <StatementPage /> },
+          { path: 'funds', element: <FundsPage /> },
+          { path: 'record', element: <RecordPaymentPage /> },
+          { path: 'reversals', element: <ReversalsPage /> },
           { path: 'invite', element: <InvitePage /> },
           { path: 'rules', element: <RulesPage /> },
           { path: 'offices', element: <OfficesPage /> },

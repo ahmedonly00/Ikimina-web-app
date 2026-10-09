@@ -83,6 +83,10 @@ public final class Api {
     // --- raw calls -------------------------------------------------------------------------
 
     public Response call(HttpMethod method, String path, String accessToken, Object body, String ip) {
+        return call(method, path, accessToken, body, ip, Map.of());
+    }
+
+    public Response call(HttpMethod method, String path, String accessToken, Object body, String ip, Map<String, String> headers) {
         MockHttpServletRequestBuilder request = MockMvcRequestBuilders.request(method, path)
                 .with(r -> {
                     r.setRemoteAddr(ip == null ? randomIp() : ip);
@@ -91,6 +95,7 @@ public final class Api {
         if (accessToken != null) {
             request.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
         }
+        headers.forEach(request::header);
         if (body != null) {
             request.contentType(MediaType.APPLICATION_JSON).content(body instanceof String s ? s : json.writeValueAsString(body));
         }
@@ -122,6 +127,12 @@ public final class Api {
 
     public Response patch(String path, User as, Object body) {
         return call(HttpMethod.PATCH, path, as == null ? null : as.accessToken(), body, as == null ? null : as.ip());
+    }
+
+    /** Records a contribution the way the app does, with a fresh Idempotency-Key unless one is given. */
+    public Response contribute(String groupId, User as, Map<String, Object> body, String idempotencyKey) {
+        return call(HttpMethod.POST, "/api/v1/groups/" + groupId + "/contributions", as.accessToken(), body, as.ip(),
+                Map.of("Idempotency-Key", idempotencyKey == null ? "key-" + java.util.UUID.randomUUID() : idempotencyKey));
     }
 
     /** POST /auth/refresh with the cookie and the anti-CSRF header, as the web app sends it. */

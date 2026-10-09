@@ -7,15 +7,17 @@ present in this repo**; treat it as unavailable.
 
 ## Current phase
 
-**Phase 0 — Foundations** (spec §23). Status: *implemented and verified locally; awaiting the
-first CI run on GitHub and the owner's sign-off.* Do not start Phase 1 until the owner confirms.
+**Phase 1 — Identity, groups, multi-tenancy** (spec §23), delivered in two PRs:
+**1a backend** (in review) then **1b frontend** (`frontend/`, React + TypeScript; not started).
+Phase 0 is merged and accepted.
 
-Phase 0 acceptance: CI green · empty app boots · migration safety check works ·
-ArchUnit enforces the rules.
+Phase 1 acceptance: §5.6 isolation tests pass for every endpoint · role matrix tests pass ·
+audit chain verifier works · OTP/login rate limits demonstrated.
 
-Decisions taken at Phase 0 approval (see `docs/adr/0001-legacy-code.md`):
-new backend in `backend/`, base package `rw.ikimina`, Spring Boot 4.1.x, strict migration check
-with no override, frontend starts in Phase 1.
+Owner decisions so far: new backend in `backend/`, base package `rw.ikimina`, Spring Boot 4.1.x,
+strict migration check with no override (ADR 0001); Phase 1: no national ID in MVP (no
+`member_profiles` yet), platform admin created by the **dev seeder only** (production bootstrap
+undecided), fake SMS provider only, SecLists top-10k password list.
 
 ## How to work (spec §0)
 
@@ -114,6 +116,12 @@ other's internals; `shared` depends on no module; no cycles between modules.
 | `check-migrations-append-only.sh` (CI) | `backend/scripts/` | existing migrations are never edited, renamed or deleted |
 | `I18nKeyParityTest` | `src/test/.../i18n` | H10: `messages.properties` (en) and `messages_rw.properties` have identical keys |
 | gitleaks over full history (CI) | `.gitleaksignore` for reviewed exceptions | H6 |
+| `GroupRouteCoverageIT` | `src/test/.../groups` | every `/groups/{groupId}` route is in `GroupRoutes` and declares its access |
+| `TenantIsolationIT` | same | spec 5.6: every role of group A, on every group route, cannot read/modify group B |
+| `RoleMatrixIT` + `PermissionMatrixTest` | same | HTTP behaviour and code matrix both equal spec 5.5 (`SpecPermissionMatrix`, hand-copied) |
+| `RowLevelSecurityIT` | same | RLS confines the app role to the tenant, with no app code involved |
+| `AuditChainIT` | `src/test/.../audit` | chain intact under concurrency; edits, deletions and tail cuts detected |
+| `RateLimitIT` | `src/test/.../identity` | OTP and login limits return 429 + Retry-After |
 
 ## Database conventions
 
@@ -123,6 +131,24 @@ other's internals; `shared` depends on no module; no cycles between modules.
 - Every migration that creates a table **grants `${appRole}` exactly the privileges it needs**
   (append-only tables: `SELECT, INSERT` only). Attach `forbid_mutation()` (V1) to append-only tables.
 - Money columns `NUMERIC(19,2)`; write them via `Money.toPostingAmount()` (ledger) or `Money.toStorageAmount()`.
+- **Every new tenant table** (V5 is the pattern): `group_id NOT NULL`, `ENABLE` + `FORCE ROW LEVEL
+  SECURITY`, an `owner_all` policy `TO CURRENT_USER`, and tenant policies `TO ${appRole}` on
+  `app_current_group_id()`. Add it to `RowLevelSecurityIT.TENANT_TABLES`.
+- Tenant context reaches PostgreSQL through `TenantAwareTransactionManager` (`set_config(..., true)`
+  per transaction). Never set `app.*` settings by hand; inside a transaction use `TenantSession.enterGroup`.
+- Audit rows are hashed and chained by the `audit_chain_link` trigger, ordered by `chain_seq`
+  (never by id - ids are drawn before the chain lock). Never change `audit_canonical()`.
+
+## Group endpoints - checklist for every new one
+
+1. Path `/api/v1/groups/{groupId}/...` with the variable named exactly `groupId` (the membership guard keys on it).
+2. Exactly one access declaration: `@PreAuthorize("@perm.has(#groupId, 'PERMISSION')")`, or
+   `@GroupAccess.AnyMember` (+ an object rule in the service), or `@GroupAccess.NonMemberAllowed`.
+3. Add it to `support/GroupRoutes.ALL` with the spec permission and a valid body - `GroupRouteCoverageIT`
+   fails otherwise, and the isolation and role-matrix tests then cover it automatically.
+4. Repository queries take `groupId` explicitly (H4) even though RLS also filters.
+5. Audit the state change in the same transaction; add i18n keys for any new error code (EN + RW).
+6. Sensitive actions (spec 16.1 list) need `@RequiresRecentAuthentication` or `StepUp.require()`.
 
 ## Conventions in code
 
@@ -130,8 +156,15 @@ other's internals; `shared` depends on no module; no cycles between modules.
   `code`, localised `title`/`detail`, `requestId`. New codes need `error.<code>.title|detail` in both bundles.
 - Money crosses JSON as a string; JSON numbers are rejected.
 - Kinyarwanda values are `[rw-todo]` placeholders until the owner supplies reviewed copy. Never machine-translate.
-- Security is deny-by-default (`SecurityConfig`). CSRF is off only because auth is bearer-header;
-  revisit when the refresh token moves to a cookie (Phase 1, spec §16.2).
+- Security is deny-by-default (`SecurityConfig`). Access tokens are bearer headers (no CSRF exposure);
+  the refresh token is an HttpOnly/SameSite=Strict cookie scoped to `/api/v1/auth`, and the endpoints
+  reading it require the `X-Ikimina-Csrf` header (spec §16.2).
+- Auth failures that must be recorded (wrong password, OTP attempt) return an outcome and let the
+  transaction commit; the controller then reports the error. Never let them roll back the counter.
+- Never reveal whether a phone has an account (register, login, forgot-password all look identical).
+- SMS: `SmsNotifier.send(...)` with a `sms.<key>` template; delivered after commit. Never log SMS text
+  outside the dev fake provider (it may hold a code).
+- Rate limits: `RateLimiter.consume(limit, subject)`; counts in its own transaction.
 
 ## Legacy code
 

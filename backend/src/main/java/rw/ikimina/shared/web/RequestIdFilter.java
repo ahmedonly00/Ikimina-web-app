@@ -39,10 +39,13 @@ public class RequestIdFilter extends OncePerRequestFilter {
         String requestId = sanitise(request.getHeader(HEADER));
         MDC.put(MDC_REQUEST_ID, requestId);
         response.setHeader(HEADER, requestId);
+        // getRemoteAddr honours X-Forwarded-For only when a trusted proxy strategy is configured (prod profile).
+        RequestContext.set(new RequestContext(requestId, request.getRemoteAddr(), request.getHeader("User-Agent")));
         try {
             chain.doFilter(request, response);
         } finally {
             MDC.remove(MDC_REQUEST_ID);
+            RequestContext.clear();
         }
     }
 

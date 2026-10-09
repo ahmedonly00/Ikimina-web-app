@@ -44,7 +44,7 @@ class SavingsQueries {
     record Balances(UUID memberId, List<BucketBalance> buckets, Money total) {
     }
 
-    record TransactionView(UUID transactionId, UUID bucketId, String bucketName, SavingsTransaction.Type type, Money amount,
+    record TransactionView(UUID transactionId, UUID journalId, UUID bucketId, String bucketName, SavingsTransaction.Type type, Money amount,
                            SavingsTransaction.Method method, String externalRef, LocalDate businessDate, boolean reversed) {
     }
 
@@ -97,9 +97,10 @@ class SavingsQueries {
         Map<Long, SavingsBucket> byId = bucketsById();
         Page<SavingsTransaction> found = transactions.findByGroupIdAndMembershipId(groupId(), member.membershipId(),
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "businessDate", "id")));
+        Map<Long, UUID> journals = ledger.publicIds(found.getContent().stream().map(SavingsTransaction::getJournalId).toList());
         return PageView.of(found, found.getContent().stream().map(t -> {
             SavingsBucket bucket = byId.get(t.getBucketId());
-            return new TransactionView(t.getPublicId(), bucket.getPublicId(), bucket.getName(), t.getTxnType(), t.getAmount(),
+            return new TransactionView(t.getPublicId(), journals.get(t.getJournalId()), bucket.getPublicId(), bucket.getName(), t.getTxnType(), t.getAmount(),
                     t.getPaymentMethod(), t.getExternalRef(), t.getBusinessDate(), t.isReversed());
         }).toList());
     }

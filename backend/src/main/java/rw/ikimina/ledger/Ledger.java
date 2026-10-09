@@ -1,6 +1,7 @@
 package rw.ikimina.ledger;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +32,9 @@ public interface Ledger {
     PostedJournal reverse(long journalId, String reason);
 
     Optional<PostedJournal> findJournal(UUID publicId);
+
+    /** Public ids of journals by internal id, for modules that keep an internal journal reference. */
+    Map<Long, UUID> publicIds(Collection<Long> journalIds);
 
     /** Current balance of an account, signed by its normal side; zero if it has never been used. */
     Money balance(AccountRef account);

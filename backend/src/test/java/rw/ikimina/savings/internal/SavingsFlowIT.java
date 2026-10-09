@@ -268,6 +268,7 @@ class SavingsFlowIT extends IntegrationTest {
             JsonNode txn = api().get(group.path("/members/" + group.memberId(GroupRole.MEMBER) + "/transactions"),
                     group.as(GroupRole.TREASURER)).body().get("items").get(0);
             assertThat(txn.get("reversed").asBoolean()).isTrue();
+            assertThat(txn.get("journalId").asString()).as("the screens reverse a payment by its journal").isEqualTo(paid.text("journalId"));
             // The reference of a reversed entry can be recorded again correctly.
             contribute(bucketId, "5000", Map.of("method", "MOMO_MANUAL", "externalRef", "REF-REV-1"), null).expect(201);
         }

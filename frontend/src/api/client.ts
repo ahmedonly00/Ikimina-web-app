@@ -121,8 +121,14 @@ export function refreshSession(): Promise<boolean> {
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-export async function api<T>(method: Method, path: string, body?: unknown, retried = false): Promise<T> {
-  const headers: Record<string, string> = { Accept: 'application/json', 'Accept-Language': language };
+export async function api<T>(
+  method: Method,
+  path: string,
+  body?: unknown,
+  extraHeaders: Record<string, string> = {},
+  retried = false,
+): Promise<T> {
+  const headers: Record<string, string> = { Accept: 'application/json', 'Accept-Language': language, ...extraHeaders };
   if (accessToken) {
     headers.Authorization = `Bearer ${accessToken}`;
   }
@@ -142,7 +148,7 @@ export async function api<T>(method: Method, path: string, body?: unknown, retri
 
   if (response.status === 401 && accessToken && !retried && !path.startsWith('/auth/')) {
     if (await refreshSession()) {
-      return api<T>(method, path, body, true);
+      return api<T>(method, path, body, extraHeaders, true);
     }
   }
   if (!response.ok) {
@@ -159,3 +165,11 @@ export const get = <T>(path: string) => api<T>('GET', path);
 export const post = <T>(path: string, body?: unknown) => api<T>('POST', path, body);
 export const put = <T>(path: string, body?: unknown) => api<T>('PUT', path, body);
 export const patch = <T>(path: string, body?: unknown) => api<T>('PATCH', path, body);
+
+/**
+ * POST for money-moving endpoints (Hard Rule H7). The caller keeps the same key for retries of
+ * one logical action - see useIdempotencyKey - so a retry after a lost response replays the
+ * original instead of recording twice.
+ */
+export const postIdempotent = <T>(path: string, body: unknown, idempotencyKey: string) =>
+  api<T>('POST', path, body, { 'Idempotency-Key': idempotencyKey });

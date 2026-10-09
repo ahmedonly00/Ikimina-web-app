@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet, useOutletContext, useParams } from 'react-router';
 import { get } from '../../api/client';
-import { canManageMembers, canViewMembers, type GroupView } from '../../api/types';
+import { canApproveMoney, canManageMembers, canRecordContributions, canViewMembers, type GroupView } from '../../api/types';
 import { Badge, ErrorMessage, Loading } from '../../components/ui';
 
 /** The group being viewed, shared with the tab pages. */
@@ -29,6 +29,10 @@ export function GroupLayout() {
   const role = group.data.myRole;
   const tabs = [
     { to: '', label: t('groups.nav.overview'), end: true, show: true },
+    { to: 'savings', label: t('groups.nav.savings'), show: true },
+    { to: 'record', label: t('groups.nav.record'), show: canRecordContributions(role) },
+    { to: 'funds', label: t('groups.nav.funds'), show: true },
+    { to: 'reversals', label: t('groups.nav.reversals'), show: canApproveMoney(role) },
     { to: 'members', label: t('groups.nav.members'), show: canViewMembers(role) },
     { to: 'invite', label: t('groups.nav.invite'), show: canManageMembers(role) },
     { to: 'rules', label: t('groups.nav.rules'), show: true },

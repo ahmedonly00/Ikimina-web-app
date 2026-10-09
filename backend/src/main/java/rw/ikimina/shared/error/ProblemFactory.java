@@ -1,6 +1,8 @@
 package rw.ikimina.shared.error;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.slf4j.MDC;
 import org.springframework.context.MessageSource;
@@ -22,6 +24,15 @@ public class ProblemFactory {
 
     public ProblemFactory(MessageSource messages) {
         this.messages = messages;
+    }
+
+    /** Each reason as {@code {code, message}}, the message localised under {@code reason.<code>}. */
+    public List<Map<String, String>> reasons(List<ReasonedApiException.Reason> reasons) {
+        Locale locale = LocaleContextHolder.getLocale();
+        return reasons.stream()
+                .map(r -> Map.of("code", r.code(),
+                        "message", messages.getMessage("reason." + r.code().toLowerCase(Locale.ROOT), r.args(), locale)))
+                .toList();
     }
 
     public ProblemDetail create(ErrorCode code, Object... detailArgs) {

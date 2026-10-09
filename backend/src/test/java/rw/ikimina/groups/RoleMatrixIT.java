@@ -65,7 +65,9 @@ class RoleMatrixIT extends IntegrationTest {
                 "changeId", UUID.randomUUID().toString(),
                 "bucketId", UUID.randomUUID().toString(),
                 "journalId", UUID.randomUUID().toString(),
-                "requestId", UUID.randomUUID().toString());
+                "requestId", UUID.randomUUID().toString(),
+                "productId", UUID.randomUUID().toString(),
+                "loanId", UUID.randomUUID().toString());
         for (GroupRoutes route : GroupRoutes.ALL) {
             if (route.permission().isEmpty()) {
                 continue;   // membership + object rules; covered in GroupFlowIT

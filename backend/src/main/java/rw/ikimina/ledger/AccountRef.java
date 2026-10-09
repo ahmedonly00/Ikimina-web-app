@@ -19,4 +19,9 @@ public record AccountRef(AccountType type, Long membershipId, Long bucketId, Lon
     public static AccountRef memberSavings(long membershipId, long bucketId) {
         return new AccountRef(AccountType.MEMBER_SAVINGS, membershipId, bucketId, null);
     }
+
+    /** What a borrower owes on one loan (spec 7.2: principal only - interest is income when paid). */
+    public static AccountRef loanReceivable(long membershipId, long loanId) {
+        return new AccountRef(AccountType.LOAN_RECEIVABLE, membershipId, null, loanId);
+    }
 }

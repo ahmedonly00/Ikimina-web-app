@@ -10,13 +10,20 @@ import org.springframework.http.HttpMethod;
  * when the application has a group route that is missing here, so a new endpoint cannot
  * skip the tenant-isolation and role-matrix tests (spec 5.6).
  *
- * <p>Placeholders: {groupId}, {memberId}, {invitationId}, {transferId}, {changeId}, {bucketId}, {journalId}, {requestId}.
+ * <p>Placeholders: {groupId}, {memberId}, {invitationId}, {transferId}, {changeId}, {bucketId}, {journalId}, {requestId},
+ * {productId}, {loanId}.
  *
  * @param permission the matrix permission(s) the spec implies for the route; empty when access
  *                   is decided by membership plus an object rule (own record, office holder, invitee)
  * @param body       a request body that passes validation, so a denial cannot hide behind a 400
  */
 public record GroupRoutes(HttpMethod method, String template, List<String> permission, Object body) {
+
+    /** Valid loan-product terms for probes and fixtures (declared before {@link #ALL}, which uses it). */
+    public static final Map<String, Object> LOAN_TERMS = Map.ofEntries(
+            Map.entry("interestMethod", "FLAT"), Map.entry("interestRatePercent", "5"), Map.entry("interestPeriod", "MONTH"),
+            Map.entry("minTermMonths", 1), Map.entry("maxTermMonths", 12), Map.entry("repaymentFrequency", "MONTHLY"),
+            Map.entry("graceDays", 0), Map.entry("allowConcurrentLoans", false));
 
     public static final List<GroupRoutes> ALL = List.of(
             route(HttpMethod.GET, "/api/v1/groups/{groupId}", List.of(), null),
@@ -73,7 +80,32 @@ public record GroupRoutes(HttpMethod method, String template, List<String> permi
             route(HttpMethod.GET, "/api/v1/groups/{groupId}/reversals", List.of("CONTRIBUTION_RECORD", "LOAN_APPROVE"), null),
             route(HttpMethod.POST, "/api/v1/groups/{groupId}/reversals/{requestId}/approve", List.of("LOAN_APPROVE"), null),
             route(HttpMethod.POST, "/api/v1/groups/{groupId}/reversals/{requestId}/reject", List.of("LOAN_APPROVE"),
-                    Map.of("reason", "not a mistake")));
+                    Map.of("reason", "not a mistake")),
+
+            // Phase 3: loans
+            route(HttpMethod.GET, "/api/v1/groups/{groupId}/loan-products", List.of(), null),
+            route(HttpMethod.GET, "/api/v1/groups/{groupId}/loan-products/{productId}", List.of(), null),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/loan-products", List.of("SETTINGS_EDIT"),
+                    Map.of("name", "Route probe", "terms", LOAN_TERMS)),
+            route(HttpMethod.PATCH, "/api/v1/groups/{groupId}/loan-products/{productId}", List.of("SETTINGS_EDIT"),
+                    Map.of("version", 999_999, "name", "probe")),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/loan-products/{productId}/changes/{changeId}/confirm",
+                    List.of("SETTINGS_EDIT"), null),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/loan-products/{productId}/changes/{changeId}/reject",
+                    List.of("SETTINGS_EDIT"), Map.of("reason", "not agreed")),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/loans", List.of("LOAN_REQUEST"),
+                    Map.of("productId", "{productId}", "amount", "1000", "termMonths", 1)),
+            route(HttpMethod.GET, "/api/v1/groups/{groupId}/loans", List.of(), null),
+            route(HttpMethod.GET, "/api/v1/groups/{groupId}/loans/{loanId}", List.of(), null),
+            route(HttpMethod.GET, "/api/v1/groups/{groupId}/loans/{loanId}/schedule", List.of(), null),
+            // Who may approve depends on the loan (spec 9.3): membership plus ApprovalPolicy, covered in LoanFlowIT.
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/loans/{loanId}/approve", List.of(), Map.of("comment", "fine")),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/loans/{loanId}/reject", List.of(), Map.of("reason", "too much")),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/loans/{loanId}/cancel", List.of(), null),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/loans/{loanId}/disburse", List.of("LOAN_DISBURSE"),
+                    Map.of("method", "CASH")),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/loans/{loanId}/repayments", List.of("REPAYMENT_RECORD"),
+                    Map.of("amount", "1000", "method", "CASH")));
 
     private static GroupRoutes route(HttpMethod method, String template, List<String> permission, Object body) {
         return new GroupRoutes(method, template, permission, body);

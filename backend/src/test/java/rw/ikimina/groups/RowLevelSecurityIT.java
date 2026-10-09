@@ -32,7 +32,8 @@ class RowLevelSecurityIT extends IntegrationTest {
             "group_settings", "group_memberships", "group_invitations", "office_transfers", "settings_change_requests",
             "ledger_accounts", "ledger_journals", "ledger_lines", "ledger_balances", "ledger_reversal_requests",
             "savings_buckets", "bucket_change_requests", "contribution_obligations", "savings_transactions",
-            "contribution_allocations");
+            "contribution_allocations", "loan_products", "loan_product_change_requests", "loans", "loan_approvals",
+            "loan_installments", "loan_disbursements", "loan_repayments", "loan_repayment_allocations");
 
     private TestGroup alpha;
     private TestGroup bravo;

@@ -72,6 +72,12 @@ class TenantIsolationIT extends IntegrationTest {
         String requestId = api().post(bravo.path("/journals/" + journalId + "/reverse"), bravo.as(GroupRole.TREASURER),
                 Map.of("reason", "isolation fixture")).expect(202).text("requestId");
 
+        // A loan product, and a member's loan request waiting for approval.
+        String productId = api().post(bravo.path("/loan-products"), bravo.president(),
+                Map.of("name", "Bravo loans", "terms", GroupRoutes.LOAN_TERMS)).expect(201).text("productId");
+        String loanId = api().post(bravo.path("/loans"), bravo.as(GroupRole.MEMBER),
+                Map.of("productId", productId, "amount", "5000", "termMonths", 3)).expect(201).text("loanId");
+
         bravoIds = Map.ofEntries(
                 Map.entry("groupId", bravo.groupId()),
                 Map.entry("memberId", bravo.memberId(GroupRole.MEMBER)),
@@ -80,7 +86,9 @@ class TenantIsolationIT extends IntegrationTest {
                 Map.entry("changeId", changeId),
                 Map.entry("bucketId", bucketId),
                 Map.entry("journalId", journalId),
-                Map.entry("requestId", requestId));
+                Map.entry("requestId", requestId),
+                Map.entry("productId", productId),
+                Map.entry("loanId", loanId));
     }
 
     @Test
@@ -94,8 +102,8 @@ class TenantIsolationIT extends IntegrationTest {
                 checkRefused(route, attackerRole, "B's path", direct, Set.of(404), failures);
 
                 // 2. A's path, smuggling B's resource ids.
-                if (route.template().matches(".*\\{(memberId|invitationId|transferId|changeId|bucketId|journalId|requestId)}.*")
-                        || route.body() != null && route.body().toString().matches(".*\\{(memberId|bucketId)}.*")) {
+                if (route.template().matches(".*\\{(memberId|invitationId|transferId|changeId|bucketId|journalId|requestId|productId|loanId)}.*")
+                        || route.body() != null && route.body().toString().matches(".*\\{(memberId|bucketId|productId)}.*")) {
                     Map<String, String> smuggled = new java.util.HashMap<>(bravoIds);
                     smuggled.put("groupId", alpha.groupId());
                     Response crossed = call(route, attacker, smuggled);
@@ -140,6 +148,12 @@ class TenantIsolationIT extends IntegrationTest {
         assertThat(api().get(bravo.path("/members/" + bravoIds.get("memberId") + "/balances"), bravo.president()).expect(200)
                 .text("total")).isEqualTo("7000.00");
         assertThat(api().get(bravo.path("/reversals"), bravo.president()).expect(200).body()).hasSize(1);
+        // B's loan still waits for its approvals, and its product is unchanged.
+        JsonNode loan = api().get(bravo.path("/loans/" + bravoIds.get("loanId")), bravo.president()).expect(200).body();
+        assertThat(loan.get("status").asString()).isEqualTo("SUBMITTED");
+        assertThat(loan.get("approvals")).isEmpty();
+        assertThat(api().get(bravo.path("/loan-products/" + bravoIds.get("productId")), bravo.president()).expect(200)
+                .text("name")).isEqualTo("Bravo loans");
         JsonNode member = api().get(bravo.path("/members/" + bravoIds.get("memberId")), bravo.president()).body();
         assertThat(member.get("status").asString()).isEqualTo("ACTIVE");
         assertThat(api().get(bravo.path(""), bravo.president()).text("sector")).isNotEqualTo("Kimironko");
@@ -168,7 +182,7 @@ class TenantIsolationIT extends IntegrationTest {
                 : response.body().toString();
         for (String secret : List.of(bravo.groupId(), "Bravo Isolation", bravoIds.get("memberId"), bravoIds.get("invitationId"),
                 bravoIds.get("transferId"), bravoIds.get("changeId"), bravoIds.get("bucketId"), bravoIds.get("journalId"),
-                bravoIds.get("requestId"), bravo.president().phone())) {
+                bravoIds.get("requestId"), bravoIds.get("productId"), bravoIds.get("loanId"), bravo.president().phone())) {
             if (body.contains(secret)) {
                 failures.add(what + " leaked " + secret);
             }

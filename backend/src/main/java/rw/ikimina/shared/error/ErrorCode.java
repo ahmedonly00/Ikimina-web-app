@@ -51,7 +51,14 @@ public enum ErrorCode {
     OFFICE_OCCUPIED(HttpStatus.CONFLICT),
     OFFICE_TRANSFER_REQUIRED(HttpStatus.CONFLICT),
     SELF_MODIFICATION_FORBIDDEN(HttpStatus.FORBIDDEN),
-    SETTINGS_CHANGE_STALE(HttpStatus.CONFLICT);
+    SETTINGS_CHANGE_STALE(HttpStatus.CONFLICT),
+
+    // Phase 2: ledger and savings
+    JOURNAL_NOT_REVERSIBLE(HttpStatus.CONFLICT),
+    JOURNAL_ALREADY_REVERSED(HttpStatus.CONFLICT),
+    MEMBER_NOT_ACTIVE(HttpStatus.CONFLICT),
+    BUCKET_NOT_ACTIVE(HttpStatus.CONFLICT),
+    BUCKET_CHANGE_STALE(HttpStatus.CONFLICT);
 
     private final HttpStatus status;
 

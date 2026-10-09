@@ -29,7 +29,10 @@ class RowLevelSecurityIT extends IntegrationTest {
 
     private static final String DB = "app_it";
     private static final List<String> TENANT_TABLES = List.of(
-            "group_settings", "group_memberships", "group_invitations", "office_transfers", "settings_change_requests");
+            "group_settings", "group_memberships", "group_invitations", "office_transfers", "settings_change_requests",
+            "ledger_accounts", "ledger_journals", "ledger_lines", "ledger_balances", "ledger_reversal_requests",
+            "savings_buckets", "bucket_change_requests", "contribution_obligations", "savings_transactions",
+            "contribution_allocations");
 
     private TestGroup alpha;
     private TestGroup bravo;

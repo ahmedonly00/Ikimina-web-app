@@ -7,7 +7,7 @@ present in this repo**; treat it as unavailable.
 
 ## Current phase
 
-**Phase 2 — Ledger and savings** (spec §23): **2a backend** in review, then **2b frontend**.
+**Phase 2 — Ledger and savings** (spec §23): **2a backend** and **2b frontend** in review (stacked PRs).
 Phases 0 and 1 are merged and signed off.
 
 Phase 2 acceptance: all §7.4 ledger tests pass · 50-way concurrent contributions give the exact

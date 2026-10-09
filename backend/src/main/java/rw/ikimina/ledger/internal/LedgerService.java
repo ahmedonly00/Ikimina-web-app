@@ -7,6 +7,7 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
@@ -136,6 +137,21 @@ class LedgerService implements Ledger {
                                 rs.getDate(4).toLocalDate(), false),
                         groupId(), publicId)
                 .stream().findFirst();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
+    public Map<Long, UUID> publicIds(Collection<Long> journalIds) {
+        Map<Long, UUID> ids = new HashMap<>();
+        if (journalIds.isEmpty()) {
+            return ids;
+        }
+        jdbc.query("SELECT id, public_id FROM ledger_journals WHERE group_id = ? AND id = ANY(?)",
+                rs -> {
+                    ids.put(rs.getLong(1), rs.getObject(2, UUID.class));
+                },
+                groupId(), journalIds.toArray(Long[]::new));
+        return ids;
     }
 
     @Override

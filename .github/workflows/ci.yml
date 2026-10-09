@@ -3,8 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+  # Every pull request, including ones stacked on another feature branch.
   pull_request:
-    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -56,6 +56,114 @@ jobs:
           name: openapi
           path: backend/target/openapi/openapi.json
           if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # New frontend (frontend/) - spec 18, 20.1
+  # ---------------------------------------------------------------------------
+  frontend:
+    name: Frontend (lint, type-check, unit tests, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Type-check
+        working-directory: frontend
+        run: npm run typecheck
+
+      # Includes i18n key parity (EN = RW) and WCAG AA contrast of the design tokens.
+      - name: Unit tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  frontend-e2e:
+    name: Frontend end-to-end smoke (Playwright, mobile)
+    runs-on: ubuntu-latest
+    needs: [frontend, backend]
+    env:
+      E2E_COMPOSE_PROJECT: ikimina-e2e
+      E2E_COMPOSE_FILE: ${{ github.workspace }}/backend/compose.yaml
+      E2E_COMPOSE_ENV_FILE: ${{ github.workspace }}/e2e.env
+    steps:
+      - uses: actions/checkout@v4
+
+      # Throwaway secrets for a database that lives only for this job.
+      - name: Generate stack configuration
+        run: |
+          {
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)"
+            echo "IKIMINA_DB_OWNER_PASSWORD=$(openssl rand -hex 32)"
+            echo "IKIMINA_DB_APP_PASSWORD=$(openssl rand -hex 32)"
+            echo "IKIMINA_JWT_SECRET=$(openssl rand -hex 32)"
+            echo "IKIMINA_OTP_PEPPER=$(openssl rand -hex 32)"
+            echo "SPRING_PROFILES_ACTIVE=dev"
+            echo "IKIMINA_BACKEND_PORT=18082"
+            echo "IKIMINA_DB_HOST_PORT=15432"
+            echo "IKIMINA_CORS_ORIGINS=http://localhost:4173"
+            echo "IKIMINA_WEB_BASE_URL=http://localhost:4173"
+          } > "$E2E_COMPOSE_ENV_FILE"
+
+      - name: Start backend and database
+        run: docker compose -p "$E2E_COMPOSE_PROJECT" -f "$E2E_COMPOSE_FILE" --env-file "$E2E_COMPOSE_ENV_FILE" up -d --build --wait
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+          npx playwright install --with-deps chromium
+
+      - name: Serve frontend
+        working-directory: frontend
+        env:
+          IKIMINA_API_URL: http://localhost:18082
+        run: |
+          nohup npx vite preview --port 4173 --strictPort > preview.log 2>&1 &
+          for _ in $(seq 1 30); do curl -sf http://localhost:4173/ > /dev/null && exit 0; sleep 1; done
+          cat preview.log; exit 1
+
+      - name: Playwright smoke
+        working-directory: frontend
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: ignore
+
+      - name: Backend log on failure
+        if: failure()
+        run: docker compose -p "$E2E_COMPOSE_PROJECT" -f "$E2E_COMPOSE_FILE" --env-file "$E2E_COMPOSE_ENV_FILE" logs backend | tail -200
 
   migrations-append-only:
     name: Migrations are append-only

@@ -1,0 +1,72 @@
+import { expect, test, type Page } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
+import { newAccountPassword } from './accounts';
+import { latestOtp } from './otp';
+
+/** A fresh Rwandan number per run, so the test never collides with earlier data. */
+function freshPhone(): string {
+  return `+2507${String(Date.now()).slice(-8)}`;
+}
+
+async function inEnglish(page: Page) {
+  await page.getByLabel(/language/i).first().selectOption('en');
+}
+
+test('register, verify, start a group, sign out and back in', async ({ page }) => {
+  const phone = freshPhone();
+  const local = `0${phone.slice(4)}`;
+  const password = newAccountPassword();
+  const groupName = `Smoke ${Date.now()}`;
+
+  await page.goto('/register');
+  await inEnglish(page);
+
+  await page.getByLabel('Full name').fill('Smoke Tester');
+  await page.getByLabel('Phone number').fill(local);
+  await page.getByLabel('Password').fill(password);
+  await page.getByLabel(/I accept the terms/).check();
+  await page.getByRole('button', { name: 'Send me a code' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Enter your code' })).toBeVisible();
+  await expect.poll(() => latestOtp(phone), { timeout: 15_000 }).toMatch(/^[0-9]{6}$/);
+  await page.getByLabel('Code').fill(latestOtp(phone));
+  await page.getByRole('button', { name: 'Verify' }).click();
+
+  await expect(page.getByRole('heading', { name: 'My groups' })).toBeVisible();
+  await page.getByRole('link', { name: 'Start a new group' }).click();
+  await page.getByLabel('Group name').fill(groupName);
+  await page.getByRole('button', { name: 'Create group' }).click();
+
+  await expect(page.getByRole('heading', { name: groupName })).toBeVisible();
+  await expect(page.getByText('President').first()).toBeVisible();
+
+  await page.getByRole('link', { name: 'Rules' }).click();
+  await expect(page.getByLabel('Fee when a member leaves (RWF)')).toHaveValue('0');
+
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+
+  await page.getByLabel('Phone number').fill(local);
+  await page.getByLabel('Password').fill(password);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  // After a deliberate sign-out, sign-in starts from My groups - not the previous page.
+  await expect(page.getByRole('heading', { name: 'My groups' })).toBeVisible();
+  await expect(page.getByRole('link', { name: new RegExp(groupName) })).toBeVisible();
+});
+
+test('a wrong password is refused without revealing whether the number exists', async ({ page }) => {
+  await page.goto('/login');
+  await inEnglish(page);
+  await page.getByLabel('Phone number').fill(`0${freshPhone().slice(4)}`);
+  await page.getByLabel('Password').fill(randomUUID());
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('alert')).toContainText('incorrect');
+});
+
+test('the language toggle relabels the page', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByLabel(/language/i).first().selectOption('rw');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('[rw-todo]');
+  await page.getByLabel(/language/i).first().selectOption('en');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in');
+});

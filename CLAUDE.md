@@ -8,7 +8,7 @@ present in this repo**; treat it as unavailable.
 ## Current phase
 
 **Phase 1 — Identity, groups, multi-tenancy** (spec §23), delivered in two PRs:
-**1a backend** (in review) then **1b frontend** (`frontend/`, React + TypeScript; not started).
+**1a backend** (PR #29, in review) and **1b frontend** (`frontend/`, React + TypeScript; PR stacked on 1a).
 Phase 0 is merged and accepted.
 
 Phase 1 acceptance: §5.6 isolation tests pass for every endpoint · role matrix tests pass ·
@@ -188,3 +188,27 @@ docker compose --profile tools up                        # + Mailpit and Redis
 
 `*Test` = unit (surefire), `*IT` = integration on PostgreSQL (failsafe). The OpenAPI document is
 written to `backend/target/openapi/openapi.json` by `ApplicationBootIT`.
+
+## Frontend (`frontend/`)
+
+React 19 + TypeScript 6 + Vite 8, Tailwind 4, TanStack Query, React Hook Form + Zod, i18next, React Router.
+Versions are pinned exactly; TypeScript stays below 6.1 because typescript-eslint does not support 7 yet.
+
+- **All text is i18n-keyed** (H10): `src/i18n/locales/en.json` is the source; `rw.json` holds `[rw-todo]`
+  placeholders until the owner supplies reviewed Kinyarwanda. `i18n.test.ts` fails on missing keys or
+  on a `t('...')` key that does not exist. Server errors are shown as the server's own localised text.
+- **Money is never a JS number** (H1): amounts stay decimal strings (`lib/money.ts`); `parseFloat` is
+  banned by ESLint.
+- **Tokens** (`src/styles.css` `@theme`): `tokens.test.ts` enforces WCAG AA for every text/background pair.
+  Brand amber is background-only (it fails AA as text).
+- **Session**: access token in memory only; refresh via the HttpOnly cookie (`api/client.ts`). Sensitive
+  actions go through `useSession().withStepUp(...)`, which handles REAUTHENTICATION_REQUIRED.
+- Role-aware UI hides what the server would refuse anyway; the server stays the authority.
+
+```sh
+cd frontend
+npm ci
+npm run dev              # http://localhost:5173, /api proxied to :8082 (IKIMINA_API_URL to change)
+npm run lint && npm run typecheck && npm test && npm run build
+npm run test:e2e         # Playwright smoke against a running stack - see e2e/README.md
+```

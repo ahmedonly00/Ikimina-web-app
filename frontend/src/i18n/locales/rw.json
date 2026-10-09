@@ -1,0 +1,223 @@
+{
+  "app": {
+    "name": "Ikimina",
+    "tagline": "[rw-todo] Your savings group, clear and fair"
+  },
+  "nav": {
+    "myGroups": "[rw-todo] My groups",
+    "profile": "[rw-todo] My profile",
+    "signOut": "[rw-todo] Sign out",
+    "language": "[rw-todo] Language",
+    "skipToContent": "[rw-todo] Skip to content"
+  },
+  "lang": {
+    "en": "English",
+    "rw": "Kinyarwanda"
+  },
+  "common": {
+    "save": "[rw-todo] Save",
+    "cancel": "[rw-todo] Cancel",
+    "back": "[rw-todo] Back",
+    "loading": "[rw-todo] Loading…",
+    "retry": "[rw-todo] Try again",
+    "close": "[rw-todo] Close",
+    "optional": "[rw-todo] optional",
+    "yes": "[rw-todo] Yes",
+    "no": "[rw-todo] No"
+  },
+  "validation": {
+    "required": "[rw-todo] This is required.",
+    "phone": "[rw-todo] Enter a Rwandan mobile number, for example 0788 123 456.",
+    "passwordLength": "[rw-todo] Use at least 8 characters.",
+    "otp": "[rw-todo] Enter the 6 digits from the SMS.",
+    "amount": "[rw-todo] Enter an amount in RWF, for example 5000.",
+    "days": "[rw-todo] Enter a number of days from 0 to 365.",
+    "terms": "[rw-todo] Please accept the terms to continue."
+  },
+  "errors": {
+    "network": "[rw-todo] No connection. Check your internet and try again.",
+    "generic": "[rw-todo] Something went wrong. Please try again.",
+    "reference": "[rw-todo] Reference: {{requestId}}"
+  },
+  "auth": {
+    "login": {
+      "title": "[rw-todo] Sign in",
+      "phone": "[rw-todo] Phone number",
+      "password": "[rw-todo] Password",
+      "submit": "[rw-todo] Sign in",
+      "forgot": "[rw-todo] Forgot your password?",
+      "noAccount": "[rw-todo] New to Ikimina?",
+      "register": "[rw-todo] Create an account"
+    },
+    "register": {
+      "title": "[rw-todo] Create your account",
+      "fullName": "[rw-todo] Full name",
+      "phone": "[rw-todo] Phone number",
+      "password": "[rw-todo] Password",
+      "passwordHint": "[rw-todo] At least 8 characters. Avoid common passwords and your phone number.",
+      "language": "[rw-todo] Language",
+      "acceptTerms": "[rw-todo] I accept the terms and the privacy policy",
+      "termsDraft": "[rw-todo] The terms and privacy policy are still being prepared.",
+      "submit": "[rw-todo] Send me a code",
+      "haveAccount": "[rw-todo] Already have an account?",
+      "signIn": "[rw-todo] Sign in"
+    },
+    "verify": {
+      "title": "[rw-todo] Enter your code",
+      "sentTo": "[rw-todo] If {{phone}} can be used, we have sent it a 6-digit code by SMS.",
+      "code": "[rw-todo] Code",
+      "submit": "[rw-todo] Verify",
+      "startOver": "[rw-todo] Use a different number"
+    },
+    "forgot": {
+      "title": "[rw-todo] Reset your password",
+      "intro": "[rw-todo] Enter your phone number. If it has an account, we will send it a code.",
+      "submit": "[rw-todo] Send code"
+    },
+    "reset": {
+      "title": "[rw-todo] Choose a new password",
+      "code": "[rw-todo] Code from the SMS",
+      "newPassword": "[rw-todo] New password",
+      "submit": "[rw-todo] Save new password",
+      "done": "[rw-todo] Your password was changed. Sign in with the new one."
+    },
+    "reauth": {
+      "title": "[rw-todo] Confirm your password",
+      "intro": "[rw-todo] For your security, enter your password again to continue.",
+      "password": "[rw-todo] Password",
+      "submit": "[rw-todo] Confirm"
+    }
+  },
+  "roles": {
+    "PRESIDENT": "[rw-todo] President",
+    "TREASURER": "[rw-todo] Treasurer",
+    "SECRETARY": "[rw-todo] Secretary",
+    "AUDITOR": "[rw-todo] Auditor",
+    "MEMBER": "[rw-todo] Member"
+  },
+  "memberStatus": {
+    "INVITED": "[rw-todo] Invited",
+    "ACTIVE": "[rw-todo] Active",
+    "SUSPENDED": "[rw-todo] Suspended",
+    "LEFT": "[rw-todo] Left",
+    "REMOVED": "[rw-todo] Removed"
+  },
+  "groups": {
+    "mine": {
+      "title": "[rw-todo] My groups",
+      "empty": "[rw-todo] You are not in a group yet. Start one, or ask a group officer to invite your phone number.",
+      "create": "[rw-todo] Start a new group",
+      "memberNumber": "[rw-todo] Member no. {{number}}"
+    },
+    "create": {
+      "title": "[rw-todo] Start a group",
+      "hint": "[rw-todo] You will be the group's President. You can invite members next.",
+      "name": "[rw-todo] Group name",
+      "district": "[rw-todo] District",
+      "sector": "[rw-todo] Sector",
+      "submit": "[rw-todo] Create group"
+    },
+    "nav": {
+      "overview": "[rw-todo] Overview",
+      "members": "[rw-todo] Members",
+      "invite": "[rw-todo] Invite",
+      "rules": "[rw-todo] Rules",
+      "offices": "[rw-todo] Offices"
+    },
+    "home": {
+      "yourRole": "[rw-todo] Your role",
+      "activeMembers": "[rw-todo] Active members",
+      "memberNumber": "[rw-todo] Your member number",
+      "location": "[rw-todo] Location",
+      "nextSteps": "[rw-todo] Getting started",
+      "stepInvite": "[rw-todo] Invite members",
+      "stepRules": "[rw-todo] Review the group rules",
+      "stepOffices": "[rw-todo] Make sure the Treasurer and Secretary are set"
+    }
+  },
+  "members": {
+    "title": "[rw-todo] Members",
+    "count": "[rw-todo] {{count}} people",
+    "number": "[rw-todo] No.",
+    "name": "[rw-todo] Name",
+    "phone": "[rw-todo] Phone",
+    "role": "[rw-todo] Role",
+    "status": "[rw-todo] Status",
+    "manage": "[rw-todo] Manage",
+    "changeRole": "[rw-todo] Change role",
+    "officeNote": "[rw-todo] Offices change hands only by transfer, so a group always keeps its officers.",
+    "suspend": "[rw-todo] Suspend",
+    "reactivate": "[rw-todo] Reactivate",
+    "remove": "[rw-todo] Remove from group",
+    "removeReason": "[rw-todo] Reason for removal",
+    "removeConfirm": "[rw-todo] Remove member",
+    "updated": "[rw-todo] Member updated.",
+    "previous": "[rw-todo] Previous",
+    "next": "[rw-todo] Next",
+    "you": "[rw-todo] you"
+  },
+  "invite": {
+    "title": "[rw-todo] Invite someone",
+    "intro": "[rw-todo] We send an SMS with a link. Only the invited phone number can use it, and it expires after 7 days.",
+    "phone": "[rw-todo] Phone number",
+    "role": "[rw-todo] Join as",
+    "submit": "[rw-todo] Send invitation",
+    "sent": "[rw-todo] Invitation sent to {{phone}}.",
+    "pendingTitle": "[rw-todo] Waiting for an answer",
+    "none": "[rw-todo] No open invitations.",
+    "expires": "[rw-todo] Expires {{date}}",
+    "revoke": "[rw-todo] Cancel invitation"
+  },
+  "accept": {
+    "title": "[rw-todo] Join a group",
+    "intro": "[rw-todo] You were invited to join a savings group. Sign in with the phone number that received the SMS, then join.",
+    "submit": "[rw-todo] Join the group",
+    "incomplete": "[rw-todo] This link is incomplete. Ask the group for a new invitation."
+  },
+  "settings": {
+    "title": "[rw-todo] Group rules",
+    "readOnly": "[rw-todo] Only the President, Treasurer and Secretary can change the rules.",
+    "defaultLocale": "[rw-todo] Group language for messages",
+    "interestRecognition": "[rw-todo] Loan interest counts as income",
+    "WHEN_PAID": "[rw-todo] when it is paid",
+    "WHEN_DUE": "[rw-todo] when it falls due",
+    "withdrawalsAllowed": "[rw-todo] Members may withdraw savings",
+    "withdrawalNoticeDays": "[rw-todo] Notice before a withdrawal or exit (days)",
+    "exitFee": "[rw-todo] Fee when a member leaves (RWF)",
+    "moneyRules": "[rw-todo] Money rules",
+    "moneyRulesNote": "[rw-todo] Changes to money rules need a second officer to confirm them.",
+    "save": "[rw-todo] Save rules",
+    "saved": "[rw-todo] Rules saved.",
+    "proposed": "[rw-todo] Your change is waiting for another officer to confirm it.",
+    "pendingTitle": "[rw-todo] A change is waiting for confirmation",
+    "pendingBy": "[rw-todo] Proposed {{date}}",
+    "confirm": "[rw-todo] Confirm change",
+    "reject": "[rw-todo] Reject",
+    "rejectReason": "[rw-todo] Why are you rejecting it?",
+    "current": "[rw-todo] Now",
+    "proposedValue": "[rw-todo] Proposed"
+  },
+  "offices": {
+    "title": "[rw-todo] Transfer of office",
+    "intro": "[rw-todo] Hand your office to another member. Nothing changes until they accept.",
+    "role": "[rw-todo] Office",
+    "to": "[rw-todo] New holder",
+    "submit": "[rw-todo] Offer the office",
+    "offered": "[rw-todo] Offer sent. It takes effect when they accept.",
+    "pendingTitle": "[rw-todo] Pending transfers",
+    "none": "[rw-todo] No pending transfers.",
+    "line": "[rw-todo] {{role}}: member {{from}} → member {{to}}",
+    "accept": "[rw-todo] Accept",
+    "decline": "[rw-todo] Decline",
+    "cancel": "[rw-todo] Withdraw offer",
+    "notHolder": "[rw-todo] Only an office holder can offer their office."
+  },
+  "profile": {
+    "title": "[rw-todo] My profile",
+    "fullName": "[rw-todo] Full name",
+    "phone": "[rw-todo] Phone number",
+    "language": "[rw-todo] Language",
+    "save": "[rw-todo] Save",
+    "saved": "[rw-todo] Profile saved."
+  }
+}

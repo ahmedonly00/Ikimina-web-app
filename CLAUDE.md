@@ -7,17 +7,30 @@ present in this repo**; treat it as unavailable.
 
 ## Current phase
 
-**Phase 1 — Identity, groups, multi-tenancy** (spec §23), delivered in two PRs:
-**1a backend** (PR #29, in review) and **1b frontend** (`frontend/`, React + TypeScript; PR stacked on 1a).
-Phase 0 is merged and accepted.
+**Phase 2 — Ledger and savings** (spec §23): **2a backend** in review, then **2b frontend**.
+Phases 0 and 1 are merged and signed off.
 
-Phase 1 acceptance: §5.6 isolation tests pass for every endpoint · role matrix tests pass ·
-audit chain verifier works · OTP/login rate limits demonstrated.
+Phase 2 acceptance: all §7.4 ledger tests pass · 50-way concurrent contributions give the exact
+balance · reversal flow works · balances reconcile.
 
 Owner decisions so far: new backend in `backend/`, base package `rw.ikimina`, Spring Boot 4.1.x,
 strict migration check with no override (ADR 0001); Phase 1: no national ID in MVP (no
 `member_profiles` yet), platform admin created by the **dev seeder only** (production bootstrap
-undecided), fake SMS provider only, SecLists top-10k password list.
+undecided), fake SMS provider only, SecLists top-10k password list. Phase 2: buckets managed by
+SETTINGS_EDIT and changes to their money terms need a **second officer**; obligations anchored at
+the bucket start date, **due on the period's last day**; overpayments carry to the next obligation;
+reversals are **two-step** (CONTRIBUTION_RECORD asks, a different LOAN_APPROVE holder approves);
+**withdrawals and exit settlement are Phase 3**.
+
+## Ledger rules (Phase 2)
+
+- Money moves only through `Ledger.post(JournalRequest)` (public API in `rw.ikimina.ledger`). Nothing
+  outside the ledger module names a `ledger_*` table (`LedgerWriteAccessTest`).
+- Every money endpoint takes an `Idempotency-Key`; derive the journal key from it and pass a request
+  hash, so a retry replays and a changed retry is refused (H7).
+- Corrections are reversals (`Ledger.reverse`), never edits. Modules react to `JournalReversed`
+  (an in-transaction event) to update their own records - see `ContributionReversalListener`.
+- Balances are a projection; `LedgerReconciler` recomputes them from lines nightly.
 
 ## How to work (spec §0)
 

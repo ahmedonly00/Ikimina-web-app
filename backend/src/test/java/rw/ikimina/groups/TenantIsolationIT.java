@@ -60,12 +60,27 @@ class TenantIsolationIT extends IntegrationTest {
                 .expect(202).body().get("pendingChange").get("changeId").asString();
         bravoSettingsVersion = api().get(bravo.path("/settings"), bravo.president()).body().get("version").asLong();
 
-        bravoIds = Map.of(
-                "groupId", bravo.groupId(),
-                "memberId", bravo.memberId(GroupRole.MEMBER),
-                "invitationId", invitationId,
-                "transferId", transferId,
-                "changeId", changeId);
+        // Money in B: a bucket, a contribution (its journal) and a reversal waiting for approval.
+        String bucketId = api().post(bravo.path("/buckets"), bravo.president(), Map.of("name", "Bravo savings", "type", "SAVINGS",
+                        "cycleType", "ROLLING", "startDate", "2026-01-01", "terms", Map.of("mandatory", false,
+                                "minimumContribution", "0", "contributionFrequency", "ADHOC", "withdrawable", false)))
+                .expect(201).text("bucketId");
+        Response contribution = api().contribute(bravo.groupId(), bravo.as(GroupRole.TREASURER),
+                Map.of("memberId", bravo.memberId(GroupRole.MEMBER), "bucketId", bucketId, "amount", "7000", "method", "CASH"), null)
+                .expect(201);
+        String journalId = contribution.text("journalId");
+        String requestId = api().post(bravo.path("/journals/" + journalId + "/reverse"), bravo.as(GroupRole.TREASURER),
+                Map.of("reason", "isolation fixture")).expect(202).text("requestId");
+
+        bravoIds = Map.ofEntries(
+                Map.entry("groupId", bravo.groupId()),
+                Map.entry("memberId", bravo.memberId(GroupRole.MEMBER)),
+                Map.entry("invitationId", invitationId),
+                Map.entry("transferId", transferId),
+                Map.entry("changeId", changeId),
+                Map.entry("bucketId", bucketId),
+                Map.entry("journalId", journalId),
+                Map.entry("requestId", requestId));
     }
 
     @Test
@@ -79,8 +94,8 @@ class TenantIsolationIT extends IntegrationTest {
                 checkRefused(route, attackerRole, "B's path", direct, Set.of(404), failures);
 
                 // 2. A's path, smuggling B's resource ids.
-                if (route.template().matches(".*\\{(memberId|invitationId|transferId|changeId)}.*")
-                        || route.body() != null && route.body().toString().contains("{memberId}")) {
+                if (route.template().matches(".*\\{(memberId|invitationId|transferId|changeId|bucketId|journalId|requestId)}.*")
+                        || route.body() != null && route.body().toString().matches(".*\\{(memberId|bucketId)}.*")) {
                     Map<String, String> smuggled = new java.util.HashMap<>(bravoIds);
                     smuggled.put("groupId", alpha.groupId());
                     Response crossed = call(route, attacker, smuggled);
@@ -121,6 +136,10 @@ class TenantIsolationIT extends IntegrationTest {
         assertThat(settings.get("pendingChange").get("changeId").asString()).isEqualTo(bravoIds.get("changeId"));
         assertThat(api().get(bravo.path("/invitations"), bravo.president()).body()).hasSize(1);
         assertThat(api().get(bravo.path("/offices/transfers"), bravo.president()).body()).hasSize(1);
+        // B's money is exactly as it was: the contribution stands and its reversal still waits.
+        assertThat(api().get(bravo.path("/members/" + bravoIds.get("memberId") + "/balances"), bravo.president()).expect(200)
+                .text("total")).isEqualTo("7000.00");
+        assertThat(api().get(bravo.path("/reversals"), bravo.president()).expect(200).body()).hasSize(1);
         JsonNode member = api().get(bravo.path("/members/" + bravoIds.get("memberId")), bravo.president()).body();
         assertThat(member.get("status").asString()).isEqualTo("ACTIVE");
         assertThat(api().get(bravo.path(""), bravo.president()).text("sector")).isNotEqualTo("Kimironko");
@@ -148,7 +167,8 @@ class TenantIsolationIT extends IntegrationTest {
                 : response.body().isObject() ? ((tools.jackson.databind.node.ObjectNode) response.body().deepCopy()).without("instance").toString()
                 : response.body().toString();
         for (String secret : List.of(bravo.groupId(), "Bravo Isolation", bravoIds.get("memberId"), bravoIds.get("invitationId"),
-                bravoIds.get("transferId"), bravoIds.get("changeId"), bravo.president().phone())) {
+                bravoIds.get("transferId"), bravoIds.get("changeId"), bravoIds.get("bucketId"), bravoIds.get("journalId"),
+                bravoIds.get("requestId"), bravo.president().phone())) {
             if (body.contains(secret)) {
                 failures.add(what + " leaked " + secret);
             }

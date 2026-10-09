@@ -60,7 +60,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler({OptimisticLockingFailureException.class, DataIntegrityViolationException.class})
     public ResponseEntity<ProblemDetail> handleConcurrentModification(RuntimeException ex) {
-        log.warn("Concurrent modification rejected: {}", ex.getClass().getSimpleName());
+        log.warn("Concurrent modification rejected: {} {}", ex.getClass().getSimpleName(), databaseReason(ex));
         return ResponseEntity.status(HttpStatus.CONFLICT).body(problems.create(ErrorCode.CONCURRENT_MODIFICATION));
     }
 
@@ -99,6 +99,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             problem.setProperty("errors", fieldErrors(invalid));
         }
         return createResponseEntity(problem, headers, statusCode, request);
+    }
+
+    /**
+     * SQL state and the first line of the database's message, which names the violated
+     * constraint. The following "Detail:" line can quote row values (phone numbers, amounts),
+     * so it is never logged.
+     */
+    private static String databaseReason(Throwable ex) {
+        for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+            if (cause instanceof java.sql.SQLException sql) {
+                String message = sql.getMessage() == null ? "" : sql.getMessage().lines().findFirst().orElse("");
+                return "[" + sql.getSQLState() + "] " + message;
+            }
+        }
+        return "";
     }
 
     private ResponseEntity<ProblemDetail> unauthenticated() {

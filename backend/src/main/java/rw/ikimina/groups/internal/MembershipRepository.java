@@ -7,6 +7,7 @@ import java.util.UUID;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -32,6 +33,8 @@ public interface MembershipRepository extends JpaRepository<Membership, Long> {
     Page<Membership> findByGroupId(Long groupId, Pageable pageable);
 
     long countByGroupId(Long groupId);
+
+    List<Membership> findByGroupIdAndStatus(Long groupId, Membership.Status status, Sort sort);
 
     long countByGroupIdAndStatus(Long groupId, Membership.Status status);
 

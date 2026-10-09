@@ -30,7 +30,28 @@ public enum ErrorCode {
     IDEMPOTENCY_CONFLICT(HttpStatus.CONFLICT),
     PERIOD_CLOSED(HttpStatus.CONFLICT),
     RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS),
-    INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
+    INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR),
+
+    // Phase 1: identity
+    INVALID_PHONE_NUMBER(HttpStatus.BAD_REQUEST),
+    /** Wrong phone, wrong password, locked or disabled account: deliberately indistinguishable (spec 16.1). */
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED),
+    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED),
+    OTP_INVALID(HttpStatus.BAD_REQUEST),
+    OTP_EXPIRED(HttpStatus.BAD_REQUEST),
+    PASSWORD_TOO_WEAK(HttpStatus.BAD_REQUEST),
+    TERMS_NOT_ACCEPTED(HttpStatus.BAD_REQUEST),
+    REAUTHENTICATION_REQUIRED(HttpStatus.FORBIDDEN),
+    CSRF_CHECK_FAILED(HttpStatus.FORBIDDEN),
+    CONCURRENT_MODIFICATION(HttpStatus.CONFLICT),
+
+    // Phase 1: groups
+    INVITATION_INVALID(HttpStatus.BAD_REQUEST),
+    ALREADY_MEMBER(HttpStatus.CONFLICT),
+    OFFICE_OCCUPIED(HttpStatus.CONFLICT),
+    OFFICE_TRANSFER_REQUIRED(HttpStatus.CONFLICT),
+    SELF_MODIFICATION_FORBIDDEN(HttpStatus.FORBIDDEN),
+    SETTINGS_CHANGE_STALE(HttpStatus.CONFLICT);
 
     private final HttpStatus status;
 

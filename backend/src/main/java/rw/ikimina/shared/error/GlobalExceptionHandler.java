@@ -5,6 +5,8 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import rw.ikimina.shared.ratelimit.RateLimitedException;
 
 /**
  * Turns every exception that reaches the web layer into an RFC 7807 problem
@@ -44,7 +47,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ProblemDetail> handleApiException(ApiException ex) {
         ProblemDetail problem = problems.create(ex.code(), ex.detailArgs());
-        return ResponseEntity.status(ex.code().status()).body(problem);
+        ResponseEntity.BodyBuilder response = ResponseEntity.status(ex.code().status());
+        if (ex instanceof RateLimitedException limited) {
+            response.header(HttpHeaders.RETRY_AFTER, Long.toString(limited.retryAfterSeconds()));
+        }
+        return response.body(problem);
+    }
+
+    /**
+     * Two people changed the same thing at once: an optimistic-lock conflict, or a race
+     * the database settled with a unique constraint (e.g. two holders of one office).
+     */
+    @ExceptionHandler({OptimisticLockingFailureException.class, DataIntegrityViolationException.class})
+    public ResponseEntity<ProblemDetail> handleConcurrentModification(RuntimeException ex) {
+        log.warn("Concurrent modification rejected: {}", ex.getClass().getSimpleName());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(problems.create(ErrorCode.CONCURRENT_MODIFICATION));
     }
 
     @ExceptionHandler(AuthenticationException.class)

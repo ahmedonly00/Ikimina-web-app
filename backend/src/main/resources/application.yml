@@ -88,3 +88,25 @@ logging:
   level:
     root: INFO
     rw.ikimina: ${IKIMINA_LOG_LEVEL_APP:INFO}
+
+ikimina:
+  auth:
+    # Both secrets are required, at least 32 bytes each (openssl rand -hex 32). Never commit real values.
+    jwt-secret: ${IKIMINA_JWT_SECRET:}
+    otp-pepper: ${IKIMINA_OTP_PEPPER:}
+    issuer: ikimina
+    access-token-ttl: PT15M         # spec 16.1
+    refresh-token-ttl: P30D         # spec 16.1
+    recent-auth-max-age: PT5M       # step-up window for sensitive actions
+    refresh-cookie-secure: ${IKIMINA_REFRESH_COOKIE_SECURE:true}
+    # Version of the terms/privacy text users accept (spec 16.8). The legal text is not written
+    # yet [VERIFY with a Rwandan lawyer]; the marker below records that honestly until it is.
+    terms-version: ${IKIMINA_TERMS_VERSION:draft-unreviewed}
+  sms:
+    # Spec 14.1 [OPEN]: no real provider chosen. Only "fake" exists; the app refuses to start without one.
+    provider: ${IKIMINA_SMS_PROVIDER:}
+  cors:
+    allowed-origins: ${IKIMINA_CORS_ORIGINS:}
+  web:
+    # Where links in SMS (invitations) point: the web frontend.
+    base-url: ${IKIMINA_WEB_BASE_URL:http://localhost:5173}

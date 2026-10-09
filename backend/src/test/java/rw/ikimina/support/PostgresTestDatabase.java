@@ -31,8 +31,9 @@ public final class PostgresTestDatabase {
 
     public static final String OWNER = "ikimina_owner";
     public static final String APP = "ikimina_app";
-    public static final String OWNER_PASSWORD = "owner-test-only";
-    public static final String APP_PASSWORD = "app-test-only";
+    // Generated per test run: the container, and these roles, live only as long as this JVM.
+    public static final String OWNER_PASSWORD = TestPasswords.strong();
+    public static final String APP_PASSWORD = TestPasswords.strong();
     public static final String SCHEMA = "ikimina";
 
     private static final String ROLES_SQL_IN_CONTAINER = "/opt/ikimina/sql/roles.sql";
@@ -83,6 +84,11 @@ public final class PostgresTestDatabase {
 
     public static Connection connectAsApp(String databaseName) throws SQLException {
         return connectAs(databaseName, APP, APP_PASSWORD);
+    }
+
+    /** The cluster superuser: only for simulating an insider with full database access (tamper tests). */
+    public static Connection connectAsSuperuser(String databaseName) throws SQLException {
+        return connectAs(databaseName, CONTAINER.getUsername(), CONTAINER.getPassword());
     }
 
     /** Flyway placeholders the migrations expect, as the application sets them. */

@@ -1,0 +1,10 @@
+# Test-only overrides, layered over src/main/resources/application.yml.
+# These values sign nothing outside the test JVM.
+ikimina:
+  auth:
+    jwt-secret: test-only-jwt-signing-key-not-a-real-secret-000
+    otp-pepper: test-only-otp-pepper-not-a-real-secret-0000000
+  sms:
+    provider: fake
+  cors:
+    allowed-origins: http://localhost:5173

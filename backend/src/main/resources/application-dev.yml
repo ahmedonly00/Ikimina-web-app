@@ -10,3 +10,16 @@ logging:
   level:
     rw.ikimina: DEBUG
     org.springframework.security: DEBUG
+
+ikimina:
+  auth:
+    refresh-cookie-secure: false    # local http
+  sms:
+    provider: fake
+    fake:
+      log-messages: true            # dev only: one-time codes appear in the log
+  cors:
+    allowed-origins: http://localhost:5173
+  dev:
+    platform-admin:
+      password: ${IKIMINA_DEV_PLATFORM_ADMIN_PASSWORD:}

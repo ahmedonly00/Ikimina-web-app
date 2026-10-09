@@ -11,7 +11,7 @@ RUN mvn -B -q package -DskipTests
 
 # ---- runtime ----------------------------------------------------------------
 # JRE only: compilers and build tools are attack surface in a running image.
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:25-jre-alpine AS runtime
 
 # Never run as root.
 RUN addgroup -S ikimina && adduser -S -G ikimina ikimina

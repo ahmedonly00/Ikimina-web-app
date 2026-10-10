@@ -1,0 +1,3 @@
+# Flat 4% a month, repaid in one go after 3 months: interest 75,000 x 4% x 3 = 9,000.
+# method=FLAT period=MONTH frequency=AT_MATURITY rate=4 principal=75000 term=3 disbursed=2026-06-20
+1,2026-09-20,75000,9000

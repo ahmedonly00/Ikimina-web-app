@@ -7,11 +7,11 @@ present in this repo**; treat it as unavailable.
 
 ## Current phase
 
-**Phase 2 — Ledger and savings** (spec §23): **2a backend** and **2b frontend** in review (stacked PRs).
-Phases 0 and 1 are merged and signed off.
+**Phase 3 — Loans** (spec §23, §9): **3a backend**, then **3b frontend**, then **3c withdrawals**.
+Each PR targets `main` directly (no stacking). Phases 0–2 are merged and signed off.
 
-Phase 2 acceptance: all §7.4 ledger tests pass · 50-way concurrent contributions give the exact
-balance · reversal flow works · balances reconcile.
+Phase 3 acceptance: golden schedule tests · every illegal transition rejected · self-approval
+blocked · double-disburse blocked under concurrency · overdue job idempotent with a fake clock.
 
 Owner decisions so far: new backend in `backend/`, base package `rw.ikimina`, Spring Boot 4.1.x,
 strict migration check with no override (ADR 0001); Phase 1: no national ID in MVP (no
@@ -20,7 +20,14 @@ undecided), fake SMS provider only, SecLists top-10k password list. Phase 2: buc
 SETTINGS_EDIT and changes to their money terms need a **second officer**; obligations anchored at
 the bucket start date, **due on the period's last day**; overpayments carry to the next obligation;
 reversals are **two-step** (CONTRIBUTION_RECORD asks, a different LOAN_APPROVE holder approves);
-**withdrawals and exit settlement are Phase 3**.
+**withdrawals are Phase 3c, exit settlement Phase 4** (it needs fines). Phase 3: the spec 9.3
+Secretary-substitution rule as written; schedules MONTHLY and AT_MATURITY only (weekly needs owner
+input); interest recognised WHEN_PAID only; overpaying a loan is refused; the fines part of a
+repayment is 0 until Phase 4; one open loan per member unless the product allows more; the approver
+cannot record the disbursement of a **single-approval** loan when ≥3 officers are active (dual approvals
+already have an independent second signer); the savings multiple counts every fund **except the social
+fund**; a repayment can be reversed two-step like a contribution (disbursements cannot - cancel before
+payout instead); loan-product money terms need a second officer.
 
 ## Ledger rules (Phase 2)
 
@@ -31,6 +38,17 @@ reversals are **two-step** (CONTRIBUTION_RECORD asks, a different LOAN_APPROVE h
 - Corrections are reversals (`Ledger.reverse`), never edits. Modules react to `JournalReversed`
   (an in-transaction event) to update their own records - see `ContributionReversalListener`.
 - Balances are a projection; `LedgerReconciler` recomputes them from lines nightly.
+- Only journal types whose module undoes its own records on `JournalReversed` are reversible
+  (`ReversalService.REVERSIBLE`: contributions, loan repayments). Add a type there only with its listener.
+
+## Loan rules (Phase 3)
+
+- A loan's status changes only through `Loan.apply(action)`, which asks `LoanStateMachine` — never set it directly.
+- Who may approve is `ApprovalPolicy` (pure, unit-tested); the approve/reject endpoints are `AnyMember` because the
+  Secretary's substitute approval is not a matrix permission. The borrower check compares memberships, not roles.
+- Money endpoints (disburse, repay) store `idempotency_key` + `request_hash` on their own row and look it up *before*
+  any rule the first attempt may have made false ("already disbursed", "more than is owed").
+- A loan keeps a copy of its product's money terms from request time; schedules come from that copy.
 
 ## How to work (spec §0)
 
@@ -135,6 +153,10 @@ other's internals; `shared` depends on no module; no cycles between modules.
 | `RowLevelSecurityIT` | same | RLS confines the app role to the tenant, with no app code involved |
 | `AuditChainIT` | `src/test/.../audit` | chain intact under concurrency; edits, deletions and tail cuts detected |
 | `RateLimitIT` | `src/test/.../identity` | OTP and login limits return 429 + Retry-After |
+| `LoanScheduleCalculatorTest` + `src/test/resources/loans/golden/*.csv` | `src/test/.../loans/internal` | spec 9.5 schedules match hand-worked golden files; principal never drifts |
+| `LoanStateMachineTest` | same | every (status × action) pair behaves as spec 9.1 says; illegal transitions refused |
+| `ApprovalPolicyTest` + `LoanFlowIT` | same | spec 9.3 maker-checker: who may approve, Secretary substitution, borrower never approves |
+| `ConcurrentLoanMoneyIT` | `src/test/.../loans` | a loan is disbursed once under 20 simultaneous attempts; parallel repayments each count once |
 
 ## Database conventions
 

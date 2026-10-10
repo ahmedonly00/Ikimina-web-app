@@ -7,8 +7,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.dao.DuplicateKeyException;
@@ -31,6 +33,12 @@ import rw.ikimina.shared.tenancy.TenantContext;
  */
 @Service
 class ReversalService {
+
+    /**
+     * Journals whose owning module undoes its own records when they are reversed (a JournalReversed
+     * listener). A loan disbursement is not among them: a mistaken loan is cancelled before payout.
+     */
+    private static final Set<JournalType> REVERSIBLE = EnumSet.of(JournalType.CONTRIBUTION, JournalType.LOAN_REPAYMENT);
 
     record ReversalView(UUID requestId, UUID journalId, JournalType journalType, String reason, String status,
                         UUID requestedBy, UUID decidedBy, String decisionReason, UUID reversalJournalId,
@@ -64,7 +72,7 @@ class ReversalService {
     ReversalView request(UUID journalPublicId, String reason) {
         TenantContext.GroupScope scope = TenantContext.requireGroup();
         PostedJournal journal = ledger.findJournal(journalPublicId).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
-        if (journal.type() == JournalType.REVERSAL) {
+        if (!REVERSIBLE.contains(journal.type())) {
             throw new ApiException(ErrorCode.JOURNAL_NOT_REVERSIBLE);
         }
         Integer reversed = jdbc.queryForObject("SELECT count(*) FROM ledger_journals WHERE group_id = ? AND reverses_journal_id = ?",

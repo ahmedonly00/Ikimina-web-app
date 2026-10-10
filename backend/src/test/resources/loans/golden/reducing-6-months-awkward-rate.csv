@@ -1,0 +1,8 @@
+# Reducing balance 3.3333% a month, 6 months: level payment 93,320.94 -> 93,321. Interest 59,926 in all.
+# method=REDUCING_BALANCE period=MONTH frequency=MONTHLY rate=3.3333 principal=500000 term=6 disbursed=2026-04-30
+1,2026-05-30,76654,16667
+2,2026-06-30,79210,14111
+3,2026-07-30,81850,11471
+4,2026-08-30,84578,8743
+5,2026-09-30,87397,5924
+6,2026-10-30,90311,3010

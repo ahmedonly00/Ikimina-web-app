@@ -1,0 +1,6 @@
+# Flat 5% a month, 3 months: interest 100,000 x 5% x 3 = 15,000. Principal 33,333 + 33,333 + 33,334.
+# Disbursed on 31 January: due dates are 3 months counted from that day, clamped to month ends.
+# method=FLAT period=MONTH frequency=MONTHLY rate=5 principal=100000 term=3 disbursed=2026-01-31
+1,2026-02-28,33333,5000
+2,2026-03-31,33333,5000
+3,2026-04-30,33334,5000

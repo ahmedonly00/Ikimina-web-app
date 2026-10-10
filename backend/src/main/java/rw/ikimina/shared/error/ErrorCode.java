@@ -58,7 +58,17 @@ public enum ErrorCode {
     JOURNAL_ALREADY_REVERSED(HttpStatus.CONFLICT),
     MEMBER_NOT_ACTIVE(HttpStatus.CONFLICT),
     BUCKET_NOT_ACTIVE(HttpStatus.CONFLICT),
-    BUCKET_CHANGE_STALE(HttpStatus.CONFLICT);
+    BUCKET_CHANGE_STALE(HttpStatus.CONFLICT),
+
+    // Phase 3: loans
+    /** Carries the reasons, each localised under {@code reason.<code>} (spec 9.2). */
+    LOAN_NOT_ELIGIBLE(HttpStatus.UNPROCESSABLE_CONTENT),
+    LOAN_APPROVER_NOT_ALLOWED(HttpStatus.FORBIDDEN),
+    LOAN_DISBURSER_MUST_DIFFER(HttpStatus.FORBIDDEN),
+    LOAN_OVERPAYMENT(HttpStatus.UNPROCESSABLE_CONTENT),
+    LOAN_PRODUCT_NOT_ACTIVE(HttpStatus.CONFLICT),
+    LOAN_PRODUCT_CHANGE_STALE(HttpStatus.CONFLICT),
+    LOAN_TERMS_UNSUPPORTED(HttpStatus.BAD_REQUEST);
 
     private final HttpStatus status;
 

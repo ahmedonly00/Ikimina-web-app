@@ -3,6 +3,8 @@ package rw.ikimina.shared.money;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -119,6 +121,26 @@ public final class Money implements Comparable<Money> {
     /** This amount rounded to a whole franc, half up. */
     public Money roundedToWholeRwf() {
         return new Money(amount.setScale(0, ROUNDING));
+    }
+
+    /**
+     * Splits a whole-franc amount into {@code parts} whole-franc amounts that add up to it exactly:
+     * equal shares rounded down, the remainder on the last one (spec 9.5: the final installment
+     * absorbs rounding). {@code 100000} in 3 is {@code 33333, 33333, 33334}.
+     *
+     * @throws ArithmeticException if this amount is not whole, is negative, or {@code parts < 1}
+     */
+    public List<Money> splitWholeRwf(int parts) {
+        if (parts < 1 || isNegative() || !isWholeRwf()) {
+            throw new ArithmeticException("Cannot split " + amount.toPlainString() + " into " + parts + " whole-franc parts");
+        }
+        BigDecimal share = amount.divideToIntegralValue(BigDecimal.valueOf(parts));
+        List<Money> shares = new ArrayList<>(parts);
+        for (int i = 1; i < parts; i++) {
+            shares.add(new Money(share));
+        }
+        shares.add(new Money(amount.subtract(share.multiply(BigDecimal.valueOf(parts - 1L)))));
+        return List.copyOf(shares);
     }
 
     public boolean isWholeRwf() {

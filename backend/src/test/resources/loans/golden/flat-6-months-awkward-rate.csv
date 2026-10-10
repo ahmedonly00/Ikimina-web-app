@@ -1,0 +1,9 @@
+# Flat 2.75% a month, 6 months: interest 123,457 x 2.75% x 6 = 20,370.405 -> 20,370 (3,395 a month).
+# Principal 123,457 / 6: 20,576 five times, the last 20,577.
+# method=FLAT period=MONTH frequency=MONTHLY rate=2.75 principal=123457 term=6 disbursed=2026-05-15
+1,2026-06-15,20576,3395
+2,2026-07-15,20576,3395
+3,2026-08-15,20576,3395
+4,2026-09-15,20576,3395
+5,2026-10-15,20576,3395
+6,2026-11-15,20577,3395

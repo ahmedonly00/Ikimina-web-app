@@ -1,0 +1,16 @@
+# Reducing balance 1% a month, 12 months. Level payment 100,000 x 0.01 x 1.01^12 / (1.01^12 - 1)
+# = 8,884.88 -> 8,885 (the textbook figure is 8,884.88). Each month's interest is the balance x 1%,
+# rounded; the last installment clears the remaining 8,796 (total 8,884). Interest 6,619 in all.
+# method=REDUCING_BALANCE period=MONTH frequency=MONTHLY rate=1 principal=100000 term=12 disbursed=2026-01-15
+1,2026-02-15,7885,1000
+2,2026-03-15,7964,921
+3,2026-04-15,8043,842
+4,2026-05-15,8124,761
+5,2026-06-15,8205,680
+6,2026-07-15,8287,598
+7,2026-08-15,8370,515
+8,2026-09-15,8454,431
+9,2026-10-15,8538,347
+10,2026-11-15,8624,261
+11,2026-12-15,8710,175
+12,2027-01-15,8796,88

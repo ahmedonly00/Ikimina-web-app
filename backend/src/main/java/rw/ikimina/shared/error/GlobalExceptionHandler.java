@@ -47,6 +47,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ProblemDetail> handleApiException(ApiException ex) {
         ProblemDetail problem = problems.create(ex.code(), ex.detailArgs());
+        if (ex instanceof ReasonedApiException reasoned) {
+            problem.setProperty("reasons", problems.reasons(reasoned.reasons()));
+        }
         ResponseEntity.BodyBuilder response = ResponseEntity.status(ex.code().status());
         if (ex instanceof RateLimitedException limited) {
             response.header(HttpHeaders.RETRY_AFTER, Long.toString(limited.retryAfterSeconds()));

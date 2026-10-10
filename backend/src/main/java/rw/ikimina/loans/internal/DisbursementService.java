@@ -22,6 +22,7 @@ import rw.ikimina.ledger.Ledger;
 import rw.ikimina.ledger.PostedJournal;
 import rw.ikimina.loans.internal.LoanStateMachine.Action;
 import rw.ikimina.shared.error.ApiException;
+import rw.ikimina.shared.locks.AdvisoryLocks;
 import rw.ikimina.shared.error.ErrorCode;
 import rw.ikimina.shared.security.CurrentUser;
 import rw.ikimina.shared.tenancy.TenantContext;
@@ -38,9 +39,6 @@ import rw.ikimina.shared.time.BusinessTime;
  */
 @Service
 class DisbursementService {
-
-    /** Advisory-lock namespace for "one payout at a time per group". */
-    private static final int PAYOUT_LOCK = 7_304;
 
     private final LoanRepository loans;
     private final LoanDisbursementRepository disbursements;
@@ -79,7 +77,7 @@ class DisbursementService {
         TenantContext.GroupScope scope = TenantContext.requireGroup();
         // Payouts in one group run one at a time: two payouts of different loans must not both spend the same cash.
         // Taken before any row lock, and by no other path, so it cannot form a lock cycle.
-        jdbc.queryForList("SELECT pg_advisory_xact_lock(?, ?)", PAYOUT_LOCK, (int) scope.groupId());
+        AdvisoryLocks.lock(jdbc, AdvisoryLocks.GROUP_PAYOUT, scope.groupId());
         Loan loan = loans.findByGroupIdAndPublicIdForUpdate(scope.groupId(), loanId).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
         String key = RequestKeys.require(idempotencyKey);
         LocalDate today = BusinessTime.today(clock);

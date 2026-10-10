@@ -98,6 +98,15 @@ public class SavingsTransaction {
         return txn;
     }
 
+    /** Savings paid out to the member (spec 7.2: debit their savings, credit group cash). */
+    static SavingsTransaction withdrawal(long groupId, long bucketId, long membershipId, Money amount, long journalId,
+                                         Method method, String externalRef, LocalDate businessDate, long recordedBy, Instant now) {
+        SavingsTransaction txn = contribution(groupId, bucketId, membershipId, amount, journalId, null, method, externalRef, businessDate,
+                recordedBy, now);
+        txn.txnType = Type.WITHDRAWAL;
+        return txn;
+    }
+
     void markReversed(Instant now) {
         if (reversedAt == null) {
             reversedAt = now;

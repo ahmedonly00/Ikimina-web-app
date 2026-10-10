@@ -153,6 +153,10 @@ public class SavingsBucket {
         return description;
     }
 
+    Long getGroupId() {
+        return groupId;
+    }
+
     Type getBucketType() {
         return bucketType;
     }

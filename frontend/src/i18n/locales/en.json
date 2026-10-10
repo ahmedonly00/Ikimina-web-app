@@ -134,7 +134,8 @@
       "funds": "Funds",
       "reversals": "Reversals",
       "loans": "Loans",
-      "loanProducts": "Loan products"
+      "loanProducts": "Loan products",
+      "withdrawals": "Withdrawals"
     },
     "home": {
       "yourRole": "Your role",
@@ -241,7 +242,8 @@
     "reversalReason": "Why should this payment be reversed?",
     "reversalRequested": "Reversal requested. Another officer must approve it.",
     "viewSavings": "Savings",
-    "back": "Back to members"
+    "back": "Back to members",
+    "withdrawal": "Withdrawal"
   },
   "obligationStatus": {
     "OPEN": "Open",
@@ -462,5 +464,31 @@
     "reopen": "Reopen product",
     "amountRange": "{{min}} to {{max}}",
     "multipleValue": "{{multiple}} × savings"
+  },
+  "withdrawalStatus": {
+    "REQUESTED": "Waiting for approval",
+    "APPROVED": "Approved, to be paid",
+    "PAID": "Paid out",
+    "REJECTED": "Rejected",
+    "CANCELLED": "Cancelled"
+  },
+  "withdrawals": {
+    "title": "Withdrawals",
+    "mine": "Take money out",
+    "noFunds": "None of the group's funds allow withdrawals.",
+    "asked": "You asked for {{amount}}. It can be paid out from {{date}}, once an officer approves.",
+    "fund": "From which fund",
+    "fundOption": "{{name}} ({{balance}})",
+    "reason": "What is it for?",
+    "ask": "Ask to withdraw",
+    "all": "All withdrawals",
+    "none": "No withdrawals here.",
+    "ownFlag": "Paid out by the member themselves",
+    "dates": "Asked on {{requested}} · can be paid from {{earliest}}",
+    "approve": "Approve withdrawal",
+    "reject": "Reject",
+    "notYet": "The notice period ends on {{date}}; it cannot be paid out before then.",
+    "pay": "Record payout",
+    "cancel": "Cancel my request"
   }
 }

@@ -16,4 +16,7 @@ public interface MemberSavings {
      * @param membershipId internal membership id
      */
     Money loanBasis(long membershipId);
+
+    /** Withdrawals approved but not yet paid out: cash the group has already promised to members. */
+    Money approvedWithdrawals();
 }

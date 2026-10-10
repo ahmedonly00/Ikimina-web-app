@@ -134,7 +134,8 @@
       "funds": "[rw-todo] Funds",
       "reversals": "[rw-todo] Reversals",
       "loans": "[rw-todo] Loans",
-      "loanProducts": "[rw-todo] Loan products"
+      "loanProducts": "[rw-todo] Loan products",
+      "withdrawals": "[rw-todo] Withdrawals"
     },
     "home": {
       "yourRole": "[rw-todo] Your role",
@@ -241,7 +242,8 @@
     "reversalReason": "[rw-todo] Why should this payment be reversed?",
     "reversalRequested": "[rw-todo] Reversal requested. Another officer must approve it.",
     "viewSavings": "[rw-todo] Savings",
-    "back": "[rw-todo] Back to members"
+    "back": "[rw-todo] Back to members",
+    "withdrawal": "[rw-todo] Withdrawal"
   },
   "obligationStatus": {
     "OPEN": "[rw-todo] Open",
@@ -462,5 +464,31 @@
     "reopen": "[rw-todo] Reopen product",
     "amountRange": "[rw-todo] {{min}} to {{max}}",
     "multipleValue": "[rw-todo] {{multiple}} × savings"
+  },
+  "withdrawalStatus": {
+    "REQUESTED": "[rw-todo] Waiting for approval",
+    "APPROVED": "[rw-todo] Approved, to be paid",
+    "PAID": "[rw-todo] Paid out",
+    "REJECTED": "[rw-todo] Rejected",
+    "CANCELLED": "[rw-todo] Cancelled"
+  },
+  "withdrawals": {
+    "title": "[rw-todo] Withdrawals",
+    "mine": "[rw-todo] Take money out",
+    "noFunds": "[rw-todo] None of the group's funds allow withdrawals.",
+    "asked": "[rw-todo] You asked for {{amount}}. It can be paid out from {{date}}, once an officer approves.",
+    "fund": "[rw-todo] From which fund",
+    "fundOption": "[rw-todo] {{name}} ({{balance}})",
+    "reason": "[rw-todo] What is it for?",
+    "ask": "[rw-todo] Ask to withdraw",
+    "all": "[rw-todo] All withdrawals",
+    "none": "[rw-todo] No withdrawals here.",
+    "ownFlag": "[rw-todo] Paid out by the member themselves",
+    "dates": "[rw-todo] Asked on {{requested}} · can be paid from {{earliest}}",
+    "approve": "[rw-todo] Approve withdrawal",
+    "reject": "[rw-todo] Reject",
+    "notYet": "[rw-todo] The notice period ends on {{date}}; it cannot be paid out before then.",
+    "pay": "[rw-todo] Record payout",
+    "cancel": "[rw-todo] Cancel my request"
   }
 }

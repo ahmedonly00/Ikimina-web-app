@@ -27,6 +27,7 @@ const MemberSavingsPage = lazy(() => import('./features/savings/SavingsPages').t
 const StatementPage = lazy(() => import('./features/savings/SavingsPages').then((m) => ({ default: m.StatementPage })));
 const FundsPage = lazy(() => import('./features/savings/FundsPage').then((m) => ({ default: m.FundsPage })));
 const RecordPaymentPage = lazy(() => import('./features/savings/RecordPaymentPage').then((m) => ({ default: m.RecordPaymentPage })));
+const WithdrawalsPage = lazy(() => import('./features/savings/WithdrawalsPage').then((m) => ({ default: m.WithdrawalsPage })));
 const ReversalsPage = lazy(() => import('./features/savings/ReversalsPage').then((m) => ({ default: m.ReversalsPage })));
 const LoansPage = lazy(() => import('./features/loans/LoansPage').then((m) => ({ default: m.LoansPage })));
 const RequestLoanPage = lazy(() => import('./features/loans/LoansPage').then((m) => ({ default: m.RequestLoanPage })));
@@ -97,6 +98,7 @@ const router = createBrowserRouter([
           { path: 'funds', element: <FundsPage /> },
           { path: 'record', element: <RecordPaymentPage /> },
           { path: 'reversals', element: <ReversalsPage /> },
+          { path: 'withdrawals', element: <WithdrawalsPage /> },
           { path: 'loans', element: <LoansPage /> },
           { path: 'loans/new', element: <RequestLoanPage /> },
           { path: 'loans/:loanId', element: <LoanDetailPage /> },

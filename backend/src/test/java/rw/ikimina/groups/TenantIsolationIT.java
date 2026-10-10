@@ -44,6 +44,7 @@ class TenantIsolationIT extends IntegrationTest {
         GroupFixture groups = new GroupFixture(api(), sms);
         alpha = groups.createWithEveryRole("Alpha Isolation");
         bravo = groups.createWithEveryRole("Bravo Isolation");
+        String withdrawalId = bravoWithdrawal();
 
         // Give B one of every kind of resource, each in an open state an attacker would like to touch.
         String invitee = Api.newPhone();
@@ -88,7 +89,27 @@ class TenantIsolationIT extends IntegrationTest {
                 Map.entry("journalId", journalId),
                 Map.entry("requestId", requestId),
                 Map.entry("productId", productId),
-                Map.entry("loanId", loanId));
+                Map.entry("loanId", loanId),
+                Map.entry("withdrawalId", withdrawalId));
+    }
+
+    /** B allows withdrawals and its Secretary asks for one - done first, so it does not disturb the pending bylaw change below. */
+    private String bravoWithdrawal() {
+        JsonNode settings = api().get(bravo.path("/settings"), bravo.president()).body();
+        Map<String, Object> open = new java.util.LinkedHashMap<>(json.convertValue(settings.get("settings"), Map.class));
+        open.put("withdrawalsAllowed", true);
+        String change = api().put(bravo.path("/settings"), bravo.as(GroupRole.TREASURER),
+                Map.of("version", settings.get("version").asLong(), "settings", open)).expect(202).body().get("pendingChange").get("changeId").asString();
+        api().post(bravo.path("/settings/changes/" + change + "/confirm"), bravo.president(), null).expect(200);
+        String fund = api().post(bravo.path("/buckets"), bravo.president(), Map.of("name", "Bravo open fund", "type", "SAVINGS",
+                        "cycleType", "ROLLING", "startDate", "2026-01-01", "terms", Map.of("mandatory", false,
+                                "minimumContribution", "0", "contributionFrequency", "ADHOC", "withdrawable", true)))
+                .expect(201).text("bucketId");
+        api().contribute(bravo.groupId(), bravo.as(GroupRole.TREASURER),
+                Map.of("memberId", bravo.memberId(GroupRole.SECRETARY), "bucketId", fund, "amount", "3000", "method", "CASH"), null)
+                .expect(201);
+        return api().post(bravo.path("/withdrawals"), bravo.as(GroupRole.SECRETARY), Map.of("bucketId", fund, "amount", "1000"))
+                .expect(201).text("withdrawalId");
     }
 
     @Test
@@ -102,7 +123,7 @@ class TenantIsolationIT extends IntegrationTest {
                 checkRefused(route, attackerRole, "B's path", direct, Set.of(404), failures);
 
                 // 2. A's path, smuggling B's resource ids.
-                if (route.template().matches(".*\\{(memberId|invitationId|transferId|changeId|bucketId|journalId|requestId|productId|loanId)}.*")
+                if (route.template().matches(".*\\{(memberId|invitationId|transferId|changeId|bucketId|journalId|requestId|productId|loanId|withdrawalId)}.*")
                         || route.body() != null && route.body().toString().matches(".*\\{(memberId|bucketId|productId)}.*")) {
                     Map<String, String> smuggled = new java.util.HashMap<>(bravoIds);
                     smuggled.put("groupId", alpha.groupId());
@@ -152,6 +173,8 @@ class TenantIsolationIT extends IntegrationTest {
         JsonNode loan = api().get(bravo.path("/loans/" + bravoIds.get("loanId")), bravo.president()).expect(200).body();
         assertThat(loan.get("status").asString()).isEqualTo("SUBMITTED");
         assertThat(loan.get("approvals")).isEmpty();
+        assertThat(api().get(bravo.path("/withdrawals/" + bravoIds.get("withdrawalId")), bravo.president()).expect(200)
+                .text("status")).isEqualTo("REQUESTED");
         assertThat(api().get(bravo.path("/loan-products/" + bravoIds.get("productId")), bravo.president()).expect(200)
                 .text("name")).isEqualTo("Bravo loans");
         JsonNode member = api().get(bravo.path("/members/" + bravoIds.get("memberId")), bravo.president()).body();
@@ -182,7 +205,7 @@ class TenantIsolationIT extends IntegrationTest {
                 : response.body().toString();
         for (String secret : List.of(bravo.groupId(), "Bravo Isolation", bravoIds.get("memberId"), bravoIds.get("invitationId"),
                 bravoIds.get("transferId"), bravoIds.get("changeId"), bravoIds.get("bucketId"), bravoIds.get("journalId"),
-                bravoIds.get("requestId"), bravoIds.get("productId"), bravoIds.get("loanId"), bravo.president().phone())) {
+                bravoIds.get("requestId"), bravoIds.get("productId"), bravoIds.get("loanId"), bravoIds.get("withdrawalId"), bravo.president().phone())) {
             if (body.contains(secret)) {
                 failures.add(what + " leaked " + secret);
             }

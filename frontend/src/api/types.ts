@@ -313,3 +313,33 @@ export const canRequestLoan = (role: GroupRole) => role !== 'AUDITOR';
 export const canDecideLoans = (role: GroupRole) => role === 'PRESIDENT' || role === 'TREASURER' || role === 'SECRETARY';
 export const canDisburse = (role: GroupRole) => role === 'TREASURER';
 export const canRecordRepayments = (role: GroupRole) => role === 'TREASURER';
+
+// --- Phase 3c: withdrawals -------------------------------------------------------------------
+
+export type WithdrawalStatus = 'REQUESTED' | 'APPROVED' | 'PAID' | 'REJECTED' | 'CANCELLED';
+
+export interface WithdrawalView {
+  withdrawalId: string;
+  member: { memberId: string; memberNumber: string; fullName: string | null } | null;
+  bucketId: string;
+  bucketName: string;
+  amount: string;
+  reason: string | null;
+  status: WithdrawalStatus;
+  requestedOn: string;
+  /** The bylaw notice period: money is paid out no earlier than this date. */
+  earliestPayoutOn: string;
+  requestedAt: string;
+  decidedRole: GroupRole | null;
+  decidedAt: string | null;
+  decisionReason: string | null;
+  paidAt: string | null;
+  journalId: string | null;
+  /** The member recorded the payout of their own withdrawal - allowed, but flagged. */
+  recordedByMember: boolean;
+  reversed: boolean;
+}
+
+/** Withdrawals (owner decisions, Phase 3c): the President or Treasurer decides, the Treasurer pays out. */
+export const canDecideWithdrawals = (role: GroupRole) => role === 'PRESIDENT' || role === 'TREASURER';
+export const canPayWithdrawals = (role: GroupRole) => role === 'TREASURER';

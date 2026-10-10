@@ -17,10 +17,19 @@ class MemberSavingsQueries implements MemberSavings {
 
     private final Ledger ledger;
     private final SavingsBucketRepository buckets;
+    private final SavingsWithdrawalRepository withdrawals;
 
-    MemberSavingsQueries(Ledger ledger, SavingsBucketRepository buckets) {
+    MemberSavingsQueries(Ledger ledger, SavingsBucketRepository buckets, SavingsWithdrawalRepository withdrawals) {
         this.ledger = ledger;
         this.buckets = buckets;
+        this.withdrawals = withdrawals;
+    }
+
+    @Override
+    public Money approvedWithdrawals() {
+        return withdrawals.findByGroupIdAndStatus(TenantContext.requireGroup().groupId(), SavingsWithdrawal.Status.APPROVED).stream()
+                .map(SavingsWithdrawal::getAmount)
+                .reduce(Money.ZERO, Money::plus);
     }
 
     @Override

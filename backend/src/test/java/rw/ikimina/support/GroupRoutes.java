@@ -11,7 +11,7 @@ import org.springframework.http.HttpMethod;
  * skip the tenant-isolation and role-matrix tests (spec 5.6).
  *
  * <p>Placeholders: {groupId}, {memberId}, {invitationId}, {transferId}, {changeId}, {bucketId}, {journalId}, {requestId},
- * {productId}, {loanId}.
+ * {productId}, {loanId}, {withdrawalId}.
  *
  * @param permission the matrix permission(s) the spec implies for the route; empty when access
  *                   is decided by membership plus an object rule (own record, office holder, invitee)
@@ -105,7 +105,18 @@ public record GroupRoutes(HttpMethod method, String template, List<String> permi
             route(HttpMethod.POST, "/api/v1/groups/{groupId}/loans/{loanId}/disburse", List.of("LOAN_DISBURSE"),
                     Map.of("method", "CASH")),
             route(HttpMethod.POST, "/api/v1/groups/{groupId}/loans/{loanId}/repayments", List.of("REPAYMENT_RECORD"),
-                    Map.of("amount", "1000", "method", "CASH")));
+                    Map.of("amount", "1000", "method", "CASH")),
+
+            // Phase 3c: withdrawals
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/withdrawals", List.of(), Map.of("bucketId", "{bucketId}", "amount", "1000")),
+            route(HttpMethod.GET, "/api/v1/groups/{groupId}/withdrawals", List.of(), null),
+            route(HttpMethod.GET, "/api/v1/groups/{groupId}/withdrawals/{withdrawalId}", List.of(), null),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/withdrawals/{withdrawalId}/approve", List.of("LOAN_APPROVE"), null),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/withdrawals/{withdrawalId}/reject", List.of("LOAN_APPROVE"),
+                    Map.of("reason", "not now")),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/withdrawals/{withdrawalId}/cancel", List.of(), null),
+            route(HttpMethod.POST, "/api/v1/groups/{groupId}/withdrawals/{withdrawalId}/pay", List.of("CONTRIBUTION_RECORD"),
+                    Map.of("method", "CASH")));
 
     private static GroupRoutes route(HttpMethod method, String template, List<String> permission, Object body) {
         return new GroupRoutes(method, template, permission, body);

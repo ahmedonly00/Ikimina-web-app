@@ -38,7 +38,8 @@ class ReversalService {
      * Journals whose owning module undoes its own records when they are reversed (a JournalReversed
      * listener). A loan disbursement is not among them: a mistaken loan is cancelled before payout.
      */
-    private static final Set<JournalType> REVERSIBLE = EnumSet.of(JournalType.CONTRIBUTION, JournalType.LOAN_REPAYMENT);
+    private static final Set<JournalType> REVERSIBLE = EnumSet.of(JournalType.CONTRIBUTION, JournalType.LOAN_REPAYMENT,
+            JournalType.WITHDRAWAL);
 
     record ReversalView(UUID requestId, UUID journalId, JournalType journalType, String reason, String status,
                         UUID requestedBy, UUID decidedBy, String decisionReason, UUID reversalJournalId,

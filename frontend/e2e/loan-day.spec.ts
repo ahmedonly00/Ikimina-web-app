@@ -82,6 +82,7 @@ test('a loan from request to fully repaid, with every role doing its part', asyn
   await p.getByLabel('Name', { exact: true }).fill('Ubwizigame');
   await p.getByLabel('Starts on').fill(new Date().toISOString().slice(0, 10));
   await p.getByLabel('Contribution amount (RWF)').fill('5000');
+  await p.getByLabel('Members may withdraw').check();
   await p.getByRole('button', { name: 'Create fund' }).click();
   await expect(p.getByRole('heading', { name: 'Ubwizigame' })).toBeVisible();
   await openTab(p, groupUrl, 'Loan products');
@@ -147,5 +148,36 @@ test('a loan from request to fully repaid, with every role doing its part', asyn
   await m.reload();
   await expect(m.getByText('Fully repaid')).toBeVisible();
   await expect(m.getByText('12,000 RWF', { exact: true })).toBeVisible();
+
+  // Phase 3c: with the loan repaid, the member takes 10,000 RWF out. The bylaws must allow it first:
+  // the Treasurer proposes the change, the President confirms it.
+  await openTab(t, groupUrl, 'Rules');
+  await t.getByLabel('Members may withdraw savings').selectOption('true');
+  await t.getByRole('button', { name: 'Save rules' }).click();
+  await expect(t.getByText(/waiting for another officer/)).toBeVisible();
+  await openTab(p, groupUrl, 'Rules');
+  await p.getByRole('button', { name: 'Confirm change' }).click();
+  await expect(p.getByText('A change is waiting for confirmation')).toHaveCount(0);
+
+  await openTab(m, groupUrl, 'Savings');
+  const fundOption = await m.getByLabel('From which fund').locator('option', { hasText: 'Ubwizigame' }).getAttribute('value');
+  expect(fundOption).toBeTruthy();
+  await m.getByLabel('From which fund').selectOption(fundOption ?? '');
+  await m.getByLabel('Amount (RWF)').fill('10000');
+  await m.getByRole('button', { name: 'Ask to withdraw' }).click();
+  await expect(m.getByText(/You asked for 10,000 RWF/)).toBeVisible();
+
+  await openTab(p, groupUrl, 'Withdrawals');
+  await p.getByRole('button', { name: 'Approve withdrawal' }).click();
+  await expect(p.getByRole('button', { name: 'Approve withdrawal' })).toHaveCount(0);
+
+  await openTab(t, groupUrl, 'Withdrawals');
+  await t.getByLabel('Show').selectOption('APPROVED');
+  await t.getByRole('button', { name: 'Record payout' }).click();
+  await expect(t.getByRole('button', { name: 'Record payout' })).toHaveCount(0);
+
+  await openTab(m, groupUrl, 'Savings');
+  await expect(m.getByRole('region', { name: 'Total savings' })).toContainText('90,000 RWF');
+  await expect(m.getByText('Paid out')).toBeVisible();
   test.info().annotations.push({ type: 'group', description: groupUrl.split('/groups/')[1]?.split('/')[0] ?? '' });
 });

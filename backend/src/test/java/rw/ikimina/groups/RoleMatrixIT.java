@@ -57,17 +57,11 @@ class RoleMatrixIT extends IntegrationTest {
     @Test
     void everyRoleIsAllowedOrRefusedExactlyAsTheMatrixSays() {
         List<String> mismatches = new ArrayList<>();
-        Map<String, String> ids = Map.of(
-                "groupId", group.groupId(),
-                "memberId", UUID.randomUUID().toString(),
-                "invitationId", UUID.randomUUID().toString(),
-                "transferId", UUID.randomUUID().toString(),
-                "changeId", UUID.randomUUID().toString(),
-                "bucketId", UUID.randomUUID().toString(),
-                "journalId", UUID.randomUUID().toString(),
-                "requestId", UUID.randomUUID().toString(),
-                "productId", UUID.randomUUID().toString(),
-                "loanId", UUID.randomUUID().toString());
+        Map<String, String> ids = new java.util.HashMap<>(Map.of("groupId", group.groupId()));
+        for (String placeholder : List.of("memberId", "invitationId", "transferId", "changeId", "bucketId", "journalId", "requestId",
+                "productId", "loanId", "withdrawalId")) {
+            ids.put(placeholder, UUID.randomUUID().toString());
+        }
         for (GroupRoutes route : GroupRoutes.ALL) {
             if (route.permission().isEmpty()) {
                 continue;   // membership + object rules; covered in GroupFlowIT

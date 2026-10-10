@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
@@ -60,6 +62,24 @@ class I18nKeyParityTest {
                 .count();
         System.out.printf("i18n: %d of %d Kinyarwanda messages are still %s placeholders%n",
                 placeholders, kinyarwanda.size(), PLACEHOLDER_MARKER);
+    }
+
+    /**
+     * A message with {0}-style arguments goes through MessageFormat, where a lone apostrophe starts a
+     * quoted section: "the group's ... {0}" would print a literal "{0}". Such messages must write ''.
+     */
+    @org.junit.jupiter.api.Test
+    void messagesWithArgumentsEscapeTheirApostrophes() {
+        List<String> broken = new ArrayList<>();
+        for (Properties bundle : List.of(english, kinyarwanda)) {
+            for (String key : bundle.stringPropertyNames()) {
+                String message = bundle.getProperty(key);
+                if (!arguments(message).isEmpty() && message.replace("''", "").contains("'")) {
+                    broken.add(key + " = " + message);
+                }
+            }
+        }
+        assertThat(broken).isEmpty();
     }
 
     private static Set<String> arguments(String message) {

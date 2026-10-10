@@ -105,6 +105,7 @@ function Payment({ payment, canReverse }: { payment: TransactionView; canReverse
         <span className="text-sm text-muted">{new Date(`${payment.businessDate}T00:00:00`).toLocaleDateString(i18n.language)}</span>
         <span className="text-sm text-muted">{t(`record.${payment.method === 'MOMO_API' ? 'MOMO_MANUAL' : payment.method}`)}</span>
         {payment.externalRef && <span className="font-mono text-xs text-muted">{payment.externalRef}</span>}
+        {payment.type === 'WITHDRAWAL' && <Badge>{t('savings.withdrawal')}</Badge>}
         {payment.reversed && <Badge tone="accent">{t('savings.reversed')}</Badge>}
       </div>
       {canReverse && !payment.reversed && !request.isSuccess && (

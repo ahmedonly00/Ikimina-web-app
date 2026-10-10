@@ -68,7 +68,13 @@ public enum ErrorCode {
     LOAN_OVERPAYMENT(HttpStatus.UNPROCESSABLE_CONTENT),
     LOAN_PRODUCT_NOT_ACTIVE(HttpStatus.CONFLICT),
     LOAN_PRODUCT_CHANGE_STALE(HttpStatus.CONFLICT),
-    LOAN_TERMS_UNSUPPORTED(HttpStatus.BAD_REQUEST);
+    LOAN_TERMS_UNSUPPORTED(HttpStatus.BAD_REQUEST),
+
+    // Phase 3c: withdrawals
+    /** Carries the reasons, each localised under {@code reason.<code>}. */
+    WITHDRAWAL_NOT_ALLOWED(HttpStatus.UNPROCESSABLE_CONTENT),
+    WITHDRAWAL_INVALID_STATE(HttpStatus.CONFLICT),
+    WITHDRAWAL_NOT_YET_DUE(HttpStatus.CONFLICT);
 
     private final HttpStatus status;
 

@@ -27,6 +27,7 @@ import rw.ikimina.loans.internal.LoanStateMachine.Action;
 import rw.ikimina.loans.internal.LoanStateMachine.Status;
 import rw.ikimina.savings.MemberSavings;
 import rw.ikimina.shared.error.ApiException;
+import rw.ikimina.shared.locks.AdvisoryLocks;
 import rw.ikimina.shared.error.ErrorCode;
 import rw.ikimina.shared.error.ReasonedApiException;
 import rw.ikimina.shared.error.ReasonedApiException.Reason;
@@ -95,7 +96,7 @@ class LoanService {
         }
         GroupMembers.Member borrower = members.findById(scope.membershipId()).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
         // One request at a time per member, so two simultaneous requests cannot both pass the open-loan rule.
-        jdbc.queryForList("SELECT pg_advisory_xact_lock(?, ?)", 7_303, (int) borrower.membershipId());
+        AdvisoryLocks.lock(jdbc, AdvisoryLocks.LOAN_REQUEST, borrower.membershipId());
 
         ProductTerms terms = productService.terms(product);
         int required = ApprovalPolicy.requiredApprovals(amount, terms.dualApprovalThreshold());
@@ -165,7 +166,8 @@ class LoanService {
                 .filter(l -> !l.getId().equals(except))
                 .map(Loan::getPrincipal)
                 .reduce(Money.ZERO, Money::plus);
-        return ledger.balance(AccountRef.of(AccountType.GROUP_CASH)).minus(reserved);
+        // Withdrawals approved but not paid out hold cash too.
+        return ledger.balance(AccountRef.of(AccountType.GROUP_CASH)).minus(reserved).minus(savings.approvedWithdrawals());
     }
 
     /**
@@ -177,7 +179,7 @@ class LoanService {
                 .filter(l -> !l.getId().equals(loan.getId()) && approvedBefore(l, loan))
                 .map(Loan::getPrincipal)
                 .reduce(Money.ZERO, Money::plus);
-        return ledger.balance(AccountRef.of(AccountType.GROUP_CASH)).minus(reservedEarlier);
+        return ledger.balance(AccountRef.of(AccountType.GROUP_CASH)).minus(reservedEarlier).minus(savings.approvedWithdrawals());
     }
 
     private static boolean approvedBefore(Loan a, Loan b) {

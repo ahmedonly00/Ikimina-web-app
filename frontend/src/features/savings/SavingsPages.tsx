@@ -8,12 +8,18 @@ import { Button, ErrorMessage, Loading, TextField } from '../../components/ui';
 import { formatRwf } from '../../lib/money';
 import { useGroup } from '../groups/GroupLayout';
 import { MemberSavings } from './MemberSavings';
+import { MyWithdrawals } from './WithdrawalsPage';
 
 /** "My savings": what every member sees about themselves (spec 18.3 member screens). */
 export function MySavingsPage() {
   const { t } = useTranslation();
   const group = useGroup();
-  return <MemberSavings memberId={group.myMemberId} title={t('savings.title')} />;
+  return (
+    <div className="flex flex-col gap-6">
+      <MemberSavings memberId={group.myMemberId} title={t('savings.title')} />
+      <MyWithdrawals />
+    </div>
+  );
 }
 
 /** An officer looking at one member's savings, from the member list. */

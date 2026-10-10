@@ -20,7 +20,10 @@ undecided), fake SMS provider only, SecLists top-10k password list. Phase 2: buc
 SETTINGS_EDIT and changes to their money terms need a **second officer**; obligations anchored at
 the bucket start date, **due on the period's last day**; overpayments carry to the next obligation;
 reversals are **two-step** (CONTRIBUTION_RECORD asks, a different LOAN_APPROVE holder approves);
-**withdrawals are Phase 3c, exit settlement Phase 4** (it needs fines). Phase 3: the spec 9.3
+**withdrawals are Phase 3c, exit settlement Phase 4** (it needs fines). Phase 3c: the member asks, the
+President or Treasurer (never the member) approves, the Treasurer records the payout (own withdrawal flagged); bylaw
+notice days = earliest payout date; no withdrawal while the member has an unfinished loan; any amount up to the fund
+balance less pending requests. Phase 3: the spec 9.3
 Secretary-substitution rule as written; schedules MONTHLY and AT_MATURITY only (weekly needs owner
 input); interest recognised WHEN_PAID only; overpaying a loan is refused; the fines part of a
 repayment is 0 until Phase 4; one open loan per member unless the product allows more; the approver

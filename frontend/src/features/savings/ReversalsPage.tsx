@@ -58,6 +58,7 @@ function Reversal({ reversal, requestedOn }: { reversal: ReversalView; requested
 
   return (
     <li className="flex flex-col gap-2 rounded-xl border border-line bg-card p-3">
+      <p className="font-semibold">{t(`reversals.kind_${reversal.journalType}`, { defaultValue: reversal.journalType })}</p>
       <p className="text-sm text-muted">{t('reversals.requestedOn', { date: requestedOn })}</p>
       <p>
         <span className="font-semibold">{t('reversals.reason')}:</span> {reversal.reason}

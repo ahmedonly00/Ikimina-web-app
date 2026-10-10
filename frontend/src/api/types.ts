@@ -209,3 +209,107 @@ export interface ReversalView {
 export const canRecordContributions = (role: GroupRole) => role === 'TREASURER';
 export const canApproveMoney = (role: GroupRole) => role === 'PRESIDENT' || role === 'TREASURER';
 export const canSeeEveryonesSavings = (role: GroupRole) => role !== 'MEMBER';
+
+// --- Phase 3: loans -------------------------------------------------------------------------
+
+export type InterestMethod = 'FLAT' | 'REDUCING_BALANCE';
+export type InterestPeriod = 'MONTH' | 'LOAN_TERM';
+export type RepaymentFrequency = 'MONTHLY' | 'WEEKLY' | 'AT_MATURITY';
+export type LoanStatus =
+  | 'SUBMITTED'
+  | 'PARTIALLY_COUNTERSIGNED'
+  | 'APPROVED'
+  | 'DISBURSED'
+  | 'OVERDUE'
+  | 'SETTLED'
+  | 'REJECTED'
+  | 'CANCELLED'
+  | 'WRITTEN_OFF';
+
+export interface ProductTerms {
+  interestMethod: InterestMethod;
+  /** Decimal string (rates travel as strings, like money); display only. */
+  interestRatePercent: string;
+  interestPeriod: InterestPeriod;
+  minAmount: string | null;
+  maxAmount: string | null;
+  maxMultipleOfSavings: string | null;
+  minTermMonths: number;
+  maxTermMonths: number;
+  repaymentFrequency: RepaymentFrequency;
+  graceDays: number;
+  dualApprovalThreshold: string | null;
+  allocationOrder: ('FINES' | 'INTEREST' | 'PRINCIPAL')[];
+  allowConcurrentLoans: boolean;
+}
+
+export interface LoanProductView {
+  productId: string;
+  name: string;
+  status: 'ACTIVE' | 'CLOSED';
+  terms: ProductTerms;
+  version: number;
+  pendingChange: { changeId: string; proposed: ProductTerms; proposedBy: string | null; proposedAt: string } | null;
+}
+
+export interface LoanView {
+  loanId: string;
+  productId: string;
+  productName: string;
+  borrower: { memberId: string; memberNumber: string; fullName: string | null } | null;
+  purpose: string | null;
+  principal: string;
+  termMonths: number;
+  interestMethod: InterestMethod;
+  interestRatePercent: string;
+  interestPeriod: InterestPeriod;
+  repaymentFrequency: RepaymentFrequency;
+  graceDays: number;
+  status: LoanStatus;
+  requiredApprovals: number;
+  approvals: { memberId: string | null; role: GroupRole; decision: 'APPROVE' | 'REJECT'; comment: string | null; decidedAt: string }[];
+  waitingFor: GroupRole[];
+  requestedAt: string;
+  approvedAt: string | null;
+  disbursedAt: string | null;
+  maturesOn: string | null;
+  settledAt: string | null;
+  rejectionReason: string | null;
+  outstanding: { principal: string; interest: string; total: string };
+  repayments: {
+    repaymentId: string;
+    journalId: string;
+    amount: string;
+    interest: string;
+    principal: string;
+    method: PaymentMethod | 'MOMO_API';
+    externalRef: string | null;
+    businessDate: string;
+    reversed: boolean;
+    /** The borrower recorded it on their own loan - allowed, but flagged (owner decision). */
+    recordedByBorrower: boolean;
+  }[];
+  /** The borrower recorded the hand-over of their own loan. */
+  disbursedByBorrower: boolean;
+  version: number;
+}
+
+export interface ScheduleView {
+  loanId: string;
+  installments: {
+    number: number;
+    dueDate: string;
+    principalDue: string;
+    interestDue: string;
+    principalPaid: string;
+    interestPaid: string;
+    status: 'PENDING' | 'PARTIAL' | 'PAID' | 'OVERDUE';
+  }[];
+  outstanding: { principal: string; interest: string; total: string };
+}
+
+/** Spec 5.5 / 9.3 as the loan screens need them (the server stays the authority). */
+export const canRequestLoan = (role: GroupRole) => role !== 'AUDITOR';
+export const canDecideLoans = (role: GroupRole) => role === 'PRESIDENT' || role === 'TREASURER' || role === 'SECRETARY';
+export const canDisburse = (role: GroupRole) => role === 'TREASURER';
+export const canRecordRepayments = (role: GroupRole) => role === 'TREASURER';

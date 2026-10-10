@@ -28,6 +28,10 @@ const StatementPage = lazy(() => import('./features/savings/SavingsPages').then(
 const FundsPage = lazy(() => import('./features/savings/FundsPage').then((m) => ({ default: m.FundsPage })));
 const RecordPaymentPage = lazy(() => import('./features/savings/RecordPaymentPage').then((m) => ({ default: m.RecordPaymentPage })));
 const ReversalsPage = lazy(() => import('./features/savings/ReversalsPage').then((m) => ({ default: m.ReversalsPage })));
+const LoansPage = lazy(() => import('./features/loans/LoansPage').then((m) => ({ default: m.LoansPage })));
+const RequestLoanPage = lazy(() => import('./features/loans/LoansPage').then((m) => ({ default: m.RequestLoanPage })));
+const LoanDetailPage = lazy(() => import('./features/loans/LoanDetailPage').then((m) => ({ default: m.LoanDetailPage })));
+const LoanProductsPage = lazy(() => import('./features/loans/LoanProductsPage').then((m) => ({ default: m.LoanProductsPage })));
 const AcceptInvitationPage = lazy(() => import('./features/groups/AcceptInvitationPage').then((m) => ({ default: m.AcceptInvitationPage })));
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })));
 
@@ -93,6 +97,10 @@ const router = createBrowserRouter([
           { path: 'funds', element: <FundsPage /> },
           { path: 'record', element: <RecordPaymentPage /> },
           { path: 'reversals', element: <ReversalsPage /> },
+          { path: 'loans', element: <LoansPage /> },
+          { path: 'loans/new', element: <RequestLoanPage /> },
+          { path: 'loans/:loanId', element: <LoanDetailPage /> },
+          { path: 'loan-products', element: <LoanProductsPage /> },
           { path: 'invite', element: <InvitePage /> },
           { path: 'rules', element: <RulesPage /> },
           { path: 'offices', element: <OfficesPage /> },

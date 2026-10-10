@@ -25,7 +25,9 @@ Secretary-substitution rule as written; schedules MONTHLY and AT_MATURITY only (
 input); interest recognised WHEN_PAID only; overpaying a loan is refused; the fines part of a
 repayment is 0 until Phase 4; one open loan per member unless the product allows more; the approver
 cannot record the disbursement of a **single-approval** loan when ≥3 officers are active (dual approvals
-already have an independent second signer); the savings multiple counts every fund **except the social
+already have an independent second signer), so in that case the **President** gives the single approval (the
+Secretary if the President borrows) - the Treasurer records the payout; money a borrower records on their **own**
+loan is allowed but **flagged** (loan page + audit); the savings multiple counts every fund **except the social
 fund**; a repayment can be reversed two-step like a contribution (disbursements cannot - cancel before
 payout instead); loan-product money terms need a second officer.
 

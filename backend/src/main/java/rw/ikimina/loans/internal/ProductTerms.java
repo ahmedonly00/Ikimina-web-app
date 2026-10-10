@@ -5,6 +5,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -24,11 +25,12 @@ import rw.ikimina.shared.money.Money;
  */
 record ProductTerms(
         @NotNull LoanTerms.InterestMethod interestMethod,
-        @NotNull BigDecimal interestRatePercent,
+        // Rates and multiples travel as strings, like money, so no client reads them as binary floating point (H1).
+        @NotNull @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal interestRatePercent,
         @NotNull LoanTerms.InterestPeriod interestPeriod,
         Money minAmount,
         Money maxAmount,
-        BigDecimal maxMultipleOfSavings,
+        @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal maxMultipleOfSavings,
         @NotNull @Min(1) @Max(120) Integer minTermMonths,
         @NotNull @Min(1) @Max(120) Integer maxTermMonths,
         @NotNull LoanTerms.RepaymentFrequency repaymentFrequency,

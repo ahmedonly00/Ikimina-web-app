@@ -2,6 +2,7 @@ package rw.ikimina.loans.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -165,19 +166,20 @@ class LoanFlowIT extends IntegrationTest {
         void changingMoneyTermsNeedsASecondOfficer() {
             String productId = product(Map.of());
             JsonNode created = api().get(group.path("/loan-products/" + productId), as(GroupRole.MEMBER)).expect(200).body();
-            assertThat(created.get("terms").get("interestRatePercent").decimalValue()).isEqualByComparingTo("5");
+            assertThat(created.get("terms").get("interestRatePercent").asString()).as("rates travel as strings").isEqualTo("5.0000");
 
             Response proposed = api().patch(group.path("/loan-products/" + productId), as(GroupRole.TREASURER),
                     Map.of("version", created.get("version").asLong(), "terms", terms(Map.of("interestRatePercent", "4.5")))).expect(202);
             String changeId = proposed.body().get("pendingChange").get("changeId").asString();
-            assertThat(proposed.body().get("terms").get("interestRatePercent").decimalValue()).as("unchanged until confirmed")
-                    .isEqualByComparingTo("5");
+            assertThat(proposed.body().get("terms").get("interestRatePercent").asString()).as("unchanged until confirmed")
+                    .isEqualTo("5.0000");
 
             api().post(group.path("/loan-products/" + productId + "/changes/" + changeId + "/confirm"), as(GroupRole.TREASURER), null)
                     .expect(403, "SELF_APPROVAL_FORBIDDEN");
             JsonNode confirmed = api().post(group.path("/loan-products/" + productId + "/changes/" + changeId + "/confirm"),
                     group.president(), null).expect(200).body();
-            assertThat(confirmed.get("terms").get("interestRatePercent").decimalValue()).isEqualByComparingTo("4.5");
+            assertThat(confirmed.get("terms").get("interestRatePercent").isString()).isTrue();
+            assertThat(new BigDecimal(confirmed.get("terms").get("interestRatePercent").asString())).isEqualByComparingTo("4.5");
             assertThat(confirmed.get("pendingChange").isNull()).isTrue();
         }
 
@@ -304,7 +306,7 @@ class LoanFlowIT extends IntegrationTest {
             String loanId = request(GroupRole.MEMBER, product(Map.of("dualApprovalThreshold", "100000")), "20000", 3)
                     .expect(201).text("loanId");
             assertThat(loan(loanId).get("requiredApprovals").asInt()).isEqualTo(1);
-            assertThat(approve(GroupRole.TREASURER, loanId).expect(200).text("status")).isEqualTo("APPROVED");
+            assertThat(approve(GroupRole.PRESIDENT, loanId).expect(200).text("status")).isEqualTo("APPROVED");
         }
 
         @Test
@@ -407,16 +409,23 @@ class LoanFlowIT extends IntegrationTest {
         }
 
         @Test
-        void whoeverGaveTheOnlyApprovalCannotRecordThePayout() {
+        void withThreeOfficersThePresidentGivesTheSingleApprovalAndTheTreasurerPaysOut() {
+            // Owner decision (Phase 3 review): the approver of a single-approval loan cannot record its payout, and only
+            // the Treasurer records payouts - so the Treasurer does not give that approval, and no loan can get stuck.
             save(GroupRole.MEMBER, "100000");
             String productId = product(Map.of("dualApprovalThreshold", "500000", "allowConcurrentLoans", true));
-            String byTreasurer = request(GroupRole.MEMBER, productId, "10000", 3).expect(201).text("loanId");
-            approve(GroupRole.TREASURER, byTreasurer).expect(200);
-            disburse(GroupRole.TREASURER, byTreasurer, "pay-" + UUID.randomUUID()).expect(403, "LOAN_DISBURSER_MUST_DIFFER");
+            String loanId = request(GroupRole.MEMBER, productId, "10000", 3).expect(201).text("loanId");
+            assertThat(loan(loanId).get("waitingFor")).extracting(JsonNode::asString).containsExactly("PRESIDENT");
 
-            String byPresident = request(GroupRole.MEMBER, productId, "10000", 3).expect(201).text("loanId");
-            approve(GroupRole.PRESIDENT, byPresident).expect(200);
-            disburse(GroupRole.TREASURER, byPresident, "pay-" + UUID.randomUUID()).expect(200);
+            approve(GroupRole.TREASURER, loanId).expect(403, "LOAN_APPROVER_NOT_ALLOWED");
+            approve(GroupRole.PRESIDENT, loanId).expect(200);
+            disburse(GroupRole.TREASURER, loanId, "pay-" + UUID.randomUUID()).expect(200);
+
+            // A borrowing President: the Secretary gives the approval instead, and the Treasurer pays out.
+            String presidents = request(GroupRole.PRESIDENT, productId, "10000", 3).expect(201).text("loanId");
+            assertThat(loan(presidents).get("waitingFor")).extracting(JsonNode::asString).containsExactly("SECRETARY");
+            approve(GroupRole.SECRETARY, presidents).expect(200);
+            disburse(GroupRole.TREASURER, presidents, "pay-" + UUID.randomUUID()).expect(200);
         }
 
         @Test
@@ -496,6 +505,125 @@ class LoanFlowIT extends IntegrationTest {
             assertThat(schedule(loanId).get("installments").get(2).get("status").asString()).isEqualTo("PENDING");
             long groupId = LedgerTestSupport.actor(group.groupId(), group.memberId(GroupRole.MEMBER)).groupId();
             assertThat(reconciler.reconcile(groupId).clean()).isTrue();
+        }
+    }
+
+    // --- review fixes: each test failed before its fix --------------------------------------------
+
+    @Nested
+    class ReviewFixes {
+
+        @Test
+        void loansApprovedTogetherCannotBlockEachOthersPayout() {
+            save(GroupRole.MEMBER, "100000");
+            String productId = product(Map.of("allowConcurrentLoans", true));
+            // Both requests fit the cash on their own, because neither is approved yet.
+            String first = request(GroupRole.MEMBER, productId, "80000", 3).expect(201).text("loanId");
+            String second = request(GroupRole.SECRETARY, productId, "80000", 3).expect(201).text("loanId");
+            approve(GroupRole.PRESIDENT, first).expect(200);
+            approve(GroupRole.TREASURER, first).expect(200);
+            approve(GroupRole.PRESIDENT, second).expect(200);
+            // The last approval of the second loan would commit cash the first one already holds.
+            approve(GroupRole.TREASURER, second).expect(422, "INSUFFICIENT_GROUP_FUNDS");
+            disburse(GroupRole.TREASURER, first, "pay-" + UUID.randomUUID()).expect(200);
+        }
+
+        @Test
+        void aRepaymentThatFindsTheLoanLateMarksItOverdueWithAuditAndEvent() throws SQLException {
+            save(GroupRole.MEMBER, "100000");
+            String loanId = disbursedLoan(product(Map.of()), "30000", 3);
+            // A day after the first due date, before the nightly job has run.
+            clock.advance(Duration.between(BusinessTime.startOf(today()), BusinessTime.startOf(today().plusMonths(1).plusDays(1))));
+            everyoneSignsInAgain();
+            repay(loanId, "1000", "repay-" + UUID.randomUUID()).expect(201);
+
+            assertThat(loan(loanId).get("status").asString()).isEqualTo("OVERDUE");
+            assertThat(auditRows(loanId, "LOAN_OVERDUE")).isEqualTo(1);
+            overdueJob.runNightly();
+            assertThat(auditRows(loanId, "LOAN_OVERDUE")).as("the job does not mark it again").isEqualTo(1);
+        }
+
+        @Test
+        void installmentsWithNothingDueDoNotKeepALoanOpen() {
+            save(GroupRole.MEMBER, "100000");
+            // 18 RWF over 12 months at 0%: a payment of 2 RWF clears it after 9 months; months 10-12 owe nothing.
+            String productId = product(Map.of("interestMethod", "REDUCING_BALANCE", "interestRatePercent", "0"));
+            String loanId = disbursedLoan(productId, "18", 12);
+            JsonNode rows = schedule(loanId).get("installments");
+            assertThat(rows.get(11).get("principalDue").asString()).isEqualTo("0.00");
+            assertThat(rows.get(11).get("status").asString()).isEqualTo("PAID");
+
+            assertThat(repay(loanId, "18", "repay-" + UUID.randomUUID()).expect(201).text("status")).isEqualTo("SETTLED");
+        }
+
+        @Test
+        void aPlainMemberCannotEvenTellThatSomeoneElsesLoanExists() {
+            save(GroupRole.MEMBER, "100000");
+            String loanId = request(GroupRole.SECRETARY, product(Map.of()), "10000", 3).expect(201).text("loanId");
+            api().post(group.path("/loans/" + loanId + "/approve"), as(GroupRole.MEMBER), Map.of()).expect(404, "NOT_FOUND");
+            api().post(group.path("/loans/" + loanId + "/reject"), as(GroupRole.MEMBER), Map.of("reason", "no")).expect(404, "NOT_FOUND");
+            api().post(group.path("/loans/" + loanId + "/cancel"), as(GroupRole.MEMBER), null).expect(404, "NOT_FOUND");
+        }
+
+        @Test
+        void aRetryAfterMidnightIsStillTheSameRequest() {
+            save(GroupRole.MEMBER, "100000");
+            String loanId = request(GroupRole.MEMBER, product(Map.of()), "10000", 3).expect(201).text("loanId");
+            approve(GroupRole.PRESIDENT, loanId).expect(200);
+            approve(GroupRole.TREASURER, loanId).expect(200);
+            String key = "pay-" + UUID.randomUUID();
+            disburse(GroupRole.TREASURER, loanId, key).expect(200);
+
+            clock.advance(Duration.between(now(), BusinessTime.startOf(today().plusDays(1)).plus(Duration.ofHours(1))));
+            everyoneSignsInAgain();
+            assertThat(disburse(GroupRole.TREASURER, loanId, key).expect(200).text("status")).isEqualTo("DISBURSED");
+        }
+
+        @Test
+        void aLoanNoOfficerCouldApproveIsRefusedUpFront() {
+            TestGroup alone = new GroupFixture(api(), sms).create("Alone " + UUID.randomUUID().toString().substring(0, 8));
+            String productId = api().post(alone.path("/loan-products"), alone.president(),
+                    Map.of("name", "Standard", "terms", terms(Map.of()))).expect(201).text("productId");
+            Response refused = api().post(alone.path("/loans"), alone.president(),
+                    Map.of("productId", productId, "amount", "1000", "termMonths", 1)).expect(422, "LOAN_NOT_ELIGIBLE");
+            assertThat(reasons(refused)).contains("APPROVERS_UNAVAILABLE");
+        }
+
+        @Test
+        void moneyTheTreasurerRecordsOnTheirOwnLoanIsFlagged() throws SQLException {
+            save(GroupRole.MEMBER, "100000");
+            String loanId = request(GroupRole.TREASURER, product(Map.of()), "30000", 3).expect(201).text("loanId");
+            approve(GroupRole.PRESIDENT, loanId).expect(200);
+            approve(GroupRole.SECRETARY, loanId).expect(200);
+            assertThat(disburse(GroupRole.TREASURER, loanId, "pay-" + UUID.randomUUID()).expect(200).body()
+                    .get("disbursedByBorrower").asBoolean()).isTrue();
+            JsonNode repaid = repay(loanId, "5000", "repay-" + UUID.randomUUID()).expect(201).body();
+            assertThat(repaid.get("repayments").get(0).get("recordedByBorrower").asBoolean()).isTrue();
+            assertThat(auditReasons(loanId, "LOAN_DISBURSED")).containsExactly("recorded by the borrower on their own loan");
+
+            // A member's loan paid out by the Treasurer is not flagged.
+            String members = disbursedLoan(product(Map.of()), "10000", 3);
+            assertThat(loan(members).get("disbursedByBorrower").asBoolean()).isFalse();
+        }
+    }
+
+    private int auditRows(String entityId, String action) throws SQLException {
+        return auditReasons(entityId, action).size();
+    }
+
+    private List<String> auditReasons(String entityId, String action) throws SQLException {
+        try (Connection owner = PostgresTestDatabase.connectAsOwner("app_it");
+             PreparedStatement query = owner.prepareStatement(
+                     "SELECT COALESCE(reason, '') FROM audit_logs WHERE action = ? AND entity_id = ? ORDER BY chain_seq")) {
+            query.setString(1, action);
+            query.setString(2, entityId);
+            List<String> reasons = new ArrayList<>();
+            try (ResultSet rs = query.executeQuery()) {
+                while (rs.next()) {
+                    reasons.add(rs.getString(1));
+                }
+            }
+            return reasons;
         }
     }
 

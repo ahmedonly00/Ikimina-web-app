@@ -22,11 +22,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   block?: boolean;
 }
 
-export function Button({ variant = 'primary', busy = false, block = false, className = '', children, disabled, ...rest }: ButtonProps) {
+/** Only submits a form when asked to (type="submit"), so a Cancel inside a form never sends it. */
+export function Button({ variant = 'primary', busy = false, block = false, className = '', children, disabled, type = 'button', ...rest }: ButtonProps) {
   const { t } = useTranslation();
   return (
     <button
       {...rest}
+      type={type}
       disabled={disabled || busy}
       aria-busy={busy || undefined}
       className={`inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-base font-semibold transition-colors ${
@@ -144,10 +146,17 @@ export function ErrorMessage({ error }: { error: unknown }) {
     return null;
   }
   if (error instanceof ApiError) {
-    const { detail, title, requestId } = error.problem;
+    const { detail, title, requestId, reasons } = error.problem;
     return (
       <Alert tone="danger">
         <span>{detail || title || t('errors.generic')}</span>
+        {reasons && reasons.length > 0 && (
+          <ul className="mt-1 list-inside list-disc">
+            {reasons.map((reason) => (
+              <li key={reason.code}>{reason.message}</li>
+            ))}
+          </ul>
+        )}
         {requestId && error.status >= 500 && <span className="block text-xs">{t('errors.reference', { requestId })}</span>}
       </Alert>
     );

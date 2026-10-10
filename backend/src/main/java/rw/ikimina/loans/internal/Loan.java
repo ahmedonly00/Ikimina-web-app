@@ -17,6 +17,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import rw.ikimina.groups.GroupRole;
 import rw.ikimina.loans.internal.LoanStateMachine.Action;
 import rw.ikimina.loans.internal.LoanStateMachine.Status;
 import rw.ikimina.shared.money.Money;
@@ -44,6 +45,11 @@ public class Loan {
 
     @Column(name = "borrower_membership_id", nullable = false, updatable = false)
     private Long borrowerMembershipId;
+
+    /** The borrower's role when the loan was requested: who may approve depends on it (spec 9.3). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "borrower_role", nullable = false, updatable = false)
+    private GroupRole borrowerRole;
 
     @Column(updatable = false)
     private String purpose;
@@ -113,12 +119,13 @@ public class Loan {
     protected Loan() {
     }
 
-    Loan(long groupId, long productId, long borrowerMembershipId, String purpose, Money principal, int termMonths,
+    Loan(long groupId, long productId, long borrowerMembershipId, GroupRole borrowerRole, String purpose, Money principal, int termMonths,
          LoanTerms terms, String allocationJson, int requiredApprovals, Instant now) {
         this.publicId = UUID.randomUUID();
         this.groupId = groupId;
         this.productId = productId;
         this.borrowerMembershipId = borrowerMembershipId;
+        this.borrowerRole = borrowerRole;
         this.purpose = purpose;
         this.principalAmount = principal.toStorageAmount();
         this.termMonths = termMonths;
@@ -180,6 +187,10 @@ public class Loan {
 
     Long getBorrowerMembershipId() {
         return borrowerMembershipId;
+    }
+
+    GroupRole getBorrowerRole() {
+        return borrowerRole;
     }
 
     String getPurpose() {

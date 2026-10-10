@@ -68,7 +68,9 @@ public class LoanInstallment {
         this.interestDue = row.interest().toStorageAmount();
         this.principalPaid = BigDecimal.ZERO;
         this.interestPaid = BigDecimal.ZERO;
-        this.status = Status.PENDING;
+        // A tiny or interest-free loan can leave an installment with nothing due; it is paid from the start,
+        // or the loan could never be settled.
+        this.status = row.total().isZero() ? Status.PAID : Status.PENDING;
     }
 
     Money interestOutstanding() {

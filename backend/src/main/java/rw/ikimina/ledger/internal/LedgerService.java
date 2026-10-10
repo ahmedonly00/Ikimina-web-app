@@ -26,6 +26,7 @@ import rw.ikimina.ledger.AccountType;
 import rw.ikimina.ledger.Direction;
 import rw.ikimina.ledger.JournalRequest;
 import rw.ikimina.ledger.JournalReversed;
+import rw.ikimina.ledger.JournalReversing;
 import rw.ikimina.ledger.JournalSource;
 import rw.ikimina.ledger.JournalType;
 import rw.ikimina.ledger.Ledger;
@@ -107,6 +108,8 @@ class LedgerService implements Ledger {
         if (alreadyReversed != null && alreadyReversed > 0) {
             throw new ApiException(ErrorCode.JOURNAL_ALREADY_REVERSED);
         }
+        // Before any balance lock: the owning module locks its business rows first (see JournalReversing).
+        events.publishEvent(new JournalReversing(groupId, journalId, JournalType.valueOf(original.type())));
 
         record Row(AccountRef account, Direction direction, Money amount) {
         }

@@ -159,6 +159,10 @@ public class LoanRepayment {
         return businessDate;
     }
 
+    Long getRecordedBy() {
+        return recordedBy;
+    }
+
     Instant getRecordedAt() {
         return recordedAt;
     }

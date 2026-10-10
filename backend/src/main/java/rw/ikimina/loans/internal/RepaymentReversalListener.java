@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import rw.ikimina.audit.AuditEvent;
 import rw.ikimina.audit.AuditService;
 import rw.ikimina.ledger.JournalReversed;
+import rw.ikimina.ledger.JournalReversing;
 import rw.ikimina.ledger.JournalType;
 import rw.ikimina.loans.internal.LoanStateMachine.Action;
 import rw.ikimina.loans.internal.LoanStateMachine.Status;
@@ -19,6 +20,10 @@ import rw.ikimina.shared.time.BusinessTime;
  * Keeps the loan records in step with the ledger: when a repayment's journal is reversed (two-step,
  * owner decision Phase 3), the repayment is marked reversed and exactly what it paid is owed again -
  * in the same transaction as the reversing journal. A settled loan reopens.
+ *
+ * <p>Lock order: the loan and its installments are locked on {@link JournalReversing}, before the
+ * ledger locks any balance - the same order as recording a repayment (loan, installments, balances) -
+ * so a reversal and a repayment of one loan never deadlock.
  */
 @Component
 class RepaymentReversalListener {
@@ -27,17 +32,31 @@ class RepaymentReversalListener {
     private final RepaymentAllocationRepository allocations;
     private final LoanInstallmentRepository installments;
     private final LoanRepository loans;
+    private final LoanStatusUpdater statusUpdater;
     private final AuditService audit;
     private final Clock clock;
 
     RepaymentReversalListener(LoanRepaymentRepository repayments, RepaymentAllocationRepository allocations,
-                              LoanInstallmentRepository installments, LoanRepository loans, AuditService audit, Clock clock) {
+                              LoanInstallmentRepository installments, LoanRepository loans, LoanStatusUpdater statusUpdater,
+                              AuditService audit, Clock clock) {
         this.repayments = repayments;
         this.allocations = allocations;
         this.installments = installments;
         this.loans = loans;
+        this.statusUpdater = statusUpdater;
         this.audit = audit;
         this.clock = clock;
+    }
+
+    @EventListener
+    void beforeReversal(JournalReversing event) {
+        if (event.originalType() != JournalType.LOAN_REPAYMENT) {
+            return;
+        }
+        repayments.findByGroupIdAndJournalId(event.groupId(), event.journalId()).ifPresent(repayment -> {
+            loans.findByGroupIdAndIdForUpdate(event.groupId(), repayment.getLoanId()).orElseThrow();
+            installments.findByLoanForUpdate(event.groupId(), repayment.getLoanId());
+        });
     }
 
     @EventListener
@@ -60,7 +79,7 @@ class RepaymentReversalListener {
             if (before == Status.SETTLED) {
                 loan.apply(Action.REOPEN, clock.instant());
             }
-            RepaymentService.refreshLoanStatus(loan, schedule, clock.instant());
+            statusUpdater.refresh(loan, schedule);
             repayments.flush();
             allocations.flush();
             installments.flush();

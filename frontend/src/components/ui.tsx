@@ -22,11 +22,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   block?: boolean;
 }
 
-export function Button({ variant = 'primary', busy = false, block = false, className = '', children, disabled, ...rest }: ButtonProps) {
+/** Only submits a form when asked to (type="submit"), so a Cancel inside a form never sends it. */
+export function Button({ variant = 'primary', busy = false, block = false, className = '', children, disabled, type = 'button', ...rest }: ButtonProps) {
   const { t } = useTranslation();
   return (
     <button
       {...rest}
+      type={type}
       disabled={disabled || busy}
       aria-busy={busy || undefined}
       className={`inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-base font-semibold transition-colors ${

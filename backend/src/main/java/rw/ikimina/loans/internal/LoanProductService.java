@@ -119,6 +119,8 @@ class LoanProductService {
         for (LoanProductChangeRequest open : changes.findByGroupIdAndProductIdAndStatus(scope.groupId(), product.getId(),
                 LoanProductChangeRequest.Status.PENDING)) {
             open.decide(LoanProductChangeRequest.Status.SUPERSEDED, scope.membershipId(), "replaced by a newer proposal", now);
+            audit.record(AuditEvent.of("LOAN_PRODUCT_CHANGE_SUPERSEDED").entity("loan_product_change", open.getPublicId())
+                    .reason("replaced by a newer proposal"));
         }
         changes.flush();
         LoanProductChangeRequest change = changes.save(new LoanProductChangeRequest(scope.groupId(), product.getId(),
@@ -141,6 +143,8 @@ class LoanProductService {
         if (product.getVersion() != change.getBaseVersion()) {
             change.decide(LoanProductChangeRequest.Status.SUPERSEDED, scope.membershipId(), "product changed after the proposal",
                     clock.instant());
+            audit.record(AuditEvent.of("LOAN_PRODUCT_CHANGE_SUPERSEDED").entity("loan_product_change", change.getPublicId())
+                    .reason("product changed after the proposal"));
             return Optional.empty();
         }
         ProductTerms before = terms(product);

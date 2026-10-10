@@ -1,12 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { newAccountPassword } from './accounts';
+import { freshPhone, newAccountPassword } from './accounts';
 import { latestOtp } from './otp';
-
-/** A fresh Rwandan number per run, so the test never collides with earlier data. */
-function freshPhone(): string {
-  return `+2507${String(Date.now()).slice(-8)}`;
-}
 
 async function inEnglish(page: Page) {
   await page.getByLabel(/language/i).first().selectOption('en');

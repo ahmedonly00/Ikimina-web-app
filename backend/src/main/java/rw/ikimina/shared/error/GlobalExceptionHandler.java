@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -58,10 +59,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
-     * Two people changed the same thing at once: an optimistic-lock conflict, or a race
-     * the database settled with a unique constraint (e.g. two holders of one office).
+     * Two people changed the same thing at once: an optimistic-lock conflict, a race the database
+     * settled with a unique constraint (e.g. two holders of one office), or a lock conflict it broke
+     * by aborting one side. Nothing was saved; trying again is safe.
      */
-    @ExceptionHandler({OptimisticLockingFailureException.class, DataIntegrityViolationException.class})
+    @ExceptionHandler({OptimisticLockingFailureException.class, DataIntegrityViolationException.class,
+            PessimisticLockingFailureException.class})
     public ResponseEntity<ProblemDetail> handleConcurrentModification(RuntimeException ex) {
         log.warn("Concurrent modification rejected: {} {}", ex.getClass().getSimpleName(), databaseReason(ex));
         return ResponseEntity.status(HttpStatus.CONFLICT).body(problems.create(ErrorCode.CONCURRENT_MODIFICATION));

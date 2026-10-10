@@ -6,12 +6,13 @@ import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { z } from 'zod';
 import { get, post, postIdempotent } from '../../api/client';
-import { canDecideLoans, canDisburse, canRecordRepayments, type LoanView, type ScheduleView } from '../../api/types';
+import { canDisburse, canRecordRepayments, type LoanView, type ScheduleView } from '../../api/types';
 import { useSession } from '../../auth/session';
 import { Alert, Badge, Button, Card, ErrorMessage, Loading, SelectField, TextField } from '../../components/ui';
 import { fieldError } from '../../lib/forms';
 import { useIdempotencyKey } from '../../lib/idempotency';
 import { formatRwf } from '../../lib/money';
+import { formatDecimal } from '../../lib/numbers';
 import { useGroup } from '../groups/GroupLayout';
 import { LoanStatusBadge } from './LoansPage';
 
@@ -68,7 +69,7 @@ export function LoanDetailPage() {
         <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
           <dt className="text-muted">{t('loans.borrower')}</dt>
           <dd>
-            {l.borrower?.memberNumber} · {l.borrower?.fullName}
+            {t('loans.memberLabel', { number: l.borrower?.memberNumber ?? '', name: l.borrower?.fullName ?? '' })}
             {mine && <span className="text-muted"> ({t('members.you')})</span>}
           </dd>
           <dt className="text-muted">{t('loans.product')}</dt>
@@ -78,7 +79,7 @@ export function LoanDetailPage() {
           <dt className="text-muted">{t('loanProducts.interest')}</dt>
           <dd>
             {t('loanProducts.rateSummary', {
-              rate: String(l.interestRatePercent).replace(/\.?0+$/, '') || '0',
+              rate: formatDecimal(l.interestRatePercent),
               period: t(`loanProducts.per_${l.interestPeriod}`),
               method: t(`loanProducts.${l.interestMethod}`),
             })}
@@ -105,10 +106,14 @@ export function LoanDetailPage() {
           )}
         </dl>
         {l.rejectionReason && <Alert tone="danger">{t('loans.rejectedBecause', { reason: l.rejectionReason })}</Alert>}
+        {l.disbursedByBorrower && <Alert tone="warning">{t('loans.disbursedByBorrower')}</Alert>}
       </section>
 
       <Approvals loan={l} />
-      {deciding && canDecideLoans(group.myRole) && !mine && <Decide loan={l} />}
+      {/* Only someone the loan is still waiting for, who has not decided yet (spec 9.3; the server decides the same way). */}
+      {deciding && !mine && l.waitingFor.includes(group.myRole) && !l.approvals.some((a) => a.memberId === group.myMemberId) && (
+        <Decide loan={l} />
+      )}
       {mine && (deciding || l.status === 'APPROVED') && <Cancel loan={l} />}
       {l.status === 'APPROVED' && canDisburse(group.myRole) && <Disburse loan={l} />}
       {outstanding && canRecordRepayments(group.myRole) && <Repay loan={l} />}
@@ -350,7 +355,9 @@ function Schedule({ loanId }: { loanId: string }) {
       <table className="w-full min-w-[32rem] text-sm">
         <thead>
           <tr className="text-left text-muted">
-            <th scope="col" className="py-1">#</th>
+            <th scope="col" className="py-1">
+              {t('loans.installmentNo')}
+            </th>
             <th scope="col">{t('loans.due')}</th>
             <th scope="col" className="text-right">{t('loans.principal')}</th>
             <th scope="col" className="text-right">{t('loans.interestDue')}</th>
@@ -414,6 +421,7 @@ function Repayment({ loanId, repayment, canReverse }: { loanId: string; repaymen
         <span className="text-sm text-muted">{t(`record.${repayment.method === 'MOMO_API' ? 'MOMO_MANUAL' : repayment.method}`)}</span>
         {repayment.externalRef && <span className="font-mono text-xs text-muted">{repayment.externalRef}</span>}
         {repayment.reversed && <Badge tone="accent">{t('savings.reversed')}</Badge>}
+        {repayment.recordedByBorrower && <Badge tone="accent">{t('loans.ownLoanFlag')}</Badge>}
       </div>
       {canReverse && !repayment.reversed && !request.isSuccess && (
         <>

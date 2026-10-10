@@ -36,7 +36,9 @@
     "amountWhole": "Enter a whole number of francs, for example 5000.",
     "rate": "Enter a rate between 0 and 100, for example 5 or 2.75.",
     "multiple": "Enter a number such as 3 or 2.5.",
-    "termRange": "The longest term must be at least the shortest."
+    "termRange": "The longest term must be at least the shortest.",
+    "termMonths": "Enter a number of months from 1 to 120.",
+    "reducingBalance": "Interest on the remaining balance needs a monthly rate and monthly repayments."
   },
   "errors": {
     "network": "No connection. Check your internet and try again.",
@@ -404,7 +406,11 @@
     "paidParts": "{{principal}} + {{interest}}",
     "repayments": "Repayments",
     "split": "{{interest}} interest, {{principal}} principal",
-    "reversalReason": "Why should this repayment be reversed?"
+    "reversalReason": "Why should this repayment be reversed?",
+    "installmentNo": "No.",
+    "memberLabel": "No. {{number}} · {{name}}",
+    "disbursedByBorrower": "The borrower recorded this hand-over on their own loan.",
+    "ownLoanFlag": "Recorded by the borrower"
   },
   "loanProducts": {
     "title": "Loan products",
@@ -453,6 +459,8 @@
     "proposeTerms": "Propose change",
     "editTerms": "Change money terms",
     "close": "Close product",
-    "reopen": "Reopen product"
+    "reopen": "Reopen product",
+    "amountRange": "{{min}} to {{max}}",
+    "multipleValue": "{{multiple}} × savings"
   }
 }

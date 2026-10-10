@@ -112,6 +112,40 @@ class ConcurrentLoanMoneyIT extends IntegrationTest {
         assertThat(reconciler.reconcile(groupId(f)).clean()).isTrue();
     }
 
+    /**
+     * Review finding: approving a repayment's reversal and recording a new repayment of the same loan
+     * at the same moment used to take their locks in opposite orders and could deadlock. Each round
+     * races the two; both must succeed, and what is owed must come out exact.
+     */
+    @Test
+    void reversingARepaymentWhileAnotherIsRecordedNeverDeadlocks() throws Exception {
+        Fixture f = approvedLoan("Reverse Race");
+        disburse(f, "payout-" + UUID.randomUUID()).expect(200);
+        User president = f.group().president();
+        int rounds = 8;
+        for (int round = 0; round < rounds; round++) {
+            String journal = repay(f, "1000").expect(201).body().get("repayments").get(round * 2).get("journalId").asString();
+            String requestId = api().post(f.group().path("/journals/" + journal + "/reverse"), f.treasurer(),
+                    Map.of("reason", "race round " + round)).expect(202).text("requestId");
+
+            List<Response> both = runTogether(2, i -> i == 0
+                    ? api().post(f.group().path("/reversals/" + requestId + "/approve"), president, null)
+                    : repay(f, "1000"));
+
+            assertThat(both.get(0).status()).as("reversal: %s", both.get(0).body()).isEqualTo(200);
+            assertThat(both.get(1).status()).as("repayment: %s", both.get(1).body()).isEqualTo(201);
+        }
+        String owed = api().get(f.group().path("/loans/" + f.loanId()), president).expect(200).body()
+                .get("outstanding").get("total").asString();
+        assertThat(owed).isEqualTo("26500.00");   // 34,500 less one standing 1,000 repayment per round
+        assertThat(reconciler.reconcile(groupId(f)).clean()).isTrue();
+    }
+
+    private Response repay(Fixture f, String amount) {
+        return api().call(HttpMethod.POST, f.group().path("/loans/" + f.loanId() + "/repayments"), f.treasurer().accessToken(),
+                Map.of("amount", amount, "method", "CASH"), f.treasurer().ip(), Map.of("Idempotency-Key", "repay-" + UUID.randomUUID()));
+    }
+
     private long groupId(Fixture f) throws SQLException {
         return LedgerTestSupport.actor(f.group().groupId(), f.group().memberId(GroupRole.MEMBER)).groupId();
     }

@@ -2,19 +2,17 @@ package rw.ikimina.loans.internal;
 
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rw.ikimina.audit.AuditEvent;
 import rw.ikimina.audit.AuditService;
 import rw.ikimina.groups.GroupMembers;
-import rw.ikimina.groups.GroupRole;
 import rw.ikimina.ledger.AccountRef;
 import rw.ikimina.ledger.AccountType;
 import rw.ikimina.ledger.JournalRequest;
@@ -41,7 +39,8 @@ import rw.ikimina.shared.time.BusinessTime;
 @Service
 class DisbursementService {
 
-    private static final Set<GroupRole> OFFICES = EnumSet.of(GroupRole.PRESIDENT, GroupRole.TREASURER, GroupRole.SECRETARY);
+    /** Advisory-lock namespace for "one payout at a time per group". */
+    private static final int PAYOUT_LOCK = 7_304;
 
     private final LoanRepository loans;
     private final LoanDisbursementRepository disbursements;
@@ -53,11 +52,13 @@ class DisbursementService {
     private final GroupMembers members;
     private final Ledger ledger;
     private final AuditService audit;
+    private final JdbcTemplate jdbc;
     private final Clock clock;
 
     DisbursementService(LoanRepository loans, LoanDisbursementRepository disbursements, LoanInstallmentRepository installments,
                         LoanApprovalRepository approvals, LoanService loanService, LoanProductService productService,
-                        LoanQueries queries, GroupMembers members, Ledger ledger, AuditService audit, Clock clock) {
+                        LoanQueries queries, GroupMembers members, Ledger ledger, AuditService audit, JdbcTemplate jdbc,
+                        Clock clock) {
         this.loans = loans;
         this.disbursements = disbursements;
         this.installments = installments;
@@ -68,6 +69,7 @@ class DisbursementService {
         this.members = members;
         this.ledger = ledger;
         this.audit = audit;
+        this.jdbc = jdbc;
         this.clock = clock;
     }
 
@@ -75,12 +77,16 @@ class DisbursementService {
     LoanQueries.LoanView disburse(UUID loanId, String idempotencyKey, LoanDisbursement.Method method, String externalRef,
                                   LocalDate businessDate) {
         TenantContext.GroupScope scope = TenantContext.requireGroup();
+        // Payouts in one group run one at a time: two payouts of different loans must not both spend the same cash.
+        // Taken before any row lock, and by no other path, so it cannot form a lock cycle.
+        jdbc.queryForList("SELECT pg_advisory_xact_lock(?, ?)", PAYOUT_LOCK, (int) scope.groupId());
         Loan loan = loans.findByGroupIdAndPublicIdForUpdate(scope.groupId(), loanId).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
         String key = RequestKeys.require(idempotencyKey);
         LocalDate today = BusinessTime.today(clock);
         LocalDate date = businessDate == null ? today : businessDate;
         String ref = externalRef == null || externalRef.isBlank() ? null : externalRef.trim();
-        String requestHash = RequestKeys.hash(loan.getPublicId() + "|" + method + "|" + ref + "|" + date);
+        // The date as the client sent it (null = today), so a retry after midnight is still the same request.
+        String requestHash = RequestKeys.hash(loan.getPublicId() + "|" + method + "|" + ref + "|" + businessDate);
 
         Optional<LoanDisbursement> earlier = disbursements.findByGroupIdAndIdempotencyKey(scope.groupId(), key);
         if (earlier.isPresent()) {
@@ -96,7 +102,7 @@ class DisbursementService {
             throw new ApiException(ErrorCode.VALIDATION_FAILED);
         }
         requireDifferentOfficer(scope, loan);
-        if (loanService.availableFunds(scope.groupId(), loan.getId()).compareTo(loan.getPrincipal()) < 0) {
+        if (loanService.availableFundsFor(loan).compareTo(loan.getPrincipal()) < 0) {
             throw new ApiException(ErrorCode.INSUFFICIENT_GROUP_FUNDS);
         }
 
@@ -115,26 +121,30 @@ class DisbursementService {
         loans.flush();
         installments.flush();
 
+        boolean ownLoan = OwnLoan.recordedByBorrower(members, loan);
         audit.record(AuditEvent.of("LOAN_DISBURSED").entity("loan", loan.getPublicId())
                 .after(Map.of("amount", loan.getPrincipal(), "method", method, "journal", journal.publicId(),
-                        "installments", schedule.size(), "maturesOn", loan.getMaturesOn(), "externalRef", ref == null ? "" : ref)));
+                        "installments", schedule.size(), "maturesOn", loan.getMaturesOn(), "externalRef", ref == null ? "" : ref,
+                        "recordedByBorrower", ownLoan))
+                .reason(ownLoan ? OwnLoan.REASON : null));
         return queries.view(loan);
     }
 
     /**
      * Spec 9.3, as the owner decided for Phase 3: when the group has three or more active officers,
-     * whoever gave a single-approval loan its approval cannot also record its payout. (A dual-approved
-     * loan already has an independent second signer - and the Treasurer, who alone records payouts,
-     * is always one of its approvers.)
+     * whoever gave a single-approval loan its approval cannot also record its payout. {@link ApprovalPolicy}
+     * keeps the Treasurer - who alone records payouts - from giving that approval, so this is a safety net,
+     * e.g. for a loan approved before an officer joined. (A dual-approved loan already has an independent
+     * second signer.)
      */
     private void requireDifferentOfficer(TenantContext.GroupScope scope, Loan loan) {
-        if (loan.getRequiredApprovals() != 1) {
+        long officers = members.active().stream().filter(m -> ApprovalPolicy.OFFICES.contains(m.role())).count();
+        if (!ApprovalPolicy.separateDisburser(loan.getRequiredApprovals(), officers)) {
             return;
         }
-        long officers = members.active().stream().filter(m -> OFFICES.contains(m.role())).count();
         boolean approvedIt = approvals.findByGroupIdAndLoanIdOrderByDecidedAtAscIdAsc(scope.groupId(), loan.getId()).stream()
                 .anyMatch(a -> a.getDecision() == LoanApproval.Decision.APPROVE && a.getApproverMembershipId().equals(scope.membershipId()));
-        if (officers >= 3 && approvedIt) {
+        if (approvedIt) {
             throw new ApiException(ErrorCode.LOAN_DISBURSER_MUST_DIFFER);
         }
     }

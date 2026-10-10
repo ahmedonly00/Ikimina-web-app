@@ -41,11 +41,11 @@ const product = {
   pendingChange: null,
   terms: {
     interestMethod: 'FLAT',
-    interestRatePercent: 5,
+    interestRatePercent: '10.0000',
     interestPeriod: 'MONTH',
     minAmount: null,
     maxAmount: null,
-    maxMultipleOfSavings: 2,
+    maxMultipleOfSavings: '2.00',
     minTermMonths: 1,
     maxTermMonths: 12,
     repaymentFrequency: 'MONTHLY',
@@ -66,7 +66,7 @@ function loan(overrides: Partial<LoanView>): LoanView {
     principal: '30000.00',
     termMonths: 3,
     interestMethod: 'FLAT',
-    interestRatePercent: 5,
+    interestRatePercent: '10.0000',
     interestPeriod: 'MONTH',
     repaymentFrequency: 'MONTHLY',
     graceDays: 0,
@@ -82,6 +82,7 @@ function loan(overrides: Partial<LoanView>): LoanView {
     rejectionReason: null,
     outstanding: { principal: '0.00', interest: '0.00', total: '0.00' },
     repayments: [],
+    disbursedByBorrower: false,
     version: 0,
     ...overrides,
   };
@@ -125,7 +126,7 @@ describe('loans', () => {
     renderAt('/groups/g1/loans/new', groupAs('MEMBER'));
 
     await userEvent.selectOptions(await screen.findByLabelText('Loan product'), 'p1');
-    expect(screen.getByText(/5% a month/)).toBeInTheDocument();
+    expect(screen.getByText(/10% a month/)).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Amount (RWF)'), '60,000');
     await userEvent.type(screen.getByLabelText('Months to repay'), '24');
     await userEvent.click(screen.getByRole('button', { name: 'Send request' }));
@@ -136,12 +137,35 @@ describe('loans', () => {
     expect(JSON.parse(calls('/loans')[0]![1]!.body as string)).toEqual({ productId: 'p1', amount: '60000', termMonths: 24 });
   });
 
-  it('offers the decision to an officer, but not to the borrower', async () => {
+  it('offers the decision only to an officer the loan is waiting for, who has not decided yet', async () => {
     fetchMock.mockImplementation(async () => json(200, loan({})));
     const officer = renderAt('/groups/g1/loans/l1', groupAs('PRESIDENT'));
     expect(await screen.findByRole('button', { name: 'Approve loan' })).toBeInTheDocument();
     expect(screen.getByText('Waiting for: President or Treasurer')).toBeInTheDocument();
+    expect(screen.getByText(/10% a month/)).toBeInTheDocument();
     officer.unmount();
+
+    // The Secretary only stands in for a borrowing officer, so not on an ordinary member's loan.
+    const secretary = renderAt('/groups/g1/loans/l1', groupAs('SECRETARY'));
+    expect(await screen.findByText('Waiting for: President or Treasurer')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Approve loan' })).not.toBeInTheDocument();
+    secretary.unmount();
+
+    // The President has approved; the loan now waits for the Treasurer only.
+    fetchMock.mockImplementation(async () =>
+      json(
+        200,
+        loan({
+          status: 'PARTIALLY_COUNTERSIGNED',
+          waitingFor: ['TREASURER'],
+          approvals: [{ memberId: 'm-officer', role: 'PRESIDENT', decision: 'APPROVE', comment: null, decidedAt: '2026-10-02T08:00:00Z' }],
+        }),
+      ),
+    );
+    const approved = renderAt('/groups/g1/loans/l1', groupAs('PRESIDENT'));
+    expect(await screen.findByText('Waiting for: Treasurer')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Approve loan' })).not.toBeInTheDocument();
+    approved.unmount();
 
     renderAt('/groups/g1/loans/l1', groupAs('TREASURER', 'm-borrower'));
     expect(await screen.findByRole('button', { name: 'Withdraw my request' })).toBeInTheDocument();

@@ -228,12 +228,12 @@ export type LoanStatus =
 
 export interface ProductTerms {
   interestMethod: InterestMethod;
-  /** Decimal string or number as the server sent it; never used for money arithmetic here. */
-  interestRatePercent: string | number;
+  /** Decimal string (rates travel as strings, like money); display only. */
+  interestRatePercent: string;
   interestPeriod: InterestPeriod;
   minAmount: string | null;
   maxAmount: string | null;
-  maxMultipleOfSavings: string | number | null;
+  maxMultipleOfSavings: string | null;
   minTermMonths: number;
   maxTermMonths: number;
   repaymentFrequency: RepaymentFrequency;
@@ -261,7 +261,7 @@ export interface LoanView {
   principal: string;
   termMonths: number;
   interestMethod: InterestMethod;
-  interestRatePercent: string | number;
+  interestRatePercent: string;
   interestPeriod: InterestPeriod;
   repaymentFrequency: RepaymentFrequency;
   graceDays: number;
@@ -286,7 +286,11 @@ export interface LoanView {
     externalRef: string | null;
     businessDate: string;
     reversed: boolean;
+    /** The borrower recorded it on their own loan - allowed, but flagged (owner decision). */
+    recordedByBorrower: boolean;
   }[];
+  /** The borrower recorded the hand-over of their own loan. */
+  disbursedByBorrower: boolean;
   version: number;
 }
 

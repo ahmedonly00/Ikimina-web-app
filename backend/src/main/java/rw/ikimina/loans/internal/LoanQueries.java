@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -40,19 +41,23 @@ class LoanQueries {
     record ApprovalView(UUID memberId, GroupRole role, LoanApproval.Decision decision, String comment, Instant decidedAt) {
     }
 
+    /** @param recordedByBorrower the borrower recorded it on their own loan - allowed, but flagged (owner decision) */
     record RepaymentView(UUID repaymentId, UUID journalId, Money amount, Money interest, Money principal,
-                         LoanRepayment.Method method, String externalRef, LocalDate businessDate, boolean reversed) {
+                         LoanRepayment.Method method, String externalRef, LocalDate businessDate, boolean reversed,
+                         boolean recordedByBorrower) {
     }
 
     record Outstanding(Money principal, Money interest, Money total) {
     }
 
     record LoanView(UUID loanId, UUID productId, String productName, Person borrower, String purpose, Money principal,
-                    int termMonths, LoanTerms.InterestMethod interestMethod, BigDecimal interestRatePercent,
+                    int termMonths, LoanTerms.InterestMethod interestMethod,
+                    @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal interestRatePercent,
                     LoanTerms.InterestPeriod interestPeriod, LoanTerms.RepaymentFrequency repaymentFrequency, int graceDays,
                     Status status, int requiredApprovals, List<ApprovalView> approvals, Set<GroupRole> waitingFor,
                     Instant requestedAt, Instant approvedAt, Instant disbursedAt, LocalDate maturesOn, Instant settledAt,
-                    String rejectionReason, Outstanding outstanding, List<RepaymentView> repayments, long version) {
+                    String rejectionReason, Outstanding outstanding, List<RepaymentView> repayments, boolean disbursedByBorrower,
+                    long version) {
     }
 
     record InstallmentView(int number, LocalDate dueDate, Money principalDue, Money interestDue, Money principalPaid,
@@ -70,16 +75,19 @@ class LoanQueries {
     private final LoanApprovalRepository approvals;
     private final LoanInstallmentRepository installments;
     private final LoanRepaymentRepository repayments;
+    private final LoanDisbursementRepository disbursements;
     private final GroupMembers members;
     private final Ledger ledger;
 
     LoanQueries(LoanRepository loans, LoanProductRepository products, LoanApprovalRepository approvals,
-                LoanInstallmentRepository installments, LoanRepaymentRepository repayments, GroupMembers members, Ledger ledger) {
+                LoanInstallmentRepository installments, LoanRepaymentRepository repayments, LoanDisbursementRepository disbursements,
+                GroupMembers members, Ledger ledger) {
         this.loans = loans;
         this.products = products;
         this.approvals = approvals;
         this.installments = installments;
         this.repayments = repayments;
+        this.disbursements = disbursements;
         this.members = members;
         this.ledger = ledger;
     }
@@ -121,9 +129,15 @@ class LoanQueries {
         GroupMembers.Member borrower = people.get(loan.getBorrowerMembershipId());
         List<GroupRole> approvedAs = decisions.stream().filter(a -> a.getDecision() == LoanApproval.Decision.APPROVE)
                 .map(LoanApproval::getApproverRole).toList();
-        Set<GroupRole> waitingFor = loan.getStatus() == Status.SUBMITTED || loan.getStatus() == Status.PARTIALLY_COUNTERSIGNED
-                ? ApprovalPolicy.waitingFor(borrower == null ? GroupRole.MEMBER : borrower.role(), loan.getRequiredApprovals(), approvedAs)
-                : Set.of();
+        Set<GroupRole> waitingFor = Set.of();
+        if (loan.getStatus() == Status.SUBMITTED || loan.getStatus() == Status.PARTIALLY_COUNTERSIGNED) {
+            long officers = members.active().stream().filter(m -> ApprovalPolicy.OFFICES.contains(m.role())).count();
+            waitingFor = ApprovalPolicy.waitingFor(loan.getBorrowerRole(), loan.getRequiredApprovals(),
+                    ApprovalPolicy.separateDisburser(loan.getRequiredApprovals(), officers), approvedAs);
+        }
+        Long borrowerUser = borrower == null ? null : borrower.userId();
+        boolean disbursedByBorrower = borrowerUser != null && disbursements.findByGroupIdAndLoanId(groupId, loan.getId())
+                .map(d -> d.getDisbursedBy().equals(borrowerUser)).orElse(false);
         List<LoanRepayment> paid = repayments.findByGroupIdAndLoanIdOrderByBusinessDateAscIdAsc(groupId, loan.getId());
         Map<Long, UUID> journals = ledger.publicIds(paid.stream().map(LoanRepayment::getJournalId).toList());
         List<LoanInstallment> schedule = installments.findByGroupIdAndLoanIdOrderByInstallmentNo(groupId, loan.getId());
@@ -135,8 +149,9 @@ class LoanQueries {
                 waitingFor, loan.getRequestedAt(), loan.getApprovedAt(), loan.getDisbursedAt(), loan.getMaturesOn(), loan.getSettledAt(),
                 loan.getRejectionReason(), outstanding(schedule),
                 paid.stream().map(r -> new RepaymentView(r.getPublicId(), journals.get(r.getJournalId()), r.getAmount(), r.getInterestPart(),
-                        r.getPrincipalPart(), r.getPaymentMethod(), r.getExternalRef(), r.getBusinessDate(), r.isReversed())).toList(),
-                loan.getVersion());
+                        r.getPrincipalPart(), r.getPaymentMethod(), r.getExternalRef(), r.getBusinessDate(), r.isReversed(),
+                        r.getRecordedBy().equals(borrowerUser))).toList(),
+                disbursedByBorrower, loan.getVersion());
     }
 
     private Loan visible(UUID loanId) {

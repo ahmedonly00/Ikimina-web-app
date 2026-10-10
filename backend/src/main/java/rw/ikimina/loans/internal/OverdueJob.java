@@ -3,12 +3,10 @@ package rw.ikimina.loans.internal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -16,8 +14,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import rw.ikimina.audit.AuditEvent;
-import rw.ikimina.audit.AuditService;
 import rw.ikimina.loans.LoanBecameOverdue;
 import rw.ikimina.loans.internal.LoanStateMachine.Status;
 import rw.ikimina.shared.scheduling.SchedulerRunLog;
@@ -39,19 +35,17 @@ class OverdueJob {
     private final JdbcTemplate jdbc;
     private final LoanRepository loans;
     private final LoanInstallmentRepository installments;
-    private final ApplicationEventPublisher events;
-    private final AuditService audit;
+    private final LoanStatusUpdater statusUpdater;
     private final SchedulerRunLog runs;
     private final TransactionTemplate transaction;
     private final Clock clock;
 
-    OverdueJob(JdbcTemplate jdbc, LoanRepository loans, LoanInstallmentRepository installments, ApplicationEventPublisher events,
-               AuditService audit, SchedulerRunLog runs, PlatformTransactionManager transactionManager, Clock clock) {
+    OverdueJob(JdbcTemplate jdbc, LoanRepository loans, LoanInstallmentRepository installments, LoanStatusUpdater statusUpdater,
+               SchedulerRunLog runs, PlatformTransactionManager transactionManager, Clock clock) {
         this.jdbc = jdbc;
         this.loans = loans;
         this.installments = installments;
-        this.events = events;
-        this.audit = audit;
+        this.statusUpdater = statusUpdater;
         this.runs = runs;
         this.transaction = new TransactionTemplate(transactionManager);
         this.clock = clock;
@@ -89,15 +83,11 @@ class OverdueJob {
             Loan loan = loans.findByGroupIdAndIdForUpdate(groupId, loanId).orElseThrow();
             List<LoanInstallment> schedule = installments.findByLoanForUpdate(groupId, loanId);
             schedule.forEach(i -> i.refreshStatus(today, loan.getGraceDays()));
-            Status before = loan.getStatus();
-            RepaymentService.refreshLoanStatus(loan, schedule, clock.instant());
+            Status before = statusUpdater.refresh(loan, schedule);
             installments.flush();
             loans.flush();
             if (before != Status.OVERDUE && loan.getStatus() == Status.OVERDUE) {
                 newlyOverdue++;
-                audit.record(AuditEvent.of("LOAN_OVERDUE").entity("loan", loan.getPublicId())
-                        .before(Map.of("status", before)).after(Map.of("status", loan.getStatus())));
-                events.publishEvent(new LoanBecameOverdue(groupId, loan.getPublicId(), loan.getBorrowerMembershipId()));
             }
         }
         return newlyOverdue;

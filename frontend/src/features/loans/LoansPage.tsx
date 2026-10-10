@@ -10,6 +10,7 @@ import { canRequestLoan, type LoanProductView, type LoanStatus, type LoanView, t
 import { Badge, Button, Card, ErrorMessage, Loading, SelectField, TextField } from '../../components/ui';
 import { fieldError } from '../../lib/forms';
 import { formatRwf } from '../../lib/money';
+import { formatDecimal } from '../../lib/numbers';
 import { useGroup } from '../groups/GroupLayout';
 
 const STATUSES: LoanStatus[] = ['SUBMITTED', 'PARTIALLY_COUNTERSIGNED', 'APPROVED', 'DISBURSED', 'OVERDUE', 'SETTLED', 'REJECTED', 'CANCELLED'];
@@ -71,7 +72,7 @@ export function LoansPage() {
 const requestSchema = z.object({
   productId: z.string().min(1, 'validation.required'),
   amount: z.string().transform((v) => v.replace(/[\s,]/g, '')).pipe(z.string().regex(/^[1-9][0-9]{0,15}$/, 'validation.amountWhole')),
-  termMonths: z.string().regex(/^[1-9][0-9]{0,2}$/, 'validation.required'),
+  termMonths: z.string().regex(/^([1-9][0-9]?|1[01][0-9]|120)$/, 'validation.termMonths'),
   purpose: z.string().trim().max(1000).optional(),
 });
 
@@ -112,11 +113,12 @@ export function RequestLoanPage() {
   return (
     <Card>
       <h2 className="mb-3 text-lg font-bold">{t('loans.request')}</h2>
+      <ErrorMessage error={products.error} />
       {open.length === 0 ? (
         <p className="text-muted">{t('loans.noProducts')}</p>
       ) : (
         <form noValidate onSubmit={handleSubmit((v) => request.mutate(v))} className="flex flex-col gap-4">
-          <ErrorMessage error={request.error ?? products.error} />
+          <ErrorMessage error={request.error} />
           <SelectField label={t('loans.product')} error={fieldError(t, formState.errors.productId)} {...register('productId')}>
             <option value="">{t('record.choose')}</option>
             {open.map((p) => (
@@ -128,7 +130,7 @@ export function RequestLoanPage() {
           {chosen && (
             <p className="text-sm text-muted">
               {t('loans.productHint', {
-                rate: String(chosen.terms.interestRatePercent).replace(/\.?0+$/, '') || '0',
+                rate: formatDecimal(chosen.terms.interestRatePercent),
                 period: t(`loanProducts.per_${chosen.terms.interestPeriod}`),
                 min: chosen.terms.minTermMonths,
                 max: chosen.terms.maxTermMonths,

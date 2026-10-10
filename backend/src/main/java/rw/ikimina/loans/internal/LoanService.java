@@ -98,13 +98,22 @@ class LoanService {
         jdbc.queryForList("SELECT pg_advisory_xact_lock(?, ?)", 7_303, (int) borrower.membershipId());
 
         ProductTerms terms = productService.terms(product);
+        int required = ApprovalPolicy.requiredApprovals(amount, terms.dualApprovalThreshold());
         List<Reason> reasons = eligibility(scope.groupId(), borrower, product, terms, amount, termMonths);
+        // Spec 9.3: if the officers in post cannot give the approvals this loan needs, say so now rather than let it wait forever.
+        List<GroupMembers.Member> active = members.active();
+        List<GroupRole> officesHeld = active.stream()
+                .filter(m -> m.membershipId() != borrower.membershipId() && ApprovalPolicy.OFFICES.contains(m.role()))
+                .map(GroupMembers.Member::role).toList();
+        if (!ApprovalPolicy.approvable(borrower.role(), required, ApprovalPolicy.separateDisburser(required, activeOfficers(active)),
+                officesHeld)) {
+            reasons.add(new Reason("APPROVERS_UNAVAILABLE"));
+        }
         if (!reasons.isEmpty()) {
             throw new ReasonedApiException(ErrorCode.LOAN_NOT_ELIGIBLE, reasons);
         }
-        int required = ApprovalPolicy.requiredApprovals(amount, terms.dualApprovalThreshold());
-        Loan loan = loans.saveAndFlush(new Loan(scope.groupId(), product.getId(), borrower.membershipId(), blankToNull(purpose), amount,
-                termMonths, terms.loanTerms(), product.getAllocationOrder(), required, clock.instant()));
+        Loan loan = loans.saveAndFlush(new Loan(scope.groupId(), product.getId(), borrower.membershipId(), borrower.role(),
+                blankToNull(purpose), amount, termMonths, terms.loanTerms(), product.getAllocationOrder(), required, clock.instant()));
         audit.record(AuditEvent.of("LOAN_REQUESTED").entity("loan", loan.getPublicId())
                 .after(Map.of("product", product.getPublicId(), "amount", amount, "termMonths", termMonths,
                         "requiredApprovals", required)));
@@ -159,6 +168,27 @@ class LoanService {
         return ledger.balance(AccountRef.of(AccountType.GROUP_CASH)).minus(reserved);
     }
 
+    /**
+     * What an approved loan may draw at payout: cash less the loans approved before it (first approved,
+     * first paid). Loans approved later wait their turn instead of blocking this one.
+     */
+    Money availableFundsFor(Loan loan) {
+        Money reservedEarlier = loans.findByGroupIdAndStatusIn(loan.getGroupId(), EnumSet.of(Status.APPROVED)).stream()
+                .filter(l -> !l.getId().equals(loan.getId()) && approvedBefore(l, loan))
+                .map(Loan::getPrincipal)
+                .reduce(Money.ZERO, Money::plus);
+        return ledger.balance(AccountRef.of(AccountType.GROUP_CASH)).minus(reservedEarlier);
+    }
+
+    private static boolean approvedBefore(Loan a, Loan b) {
+        int byTime = a.getApprovedAt().compareTo(b.getApprovedAt());
+        return byTime < 0 || byTime == 0 && a.getId() < b.getId();
+    }
+
+    private static long activeOfficers(List<GroupMembers.Member> active) {
+        return active.stream().filter(m -> ApprovalPolicy.OFFICES.contains(m.role())).count();
+    }
+
     @Transactional
     LoanQueries.LoanView approve(UUID loanId, String comment) {
         return decide(loanId, LoanApproval.Decision.APPROVE, blankToNull(comment));
@@ -171,7 +201,7 @@ class LoanService {
 
     private LoanQueries.LoanView decide(UUID loanId, LoanApproval.Decision decision, String text) {
         TenantContext.GroupScope scope = TenantContext.requireGroup();
-        Loan loan = loans.findByGroupIdAndPublicIdForUpdate(scope.groupId(), loanId).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+        Loan loan = visibleForUpdate(scope, loanId);
         if (loan.getStatus() != Status.SUBMITTED && loan.getStatus() != Status.PARTIALLY_COUNTERSIGNED) {
             throw new ApiException(ErrorCode.LOAN_INVALID_TRANSITION);
         }
@@ -182,13 +212,24 @@ class LoanService {
         if (approvals.existsByGroupIdAndLoanIdAndApproverMembershipId(scope.groupId(), loan.getId(), scope.membershipId())) {
             throw new ApiException(ErrorCode.DUPLICATE_APPROVAL);
         }
-        GroupRole borrowerRole = members.findById(loan.getBorrowerMembershipId()).map(GroupMembers.Member::role).orElse(GroupRole.MEMBER);
         List<GroupRole> approvedAs = approvals.findByGroupIdAndLoanIdOrderByDecidedAtAscIdAsc(scope.groupId(), loan.getId()).stream()
                 .filter(a -> a.getDecision() == LoanApproval.Decision.APPROVE)
                 .map(LoanApproval::getApproverRole)
                 .toList();
-        if (ApprovalPolicy.slotFor(borrowerRole, loan.getRequiredApprovals(), approvedAs, approverRole, false).isEmpty()) {
+        // The borrower's role as it was when they asked: a later office change does not move the approval slots.
+        boolean separateDisburser = ApprovalPolicy.separateDisburser(loan.getRequiredApprovals(), activeOfficers(members.active()));
+        if (ApprovalPolicy.slotFor(loan.getBorrowerRole(), loan.getRequiredApprovals(), separateDisburser, approvedAs, approverRole, false)
+                .isEmpty()) {
             throw new ApiException(ErrorCode.LOAN_APPROVER_NOT_ALLOWED);
+        }
+        List<GroupRole> withThis = new ArrayList<>(approvedAs);
+        withThis.add(approverRole);
+        boolean complete = ApprovalPolicy.openSlots(loan.getBorrowerRole(), loan.getRequiredApprovals(), separateDisburser, withThis)
+                .isEmpty();
+        // The last approval commits the group's cash: refuse it if loans approved earlier already need that money.
+        if (decision == LoanApproval.Decision.APPROVE && complete
+                && availableFunds(scope.groupId(), loan.getId()).compareTo(loan.getPrincipal()) < 0) {
+            throw new ApiException(ErrorCode.INSUFFICIENT_GROUP_FUNDS);
         }
         // Spec 9.3: approving at or above the dual-approval threshold needs a fresh password.
         if (decision == LoanApproval.Decision.APPROVE && loan.getRequiredApprovals() == 2) {
@@ -207,7 +248,6 @@ class LoanService {
             loan.apply(Action.REJECT, clock.instant());
             loan.recordRejectionReason(text);
         } else {
-            boolean complete = approvedAs.size() + 1 >= loan.getRequiredApprovals();
             loan.apply(complete ? Action.APPROVE : Action.COUNTERSIGN, clock.instant());
         }
         loans.flush();
@@ -223,7 +263,7 @@ class LoanService {
     @Transactional
     LoanQueries.LoanView cancel(UUID loanId) {
         TenantContext.GroupScope scope = TenantContext.requireGroup();
-        Loan loan = loans.findByGroupIdAndPublicIdForUpdate(scope.groupId(), loanId).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+        Loan loan = visibleForUpdate(scope, loanId);
         if (!loan.getBorrowerMembershipId().equals(scope.membershipId())) {
             throw new ApiException(ErrorCode.FORBIDDEN);
         }
@@ -233,6 +273,15 @@ class LoanService {
         audit.record(AuditEvent.of("LOAN_CANCELLED").entity("loan", loan.getPublicId())
                 .before(Map.of("status", before)).after(Map.of("status", loan.getStatus())));
         return queries.view(loan);
+    }
+
+    /** Locks the loan; someone else's loan that the caller may not see answers 404, as if it did not exist (spec 5.4). */
+    private Loan visibleForUpdate(TenantContext.GroupScope scope, UUID loanId) {
+        Loan loan = loans.findByGroupIdAndPublicIdForUpdate(scope.groupId(), loanId).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+        if (!loan.getBorrowerMembershipId().equals(scope.membershipId()) && !LoanQueries.seesEveryLoan(scope)) {
+            throw new ApiException(ErrorCode.NOT_FOUND);
+        }
+        return loan;
     }
 
     /** The client address for the approval record, or null if it is not an IP literal (never a DNS lookup). */

@@ -36,7 +36,9 @@
     "amountWhole": "[rw-todo] Enter a whole number of francs, for example 5000.",
     "rate": "[rw-todo] Enter a rate between 0 and 100, for example 5 or 2.75.",
     "multiple": "[rw-todo] Enter a number such as 3 or 2.5.",
-    "termRange": "[rw-todo] The longest term must be at least the shortest."
+    "termRange": "[rw-todo] The longest term must be at least the shortest.",
+    "termMonths": "[rw-todo] Enter a number of months from 1 to 120.",
+    "reducingBalance": "[rw-todo] Interest on the remaining balance needs a monthly rate and monthly repayments."
   },
   "errors": {
     "network": "[rw-todo] No connection. Check your internet and try again.",
@@ -404,7 +406,11 @@
     "paidParts": "[rw-todo] {{principal}} + {{interest}}",
     "repayments": "[rw-todo] Repayments",
     "split": "[rw-todo] {{interest}} interest, {{principal}} principal",
-    "reversalReason": "[rw-todo] Why should this repayment be reversed?"
+    "reversalReason": "[rw-todo] Why should this repayment be reversed?",
+    "installmentNo": "[rw-todo] No.",
+    "memberLabel": "[rw-todo] No. {{number}} · {{name}}",
+    "disbursedByBorrower": "[rw-todo] The borrower recorded this hand-over on their own loan.",
+    "ownLoanFlag": "[rw-todo] Recorded by the borrower"
   },
   "loanProducts": {
     "title": "[rw-todo] Loan products",
@@ -453,6 +459,8 @@
     "proposeTerms": "[rw-todo] Propose change",
     "editTerms": "[rw-todo] Change money terms",
     "close": "[rw-todo] Close product",
-    "reopen": "[rw-todo] Reopen product"
+    "reopen": "[rw-todo] Reopen product",
+    "amountRange": "[rw-todo] {{min}} to {{max}}",
+    "multipleValue": "[rw-todo] {{multiple}} × savings"
   }
 }

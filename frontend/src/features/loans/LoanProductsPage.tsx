@@ -10,25 +10,28 @@ import { useSession } from '../../auth/session';
 import { Alert, Badge, Button, Card, ErrorMessage, Loading, SelectField, TextField } from '../../components/ui';
 import { fieldError, requiredText } from '../../lib/forms';
 import { formatRwf } from '../../lib/money';
+import { formatDecimal } from '../../lib/numbers';
 import { useGroup } from '../groups/GroupLayout';
 
 const optionalWholeRwf = z
   .string()
   .transform((v) => v.replace(/[\s,]/g, ''))
   .pipe(z.string().regex(/^([1-9][0-9]{0,15})?$/, 'validation.amountWhole'));
-const months = z.string().regex(/^[1-9][0-9]{0,2}$/, 'validation.required');
+/** 1 to 120 months, the server's limits. */
+const months = z.string().regex(/^([1-9][0-9]?|1[01][0-9]|120)$/, 'validation.termMonths');
 
 const termsSchema = z
   .object({
     interestMethod: z.enum(['FLAT', 'REDUCING_BALANCE']),
-    interestRatePercent: z.string().regex(/^(100|[0-9]{1,2})(\.[0-9]{1,4})?$/, 'validation.rate'),
+    interestRatePercent: z.string().regex(/^(100(\.0{1,4})?|[0-9]{1,2}(\.[0-9]{1,4})?)$/, 'validation.rate'),
     interestPeriod: z.enum(['MONTH', 'LOAN_TERM']),
     repaymentFrequency: z.enum(['MONTHLY', 'AT_MATURITY']),
     minTermMonths: months,
     maxTermMonths: months,
     minAmount: optionalWholeRwf,
     maxAmount: optionalWholeRwf,
-    maxMultipleOfSavings: z.string().regex(/^([0-9]{1,5}(\.[0-9]{1,2})?)?$/, 'validation.multiple'),
+    // Empty (no limit) or more than zero.
+    maxMultipleOfSavings: z.string().regex(/^((?!0+(\.0+)?$)[0-9]{1,5}(\.[0-9]{1,2})?)?$/, 'validation.multiple'),
     dualApprovalThreshold: optionalWholeRwf,
     graceDays: z.string().regex(/^[0-9]{1,3}$/, 'validation.required'),
     allowConcurrentLoans: z.boolean(),
@@ -36,6 +39,11 @@ const termsSchema = z
   .refine((v) => Number.parseInt(v.maxTermMonths, 10) >= Number.parseInt(v.minTermMonths, 10), {
     path: ['maxTermMonths'],
     message: 'validation.termRange',
+  })
+  // The server has no schedule for a reducing balance with a whole-term rate or a single repayment.
+  .refine((v) => v.interestMethod === 'FLAT' || (v.interestPeriod === 'MONTH' && v.repaymentFrequency === 'MONTHLY'), {
+    path: ['interestMethod'],
+    message: 'validation.reducingBalance',
   });
 type TermsInput = z.input<typeof termsSchema>;
 type TermsValues = z.output<typeof termsSchema>;
@@ -69,14 +77,14 @@ const wholeText = (amount: string | null) => (amount ? amount.replace(/\.0+$/, '
 function toForm(terms: ProductTerms): TermsInput {
   return {
     interestMethod: terms.interestMethod,
-    interestRatePercent: String(terms.interestRatePercent).replace(/\.?0+$/, '') || '0',
+    interestRatePercent: formatDecimal(terms.interestRatePercent),
     interestPeriod: terms.interestPeriod,
     repaymentFrequency: terms.repaymentFrequency === 'AT_MATURITY' ? 'AT_MATURITY' : 'MONTHLY',
     minTermMonths: String(terms.minTermMonths),
     maxTermMonths: String(terms.maxTermMonths),
     minAmount: wholeText(terms.minAmount),
     maxAmount: wholeText(terms.maxAmount),
-    maxMultipleOfSavings: terms.maxMultipleOfSavings === null ? '' : String(terms.maxMultipleOfSavings),
+    maxMultipleOfSavings: terms.maxMultipleOfSavings === null ? '' : formatDecimal(terms.maxMultipleOfSavings),
     dualApprovalThreshold: wholeText(terms.dualApprovalThreshold),
     graceDays: String(terms.graceDays),
     allowConcurrentLoans: terms.allowConcurrentLoans,
@@ -139,7 +147,7 @@ function TermsFields({ field, errors }: { field: (name: TermsField) => UseFormRe
   const error = (name: TermsField) => fieldError(t, errors[name]);
   return (
     <>
-      <SelectField label={t('loanProducts.interestMethod')} {...field('interestMethod')}>
+      <SelectField label={t('loanProducts.interestMethod')} error={error('interestMethod')} {...field('interestMethod')}>
         <option value="FLAT">{t('loanProducts.FLAT')}</option>
         <option value="REDUCING_BALANCE">{t('loanProducts.REDUCING_BALANCE')}</option>
       </SelectField>
@@ -226,7 +234,7 @@ function TermsSummary({ terms }: { terms: ProductTerms }) {
       <dt className="text-muted">{t('loanProducts.interest')}</dt>
       <dd>
         {t('loanProducts.rateSummary', {
-          rate: String(terms.interestRatePercent).replace(/\.?0+$/, '') || '0',
+          rate: formatDecimal(terms.interestRatePercent),
           period: t(`loanProducts.per_${terms.interestPeriod}`),
           method: t(`loanProducts.${terms.interestMethod}`),
         })}
@@ -237,10 +245,10 @@ function TermsSummary({ terms }: { terms: ProductTerms }) {
       <dd>{t('loanProducts.termRange', { min: terms.minTermMonths, max: terms.maxTermMonths })}</dd>
       <dt className="text-muted">{t('loanProducts.amount')}</dt>
       <dd>
-        {money(terms.minAmount)} – {money(terms.maxAmount)}
+        {t('loanProducts.amountRange', { min: money(terms.minAmount), max: money(terms.maxAmount) })}
       </dd>
       <dt className="text-muted">{t('loanProducts.multiple')}</dt>
-      <dd>{terms.maxMultipleOfSavings === null ? t('loanProducts.noLimit') : `× ${String(terms.maxMultipleOfSavings)}`}</dd>
+      <dd>{terms.maxMultipleOfSavings === null ? t('loanProducts.noLimit') : t('loanProducts.multipleValue', { multiple: formatDecimal(terms.maxMultipleOfSavings) })}</dd>
       <dt className="text-muted">{t('loanProducts.threshold')}</dt>
       <dd>{terms.dualApprovalThreshold ? formatRwf(terms.dualApprovalThreshold) : t('loanProducts.alwaysTwo')}</dd>
       <dt className="text-muted">{t('loanProducts.graceDays')}</dt>
@@ -255,12 +263,11 @@ function Product({ product, manager }: { product: LoanProductView; manager: bool
   const queryClient = useQueryClient();
   const { withStepUp } = useSession();
   const [editing, setEditing] = useState(false);
-  const [proposed, setProposed] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const base = `/groups/${group.groupId}/loan-products/${product.productId}`;
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ['loan-products', group.groupId] });
 
-  const { register, handleSubmit, formState } = useForm<TermsInput, unknown, TermsValues>({
+  const { register, handleSubmit, formState, reset } = useForm<TermsInput, unknown, TermsValues>({
     resolver: zodResolver(termsSchema),
     defaultValues: toForm(product.terms),
   });
@@ -270,7 +277,6 @@ function Product({ product, manager }: { product: LoanProductView; manager: bool
     onSuccess: (_view, body) => {
       if (body.terms) {
         setEditing(false);
-        setProposed(true);
       }
       refresh();
     },
@@ -295,11 +301,10 @@ function Product({ product, manager }: { product: LoanProductView; manager: bool
       </div>
       <TermsSummary terms={product.terms} />
       <ErrorMessage error={update.error ?? decide.error} />
-      {proposed && !pending && <Alert tone="success">{t('loanProducts.proposed')}</Alert>}
 
       {pending && (
         <section className="flex flex-col gap-2 rounded-lg bg-surface p-3">
-          <Alert tone="warning">{t('loanProducts.pending')}</Alert>
+          <Alert tone="warning">{proposedByMe ? t('loanProducts.proposed') : t('loanProducts.pending')}</Alert>
           <TermsSummary terms={pending.proposed} />
           {manager && !proposedByMe && (
             <>
@@ -331,7 +336,14 @@ function Product({ product, manager }: { product: LoanProductView; manager: bool
       {manager && !editing && (
         <div className="flex flex-wrap gap-2">
           {product.status === 'ACTIVE' && (
-            <Button variant="secondary" onClick={() => setEditing(true)}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                // Start from the terms as they are now, not as they were when this card first rendered.
+                reset(toForm(product.terms));
+                setEditing(true);
+              }}
+            >
               {t('loanProducts.editTerms')}
             </Button>
           )}

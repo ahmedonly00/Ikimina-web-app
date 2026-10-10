@@ -1,7 +1,6 @@
 package rw.ikimina.loans.internal;
 
 import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rw.ikimina.audit.AuditEvent;
 import rw.ikimina.audit.AuditService;
+import rw.ikimina.groups.GroupMembers;
 import rw.ikimina.ledger.AccountRef;
 import rw.ikimina.ledger.AccountType;
 import rw.ikimina.ledger.JournalRequest;
@@ -21,7 +21,6 @@ import rw.ikimina.ledger.JournalType;
 import rw.ikimina.ledger.Ledger;
 import rw.ikimina.ledger.PostedJournal;
 import rw.ikimina.loans.internal.LoanStateMachine.Action;
-import rw.ikimina.loans.internal.LoanStateMachine.Status;
 import rw.ikimina.shared.error.ApiException;
 import rw.ikimina.shared.error.ErrorCode;
 import rw.ikimina.shared.money.Money;
@@ -50,12 +49,15 @@ class RepaymentService {
     private final LoanProductService productService;
     private final LoanQueries queries;
     private final Ledger ledger;
+    private final LoanStatusUpdater statusUpdater;
+    private final GroupMembers members;
     private final AuditService audit;
     private final Clock clock;
 
     RepaymentService(LoanRepository loans, LoanInstallmentRepository installments, LoanRepaymentRepository repayments,
                      RepaymentAllocationRepository allocations, LoanDisbursementRepository disbursements,
-                     LoanProductService productService, LoanQueries queries, Ledger ledger, AuditService audit, Clock clock) {
+                     LoanProductService productService, LoanQueries queries, Ledger ledger, LoanStatusUpdater statusUpdater,
+                     GroupMembers members, AuditService audit, Clock clock) {
         this.loans = loans;
         this.installments = installments;
         this.repayments = repayments;
@@ -64,6 +66,8 @@ class RepaymentService {
         this.productService = productService;
         this.queries = queries;
         this.ledger = ledger;
+        this.statusUpdater = statusUpdater;
+        this.members = members;
         this.audit = audit;
         this.clock = clock;
     }
@@ -77,7 +81,9 @@ class RepaymentService {
         LocalDate today = BusinessTime.today(clock);
         LocalDate date = businessDate == null ? today : businessDate;
         String ref = externalRef == null || externalRef.isBlank() ? null : externalRef.trim();
-        String requestHash = RequestKeys.hash(loan.getPublicId() + "|" + amount.toWireString() + "|" + method + "|" + ref + "|" + date);
+        // The date as the client sent it (null = today), so a retry after midnight is still the same request.
+        String requestHash = RequestKeys.hash(loan.getPublicId() + "|" + amount.toWireString() + "|" + method + "|" + ref + "|"
+                + businessDate);
 
         Optional<LoanRepayment> earlier = repayments.findByGroupIdAndIdempotencyKey(scope.groupId(), key);
         if (earlier.isPresent()) {
@@ -129,15 +135,14 @@ class RepaymentService {
         allocations.flush();
         installments.flush();
 
-        Status before = loan.getStatus();
-        refreshLoanStatus(loan, schedule, clock.instant());
-        loans.flush();
+        boolean ownLoan = OwnLoan.recordedByBorrower(members, loan);
         audit.record(AuditEvent.of("LOAN_REPAYMENT_RECORDED").entity("loan_repayment", repayment.getPublicId())
                 .after(Map.of("loan", loan.getPublicId(), "amount", amount, "interest", interest, "principal", principal,
-                        "method", method, "journal", journal.publicId(), "externalRef", ref == null ? "" : ref)));
-        if (loan.getStatus() == Status.SETTLED && before != Status.SETTLED) {
-            audit.record(AuditEvent.of("LOAN_SETTLED").entity("loan", loan.getPublicId()).before(Map.of("status", before)));
-        }
+                        "method", method, "journal", journal.publicId(), "externalRef", ref == null ? "" : ref,
+                        "recordedByBorrower", ownLoan))
+                .reason(ownLoan ? OwnLoan.REASON : null));
+        statusUpdater.refresh(loan, schedule);
+        loans.flush();
         return queries.view(loan);
     }
 
@@ -165,19 +170,6 @@ class RepaymentService {
             }
         }
         return splits;
-    }
-
-    /** Settled when nothing is owed; otherwise overdue exactly while an installment is. */
-    static void refreshLoanStatus(Loan loan, List<LoanInstallment> schedule, Instant now) {
-        boolean paid = schedule.stream().allMatch(i -> i.getStatus() == LoanInstallment.Status.PAID);
-        boolean overdue = schedule.stream().anyMatch(i -> i.getStatus() == LoanInstallment.Status.OVERDUE);
-        if (paid) {
-            LoanStateMachine.target(loan.getStatus(), Action.SETTLE).ifPresent(s -> loan.apply(Action.SETTLE, now));
-        } else if (overdue && loan.getStatus() == Status.DISBURSED) {
-            loan.apply(Action.MARK_OVERDUE, now);
-        } else if (!overdue && loan.getStatus() == Status.OVERDUE) {
-            loan.apply(Action.CLEAR_OVERDUE, now);
-        }
     }
 
     private static Money min(Money a, Money b) {

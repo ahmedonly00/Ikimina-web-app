@@ -26,8 +26,9 @@ public interface LoanInstallmentRepository extends JpaRepository<LoanInstallment
     @Query(value = """
             SELECT DISTINCT i.loan_id FROM loan_installments i
             JOIN loans l ON l.id = i.loan_id AND l.group_id = i.group_id
-            WHERE i.group_id = :groupId AND i.status IN ('PENDING', 'PARTIAL')
-              AND i.due_date + l.grace_days < :today AND l.status IN ('DISBURSED', 'OVERDUE')
+            WHERE i.group_id = :groupId AND l.status IN ('DISBURSED', 'OVERDUE')
+              AND (i.status IN ('PENDING', 'PARTIAL') AND i.due_date + l.grace_days < :today
+                   OR i.status = 'OVERDUE' AND l.status = 'DISBURSED')
             ORDER BY i.loan_id""", nativeQuery = true)
     List<Long> loansWithNewlyOverdueInstallments(@Param("groupId") long groupId, @Param("today") LocalDate today);
 }

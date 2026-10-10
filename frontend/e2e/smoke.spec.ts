@@ -53,8 +53,25 @@ test('register, verify, start a group, sign out and back in', async ({ page }) =
   await expect(page.getByRole('heading', { name: 'Monthly savings' })).toBeVisible();
 
   await page.getByRole('link', { name: 'Savings', exact: true }).click();
-  await expect(page.getByText('Total savings')).toBeVisible();
-  await expect(page.getByText('Monthly savings')).toBeVisible();
+  const balances = page.getByRole('region', { name: 'Total savings' });
+  await expect(balances).toBeVisible();
+  // The fund also appears under "What is owed" once its first due amount exists, so look among the balances.
+  await expect(balances.getByText('Monthly savings')).toBeVisible();
+
+  // Phase 3: a loan product, then a loan request the group cannot fund yet - the reason is shown.
+  await page.getByRole('link', { name: 'Loan products' }).click();
+  await page.getByRole('button', { name: 'New loan product' }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Standard loan');
+  await page.getByRole('button', { name: 'Create product' }).click();
+  await expect(page.getByRole('heading', { name: 'Standard loan' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Loans', exact: true }).click();
+  await page.getByRole('link', { name: 'Request a loan' }).click();
+  await page.getByLabel('Loan product').selectOption({ label: 'Standard loan' });
+  await page.getByLabel('Amount (RWF)').fill('10000');
+  await page.getByLabel('Months to repay').fill('3');
+  await page.getByRole('button', { name: 'Send request' }).click();
+  await expect(page.getByRole('alert')).toContainText('available to lend');
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();

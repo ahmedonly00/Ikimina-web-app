@@ -144,10 +144,17 @@ export function ErrorMessage({ error }: { error: unknown }) {
     return null;
   }
   if (error instanceof ApiError) {
-    const { detail, title, requestId } = error.problem;
+    const { detail, title, requestId, reasons } = error.problem;
     return (
       <Alert tone="danger">
         <span>{detail || title || t('errors.generic')}</span>
+        {reasons && reasons.length > 0 && (
+          <ul className="mt-1 list-inside list-disc">
+            {reasons.map((reason) => (
+              <li key={reason.code}>{reason.message}</li>
+            ))}
+          </ul>
+        )}
         {requestId && error.status >= 500 && <span className="block text-xs">{t('errors.reference', { requestId })}</span>}
       </Alert>
     );

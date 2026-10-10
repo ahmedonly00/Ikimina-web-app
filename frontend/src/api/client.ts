@@ -16,6 +16,8 @@ export interface Problem {
   detail: string;
   requestId?: string;
   errors?: { field: string; constraint: string }[];
+  /** Every reason a request was refused, each already localised by the server (e.g. LOAN_NOT_ELIGIBLE). */
+  reasons?: { code: string; message: string }[];
 }
 
 export class ApiError extends Error {
